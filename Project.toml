@@ -1,6 +1,6 @@
 name = "ectotherm"
 uuid = "b296eefe-8ffd-498e-9f4f-4dd5a85c833d"
-authors = ["Urtzi_EU <urtzi.enriquez@gmail.com> and contributors"]
+authors = ["BiophysicalEcology"]
 version = "0.1.0"
 
 [compat]
