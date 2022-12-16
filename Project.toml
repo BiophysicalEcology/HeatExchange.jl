@@ -1,9 +1,10 @@
-name = "ectotherm"
+name = "Ectotherm"
 uuid = "b296eefe-8ffd-498e-9f4f-4dd5a85c833d"
 authors = ["BiophysicalEcology"]
 version = "0.1.0"
 
 [compat]
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 julia = "1"
 
 [extras]

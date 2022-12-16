@@ -1,6 +1,8 @@
-using ectotherm
+using Ectotherm
 using Test
+using Plots
+using UnitfulRecipes
 
-@testset "ectotherm.jl" begin
-    # Write your tests here.
-end
+include("biophysics.jl") end
+include("geometry.jl") end
+include("ectotherm.jl") end
