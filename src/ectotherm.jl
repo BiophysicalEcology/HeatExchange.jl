@@ -1,5 +1,2 @@
-module ectotherm
 
-# Write your package code here.
-
-end
+# Write ectotherm model here
