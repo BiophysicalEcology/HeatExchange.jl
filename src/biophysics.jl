@@ -7,7 +7,7 @@ end
 function solar(alpha_object, A_silhouette, A_up, A_down, alpha_substrate, Q_direct, Q_diffuse, Z)
     Q_norm = Q_direct / cos(Z)
     Q_direct = alpha_object * A_sillhouette * Q_norm
-    Q_diffuse = alpha_object * A_up * Q_diffuse + alpha_organism * A_down * (Q_direct + Q_diffuse) * (1 - alpha_substrate)
+    Q_diffuse = alpha_object * A_up * Q_diffuse + alpha_object * A_down * (Q_direct + Q_diffuse) * (1 - alpha_substrate)
     Q_direct + Q_norm
 end
 
