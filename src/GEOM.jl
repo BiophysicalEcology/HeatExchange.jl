@@ -32,6 +32,7 @@ struct Body{S<:Shape,I<:Insulation,G} <: AbstractBody
     insulation::I
     geometry::G
 end
+
 # Add a Body constructor from shape, insulation, mass and density
 function Body(shape::Shape, insulation::Insulation)
     Body(shape, insulation, geometry(shape, insulation))
