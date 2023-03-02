@@ -102,7 +102,7 @@ function dry_air(T_drybulb, P_atmos=101325Pa, elev=0m)
     c = 120K
     μ = (vis_not * (T_not + c) / (T_drybulb + c)) * (T_drybulb / T_not)^1.5 # kg / m.s
     ν = μ / ρ_air # m2 / s or J.s/kg
-    dif_vpr = 2.26e-5m^2/s * ((T_drybulb / 273.15K)^1.81) * (1.e5Pa / P) # m2 / s
+    dif_vpr = 2.26e-5m^2/s * ((T_drybulb / 273.15K)^1.81) * (1.e5Pa / P_atmos) # m2 / s
     k_fluid = (0.02425 + (7.038e-5 * (Unitful.ustrip(T_drybulb) - 273.15)))W/m/K
     L_v = (2.5012E6 - 2.3787e3 * Unitful.ustrip(T_drybulb) - 273.15)J/kg
     tcoeff = 1 / T_drybulb
@@ -291,7 +291,7 @@ function solar(α_org, A_sil, A_up, A_down, α_sub, Q_direct, Q_diffuse, Z)
 end
 
 
-function radin(A_tot = 0.01325006,
+function radin(A_tot = 0.01325006m^2,
     A_cond = 0.001325006m^2,
     A_cont = 0m^2,
     F_sky = 0.4,
@@ -373,22 +373,22 @@ function evap(
   #C     P_atmos=P_std*((1.-(.0065*ALT/288.))**(1./.190284))
 
   wet_air_out = wet_air(T_drybulb, T_wetbulb, RH, T_dew, P_atmos)
-  VDSURF = wet_air_out.ρ_air
+  VDSURF = wet_air_out.ρ_vap
 
   #C     AIR VAPOR DENSITY
   T_drybulb = T_air
 
   wet_air_out = wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
-  VDAIR = wet_air_out.ρ_air
+  VDAIR = wet_air_out.ρ_vap
 
-  WEYES = HD * PEYES * A_tot * (VDSURF - VDAIR)
+  WEYES = Hd * PEYES * A_tot * (VDSURF - VDAIR)
 
   WRESP = GEVAP / 1000
 
   if WEYES > 0kg/s
-    WCUT = (AEFF - PEYES * A_tot * SKINW) * HD * (VDSURF - VDAIR)
+    WCUT = (AEFF - PEYES * A_tot * SKINW) * Hd * (VDSURF - VDAIR)
   else
-    WCUT = AEFF * HD * (VDSURF - VDAIR)
+    WCUT = AEFF * Hd * (VDSURF - VDAIR)
   end
   WATER = WEYES + WRESP + WCUT
   #C     END OF COMPUTING AEFF FOR SURFACE OR NOT

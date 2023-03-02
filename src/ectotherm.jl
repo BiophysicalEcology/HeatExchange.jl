@@ -1,2 +1,0 @@
-
-# Write ectotherm model here
