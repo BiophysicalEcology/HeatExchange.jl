@@ -198,8 +198,8 @@ end
 function geometry(shape::Frog, ::Naked)
     volume = shape.mass / shape.density
     length = volume^(1 / 3)
-    mass_g = Unitful.ustrip(Unitful.uconvert(u"g", shape.mass))
-    area = Unitful.uconvert(u"m^2", (12.79 * mass_g ^ 0.606)u"cm^2") # eq in Fig. 5
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    area = Unitful.uconvert(u"m^2", (12.79 * Unitful.ustrip(mass_g) ^ 0.606)u"cm^2") # eq in Fig. 5
     return Geometry(volume, length, nothing, area)
 end
 # function geometry(shape::Ellipsoid, fur::Fur)
@@ -232,8 +232,8 @@ end
 function geometry(shape::Lizard, ::Naked)
     volume = shape.mass / shape.density
     length = volume^(1 / 3)
-    mass_g = Unitful.ustrip(Unitful.uconvert(u"g", shape.mass))
-    area = Unitful.uconvert(u"m^2", (10.4713 * mass_g ^ 0.688)u"cm^2") # eq in Fig. 5
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    area = Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2") # eq in Fig. 5
     return Geometry(volume, length, nothing, area)
 end
 # function geometry(shape::Ellipsoid, fur::Fur)
