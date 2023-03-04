@@ -142,13 +142,13 @@ end
 function geometry(shape::Ellipsoid, ::Naked)
     volume = shape.mass / shape.density
     length = volume^(1 / 3)
-    a = ((3 / 4)* volume / (π * shape.b * shape.c)) ^ (1 / 3)
+    a = ((3 / 4)* Unitful.ustrip(volume) / (π * shape.b * shape.c)) ^ (1 / 3)
     b = a * shape.b
     c = a * shape.c
     p = 1.6075
-    length1 = a * 2
-    length2 = b * 2
-    length3 = c * 2
+    length1 = a * 2m
+    length2 = b * 2m
+    length3 = c * 2m
     area = area_of_ellipsoid(a, b, c)
     return Geometry(volume, length, (length1, length2, length3), area)
 end
