@@ -51,6 +51,41 @@ end
 
 
 """
+    Plate <: Shape
+
+A flat plate-shaped organism.
+"""
+struct Plate{M,D,B,C} <: Shape
+    mass::M
+    density::D
+    b::B
+    c::C
+end
+
+function geometry(shape::Plate, ::Naked)
+    volume = shape.mass / shape.density
+    length = volume^(1 / 3)
+    a = (volume / (shape.b * shape.c))^(1 / 3)
+    b = shape.b * a
+    c = shape.c * a
+    length1 = a * 2
+    length2 = b * 2
+    length3 = c * 2
+    area = area_of_plate(a, b, c)
+    return Geometry(volume, length, (length1, length2, length3), area)
+end
+
+# function geometry(shape::Plate, fur::Fur)
+#     # Something different with fur
+#     # ...
+#     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
+# end
+
+function area_of_plate(a, b, c)
+    a * b * 2 + a * c * 2 + b * c * 2
+end
+
+"""
     Cylinder <: Shape
 
 A cylindrical organism.
@@ -76,6 +111,21 @@ end
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
+
+function area_of_cylinder(r, l)
+    2 * π * r * l + 2 * π * r^2
+end
+
+"""
+    sil_area_of_cylinder
+
+Calculates the silhouette (projected) area of a cylinder.
+Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
+(1998). Environmental Biophysics. Springer.
+"""
+function sil_area_of_cylinder(r, l, θ)
+    2 * r * l * sin(θ) + π * r^2 * cos(θ)
+end
 
 """
     Ellipsoid <: Shape
@@ -132,17 +182,72 @@ function sil_area_of_ellipsoid(a, b, c, θ)
     π * semax1  * semax2
 end
 
-function area_of_cylinder(r, l)
-    2 * π * r * l + 2 * π * r^2
-end
+
+
 
 """
-    sil_area_of_cylinder
+    Frog <: Shape
 
-Calculates the silhouette (projected) area of a cylinder.
-Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
-(1998). Environmental Biophysics. Springer.
+An frog-shaped organism. Based on the leopard frog (Tracy 1976 Ecol. Monog.)
 """
-function sil_area_of_cylinder(r, l, θ)
-    2 * r * l * sin(θ) + π * r^2 * cos(θ)
+struct Frog{M,D} <: Shape
+    mass::M
+    density::D
 end
+
+function geometry(shape::Frog, ::Naked)
+    volume = shape.mass / shape.density
+    length = volume^(1 / 3)
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    area = Unitful.uconvert(u"m^2", (12.79 * Unitful.ustrip(mass_g) ^ 0.606)u"cm^2") # eq in Fig. 5
+    return Geometry(volume, length, nothing, area)
+end
+# function geometry(shape::Ellipsoid, fur::Fur)
+#     # Something different with fur
+#     # ...
+#     return Geometry(volume, length, (length1, length2, length3), area)
+# end
+
+"""
+    sil_area_of_frog
+
+Calculates the silhouette (projected) area of a leopard frog.
+"""
+function sil_area_of_frog(area, θ)
+    pct = 1.38171e-6 * θ ^ 4 - 1.93335e-4 * θ ^ 3 + 4.75761e-3 * θ ^ 2 - 0.167912 * θ + 45.8228
+    sil_area = pct * area / 100
+end
+
+
+"""
+    Lizard <: Shape
+
+An lizard-shaped organism. (Porter and Tracy 1984)
+"""
+struct Lizard{M,D} <: Shape
+    mass::M
+    density::D
+end
+
+function geometry(shape::Lizard, ::Naked)
+    volume = shape.mass / shape.density
+    length = volume^(1 / 3)
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    area = Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2") # eq in Fig. 5
+    return Geometry(volume, length, nothing, area)
+end
+# function geometry(shape::Ellipsoid, fur::Fur)
+#     # Something different with fur
+#     # ...
+#     return Geometry(volume, length, (length1, length2, length3), area)
+# end
+
+# """
+#     sil_area_of_frog
+
+# Calculates the silhouette (projected) area of a leopard frog.
+# """
+# function sil_area_of_lizard(area, θ)
+#     pct = 1.38171e-6 * θ ^ 4 - 1.93335e-4 * θ ^ 3 + 4.75761e-3 * θ ^ 2 - 0.167912 * θ + 45.8228
+#     sil_area = pct * area / 100
+# end

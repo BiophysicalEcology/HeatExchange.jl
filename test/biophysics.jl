@@ -1,5 +1,13 @@
+using Revise
+using Unitful
+using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
+
+include("./Ectotherm.jl/src/GEOM.jl")
+include("./Ectotherm.jl/src/biophysics.jl")
+include("./Ectotherm.jl/src/heat_balance.jl")
+
 T_air = (20+273.15)K
-T_surf = (20.1+273.15)K
+T_surf = (25.1+273.15)K
 T_core = (20.2+273.15)K
 F_sky = 0.4
 F_sub = 0.4
@@ -22,13 +30,25 @@ vel = 1m/s
 fluid = 0
 p_cond = 0.1
 p_cont = 0
-A_tot = trunk.geometry.area
 A_v = A_tot * p_cond
 A_t = A_tot * p_cont
-A_conv = A_tot - A_tot * p_cond - A_tot * p_cont # m2
-CONV = convection(trunk, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
+
 RADIN = radin(A_tot, A_v, A_t, F_sky, F_sub, F_obj, ϵ_org, ϵ_sub, ϵ_sky, T_sky, T_sub)
 RADOUT = radout(T_surf, A_tot, A_v, A_t, F_sky, F_sub, ϵ_org)
+
 GEVAP = 1.177235e-09kg/s
-Hd = CONV.Hd
-EVAP = evap(T_core, T_skin, GEVAP, ψ_org, SKINW, AEFF, A_tot, Hd, PEYES, T_air, rh, VEL, P_atmos)
+T_air = (20+273.15)K
+T_surf = (25.1+273.15)K
+T_core = (25+273.15)K
+EVAP = evap(T_core, T_surf, GEVAP, ψ_org, SKINW, AEFF, A_tot, hd, PEYES, T_air, rh, vel, P_atmos)
+
+density = 1000kg/m^3
+trunkmass = 0.04kg
+trunkshapeb = 3
+trunkshape = Cylinder(trunkmass, density, trunkshapeb) 
+trunk = Body(trunkshape, Naked())
+T_surf = (25+273.15)K
+A_v = 0.01192505
+CONV = convection(trunk, A_v, T_air, T_surf, vel, P_atmos, elev, fluid)
+
+# heat_balance(trunk, params, env)
