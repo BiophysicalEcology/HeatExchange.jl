@@ -145,7 +145,6 @@ function geometry(shape::Ellipsoid, ::Naked)
     a = ((3 / 4)* Unitful.ustrip(volume) / (π * shape.b * shape.c)) ^ (1 / 3)
     b = a * shape.b
     c = a * shape.c
-    p = 1.6075
     length1 = a * 2m
     length2 = b * 2m
     length3 = c * 2m
