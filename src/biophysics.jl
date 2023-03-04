@@ -283,26 +283,22 @@ function conduction(A, L, T_org, T_sub, k_sub)
     A * (k_sub / L) * (T_org - T_sub)
 end
 
-function solar(α_org, A_sil, A_up, A_down, α_sub, Q_direct, Q_diffuse, Z)
-    Q_norm = Q_direct / cos(Z)
-    Q_direct = α_org * A_sil * Q_norm
-    Q_diffuse = α_org * A_up * Q_diffuse + α_org * A_down * (Q_direct + Q_diffuse) * (1 - α_sub)
-    Q_direct + Q_norm
+function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
+    Q_direct = α_org_dorsal * A_sil * Q_dir
+    Q_sol_sky = α_org_dorsal * F_sky * A_up * Q_dif
+    Q_sol_sub = α_org_ventral * F_sub * A_down * (1 - α_sub) * (Q_dir + Q_dif)
+    (Q_direct + Q_sol_sub + Q_sol_sky)
 end
 
 
 function radin(A_tot = 0.01325006m^2,
-    A_cond = 0.001325006m^2,
-    A_cont = 0m^2,
     F_sky = 0.4,
     F_sub = 0.4,
-    F_obj = 0,
     ϵ_org = 0.95,
     ϵ_sub = 0.95,
     ϵ_sky = 0.8,
     T_sky = (10+273.15)K,
-    T_sub = (30+273.15)K,
-    T_obj = T_sub)
+    T_sub = (30+273.15)K)
 
 σ_IR =5.670374419e-8W/m^2/K^4
 
@@ -310,28 +306,22 @@ F_sky = F_sky - F_obj
 if F_sky < 0
     F_sky = 0
 end
-Q_ir_sky = ϵ_org * F_sky * (A_tot-A_cont / 2) * ϵ_sky * σ_IR * T_sky ^ 4
-Q_ir_sub = ϵ_org * F_sub * (A_tot-A_cond-A_cont / 2) * ϵ_sub * σ_IR * T_sub ^ 4
-Q_ir_obj = ϵ_org * F_obj * (A_tot-A_cont / 2) * ϵ_sub * σ_IR * T_obj ^ 4
-Q_ir_in = Q_ir_sky + Q_ir_sub + Q_ir_obj
-(Q_ir_in)
+Q_ir_sky = ϵ_org * F_sky * A_tot * ϵ_sky * σ_IR * T_sky ^ 4
+Q_ir_sub = ϵ_org * F_sub * A_tot * ϵ_sub * σ_IR * T_sub ^ 4
+(Q_ir_sky + Q_ir_sub)
 end
 
 function radout(
     T_skin = (25.1+273.15)K,
     A_tot = 0.01325006m^2,
-    A_cond = 0.001325006m^2,
-    A_cont = 0m^2,
     F_sky = 0.4,
     F_sub = 0.4,
     ϵ_org = 0.95)
 # C     COMPUTES LONGWAVE RADIATION LOST
 σ_IR =5.670374419e-8W/m^2/K^4
-X = T_skin
-Q_ir_to_sky = (A_tot - A_cont / 2) * F_sky * ϵ_org * σ_IR  * X ^ 4
-Q_ir_to_sub = (A_tot - A_cond - A_cont / 2) * F_sub * ϵ_org * σ_IR  * X ^ 4
-Q_ir_out = Q_ir_to_sky + Q_ir_to_sub
-(Q_ir_out)
+Q_ir_to_sky = A_tot * F_sky * ϵ_org * σ_IR  * T_skin ^ 4
+Q_ir_to_sub = A_tot * F_sub * ϵ_org * σ_IR  * T_skin ^ 4
+(Q_ir_to_sky + Q_ir_to_sub)
 end
 
 function evap(
