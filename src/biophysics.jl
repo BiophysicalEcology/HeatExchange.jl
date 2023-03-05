@@ -91,7 +91,7 @@ function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=999K, P_atmos=10132
 end
 
 function dry_air(T_drybulb, P_atmos=101325Pa, elev=0m)
-    σ_IR = 5.670374419e-8W/m^2/K^4
+    σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
     M_a = 0.028965924869122257kg/mol # molar mass of air
     P_std = 101325Pa
     P_atmos = P_std * ((1 - (0.0065 * elev / 288m))^(1 / 0.190284))
@@ -107,7 +107,7 @@ function dry_air(T_drybulb, P_atmos=101325Pa, elev=0m)
     L_v = (2.5012E6 - 2.3787e3 * Unitful.ustrip(T_drybulb) - 273.15)J/kg
     tcoeff = 1 / T_drybulb
     ggroup = 0.0980616m/s^2 * tcoeff / (ν^2) # 1 / m3.K
-    bbemit = σ_IR * ((T_drybulb)^4) # W/m2
+    bbemit = σ * ((T_drybulb)^4) # W/m2
     emtmax = 2.897e-3K*m / (T_drybulb) # m
     (P_atmos=P_atmos, ρ_air=ρ_air, μ=μ, ν=ν, dif_vpr=dif_vpr, k_fluid=k_fluid, L_v=L_v, tcoeff=tcoeff, ggroup=ggroup, bbemit=bbemit, emtmax=emtmax)
 end
@@ -224,7 +224,7 @@ end
 
 function convection(Body, area, T_air, T_surf, vel, P_atmos, elev, fluid)
     shape = Body.geometry
-    G = 9.80665m/s^2 # acceleration due to gravity, m.s^2
+    G = Unitful.gn # acceleration due to gravity, m.s^2
     β = 1 / T_air
     A_conv = area # m2
     D = shape.characteristic_dimension
@@ -300,14 +300,9 @@ function radin(A_tot = 0.01325006m^2,
     T_sky = (10+273.15)K,
     T_sub = (30+273.15)K)
 
-σ_IR =5.670374419e-8W/m^2/K^4
-
-F_sky = F_sky - F_obj
-if F_sky < 0
-    F_sky = 0
-end
-Q_ir_sky = ϵ_org * F_sky * A_tot * ϵ_sky * σ_IR * T_sky ^ 4
-Q_ir_sub = ϵ_org * F_sub * A_tot * ϵ_sub * σ_IR * T_sub ^ 4
+σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
+Q_ir_sky = ϵ_org * F_sky * A_tot * ϵ_sky * σ * T_sky ^ 4
+Q_ir_sub = ϵ_org * F_sub * A_tot * ϵ_sub * σ * T_sub ^ 4
 (Q_ir_sky + Q_ir_sub)
 end
 
@@ -318,9 +313,9 @@ function radout(
     F_sub = 0.4,
     ϵ_org = 0.95)
 # C     COMPUTES LONGWAVE RADIATION LOST
-σ_IR =5.670374419e-8W/m^2/K^4
-Q_ir_to_sky = A_tot * F_sky * ϵ_org * σ_IR  * T_skin ^ 4
-Q_ir_to_sub = A_tot * F_sub * ϵ_org * σ_IR  * T_skin ^ 4
+σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
+Q_ir_to_sky = A_tot * F_sky * ϵ_org * σ  * T_skin ^ 4
+Q_ir_to_sub = A_tot * F_sub * ϵ_org * σ  * T_skin ^ 4
 (Q_ir_to_sky + Q_ir_to_sub)
 end
 
