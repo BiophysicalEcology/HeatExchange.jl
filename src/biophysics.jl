@@ -75,11 +75,11 @@ function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=999K, P_atmos=10132
         end
     end
     r_w = ((0.62197 * f_w * P_vap) / (P_atmos - f_w * P_vap))kg/kg
-    ρ_vap = P_vap * M_w / (0.998 * R * T_drybulb)
+    ρ_vap = P_vap * M_w / (0.998 * Unitful.R * T_drybulb)
     ρ_vap = Unitful.uconvert(u"kg/m^3",ρ_vap) # simplify units
     T_vir = T_drybulb * ((1.0 + r_w / (18.016 / 28.966)) / (1 + r_w))
     T_vinc = T_vir - T_drybulb
-    ρ_air = (M_a / R) * P_atmos / (0.999 * T_vir)
+    ρ_air = (M_a / Unitful.R) * P_atmos / (0.999 * T_vir)
     ρ_air = Unitful.uconvert(u"kg/m^3",ρ_air) # simplify units
     cp = ((1004.84 + (r_w * 1846.40)) / (1 + r_w))J/K/kg
     if min(rh) <= 0
@@ -95,7 +95,7 @@ function dry_air(T_drybulb, P_atmos=101325Pa, elev=0m)
     M_a = 0.028965924869122257kg/mol # molar mass of air
     P_std = 101325Pa
     P_atmos = P_std * ((1 - (0.0065 * elev / 288m))^(1 / 0.190284))
-    ρ_air = (M_a / R) * P_atmos / (T_drybulb)
+    ρ_air = (M_a / Unitful.R) * P_atmos / (T_drybulb)
     ρ_air = Unitful.uconvert(u"kg/m^3",ρ_air) # simplify units
     vis_not = 1.8325e-5kg/m/s
     T_not = 296.16K
@@ -322,16 +322,14 @@ end
 function evap(
     T_core = (25+273.15)K,
     T_skin = (25.1+273.15)K,
-    GEVAP = 1.177235e-09kg/s,
+    J_resp = 1.177235e-09kg/s,
     ψ_org = -7.07 * 100J/kg,
-    SKINW = 0.1,
-    AEFF = 1.192505e-05m^2,
+    p_wet = 0.1,
     A_tot = 0.01325006m^2,
     Hd = 0.02522706m/s,
-    PEYES = 0.03 / 100,
+    p_eyes = 0.03 / 100,
     T_air = (20+273.15)K,
     rh = 50,
-    VEL = 0.1m/s,
     P_atmos = 101325Pa)
     
   # C     THIS SUBROUTINE COMPUTES SURFACE EVAPORATION BASED ON THE MASS TRANSFER
@@ -339,56 +337,37 @@ function evap(
   # C     AND EXPOSED TO THE AIR, AND THE VAPOR DENSITY GRADIENT BETWEEN THE
   # C     SURFACE AND THE AIR, EACH AT THEIR OWN TEMPERATURE.
 
-
-  V = VEL
-  #XTRY = T_core
+  # get vapour density at surface based on water potential of body
   m_w = 0.018kg/mol #! molar mass of water, kg/mol
-  #RG = 8.314 #! gas constant, J/mol/K
-  #C     CALCULATING SKIN SURFACE SATURATION VAPOR DENSITY
-  #C      RH = 100.
-  RH = exp(ψ_org / (R / m_w * T_skin)) * 100 #
-  T_drybulb = T_skin
+  RH = exp(ψ_org / (Unitful.R / m_w * T_skin)) * 100 #
+  wet_air_out = wet_air(T_skin, 0K, RH, 999K, P_atmos)
+  ρ_vap_surf = wet_air_out.ρ_vap
 
-  #C     SETTING 3 PARAMETERS FOR WETAIR, SINCE RH IS KNOWN (SEE WETAIR LISTING)
-  T_wetbulb = 0K
-  T_dew = 999K
-  #C     P_atmos CALCULATED FROM ALTITUDE USING THE STANDARD ATMOSPHERE
-  #C     EQUATIONS FROM SUBROUTINE DRYAIR    (TRACY ET AL,1972)
-  P_std = 101325Pa
-  #C     P_atmos=P_std*((1.-(.0065*ALT/288.))**(1./.190284))
+  # get air vapour density
+  wet_air_out = wet_air(T_air, 0K, rh, 999K, P_atmos)
+  ρ_vap_air = wet_air_out.ρ_vap
 
-  wet_air_out = wet_air(T_drybulb, T_wetbulb, RH, T_dew, P_atmos)
-  VDSURF = wet_air_out.ρ_vap
-
-  #C     AIR VAPOR DENSITY
-  T_drybulb = T_air
-
-  wet_air_out = wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
-  VDAIR = wet_air_out.ρ_vap
-
-  WEYES = Hd * PEYES * A_tot * (VDSURF - VDAIR)
-
-  WRESP = GEVAP / 1000
-
-  if WEYES > 0kg/s
-    WCUT = (AEFF - PEYES * A_tot * SKINW) * Hd * (VDSURF - VDAIR)
+  # water lost from eyes if present
+  J_eyes = Hd * p_eyes * A_tot * (ρ_vap_surf - ρ_vap_air)
+  if J_eyes > 0kg/s
+    J_cut = A_tot * p_wet * (1 - p_eyes) * Hd * (ρ_vap_surf - ρ_vap_air)
   else
-    WCUT = AEFF * Hd * (VDSURF - VDAIR)
+    J_cut = A_tot * p_wet * Hd * (ρ_vap_surf - ρ_vap_air)
   end
-  WATER = WEYES + WRESP + WCUT
-  #C     END OF COMPUTING AEFF FOR SURFACE OR NOT
+  
+  # total water lost
+  J_evap = J_eyes + J_resp + J_cut
 
-  #10 CONTINUE
-
-  #C     FROM DRYAIR: LATENT HEAT OF VAPORIZATION
-  dry_air_out = dry_air(T_drybulb, P_atmos, elev)
+  # get latent heat of vapourisation and compute heat exchange due to evaporation
+  dry_air_out = dry_air(T_air, P_atmos, elev)
   L_v = dry_air_out.L_v
-  QSEVAP = (WEYES + WCUT) * L_v
-  #C     KG/S TO G/S
-  WEYES = uconvert(u"g/s",WEYES)
-  WRESP = uconvert(u"g/s",WRESP)
-  WCUT = uconvert(u"g/s",WCUT)
-  WEVAP = uconvert(u"g/s",WATER)
+  Q_evap = (J_eyes + J_cut) * L_v
+  
+  # convert from kg/s to g/s
+  J_eyes = uconvert(u"g/s",J_eyes)
+  J_resp = uconvert(u"g/s",J_resp)
+  J_cut = uconvert(u"g/s",J_cut)
+  J_evap = uconvert(u"g/s",J_evap)
 
-  (QSEVAP = QSEVAP, WEVAP = WEVAP, WRESP = WRESP, WCUT = WCUT, WEYES = WEYES)
+  (Q_evap = Q_evap, J_evap = J_evap, J_resp = J_resp, J_cut = J_cut, J_eyes = J_eyes)
 end
