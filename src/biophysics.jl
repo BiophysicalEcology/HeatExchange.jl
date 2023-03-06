@@ -361,6 +361,7 @@ function evap(
     p_eyes = 0.03 / 100,
     T_air = (20+273.15)K,
     rh = 50,
+    elev = 0m,
     P_atmos = 101325Pa)
     
   # C     THIS SUBROUTINE COMPUTES SURFACE EVAPORATION BASED ON THE MASS TRANSFER
@@ -407,5 +408,5 @@ evap(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, J_resp, Hd) = begi
     model_pars = stripparams(p)
     org_pars = model_pars[1]
     env_pars = model_pars[2]
-    evap(o.T_core, o.T_surf, J_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.P_atmos)
+    evap(o.T_core, o.T_surf, J_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
 end
