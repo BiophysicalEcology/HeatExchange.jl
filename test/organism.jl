@@ -10,4 +10,4 @@ org_pars = stripparams(org_params)
 org_pars.ϵ_org
 
 org_vars = OrganismalVars()
-org_vars.T_surf.val
+org_vars.T_surf

@@ -1,11 +1,14 @@
 using Revise
+using ModelParameters
 using Unitful
 using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
 using Roots
 
-#include("./Ectotherm.jl/src/geometry.jl")
-#include("./Ectotherm.jl/src/biophysics.jl")
-#include("./Ectotherm.jl/src/heat_balance.jl")
+include("../src/organism.jl")
+include("../src/environment.jl")
+include("../src/geometry.jl")
+include("../src/biophysics.jl")
+include("../src/heat_balance.jl")
 
 # environment
 T_air = (20+273.15)K
@@ -71,32 +74,20 @@ Q_in - Q_out
 
 # heat_balance(trunk, params, env)
 
-function energy_bal(T_x)
-
-# compute areas for exchange
-A_v = A_tot * p_cond
-A_t = A_tot * p_cont
-A_sil = sil_area_of_cylinder(body_organism.geometry.lengths[2]/2, body_organism.geometry.lengths[1], Z)
-A_up = A_tot / 2
-A_down = A_tot / 2
-
-Q_solar = solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, α_sub, F_sub, F_sky, Q_dir, Q_dif)
-Q_IR_in = radin(A_tot, F_sky, F_sub, ϵ_org, ϵ_sub, ϵ_sky, T_sky, T_sub)
-Q_IR_out = radout(T_x, A_tot, F_sky, F_sub, ϵ_org)
-
-conv_out = convection(body_organism, A_v, T_air, T_x, vel, P_atmos, elev, fluid)
-evap_out = evap(T_x, T_x, J_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
-
-Q_conv = conv_out.Q_conv # convective heat loss
-Q_evap = evap_out.Q_evap # evaporative heat loss
-
-Q_in = Q_solar + Q_IR_in # energy in
-Q_out = Q_IR_out + Q_conv + Q_evap # energy out
-Q_in - Q_out # this must balance
-
-end;
-
 T_x = T_air
 
-T_surf = find_zero(energy_bal, (T_air - 10K, T_air + 100K), Bisection())
+T_surf = find_zero(energy_balance, (T_air - 10K, T_air + 100K), Bisection())
 T_surf_C = (Unitful.ustrip(T_surf) - 273.15)°C
+
+
+# using structs to pass parameters
+model_params = Model((OrganismalPars(), EnvironmentalPars()))
+org_vars = OrganismalVars()
+env_vars = EnvironmentalVars()
+
+convection(body_organism, model_params, org_vars, env_vars)
+
+# energy_balance(T_x, body_organism, body_organism.insulation, model_params, org_vars, env_vars)
+# T_surf = find_zero(energy_balance(T_x, body_organism, body_organism.insulation, model_params, org_vars, env_vars),
+#  (T_air - 10K, T_air + 100K), Bisection())
+
