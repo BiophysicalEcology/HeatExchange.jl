@@ -282,8 +282,8 @@ end
 function convection(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars)
     model_pars = stripparams(p)
     env_pars = model_pars[2]
-    Av = Body.geometry.area * o.p_cond
-    convection(Body, Av, e.Ta, o.T_surf, e.vel, env_pars.P_atmos, env_pars.elev, env_pars.fluid)
+    Ac = Body.geometry.area * (1 - o.p_cond)
+    convection(Body, Ac, e.Ta, o.T_surf, e.vel, env_pars.P_atmos, env_pars.elev, env_pars.fluid)
 end
 
 
