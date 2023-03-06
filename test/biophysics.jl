@@ -86,11 +86,12 @@ model_params = Model((OrganismalPars(), EnvironmentalPars()))
 org_vars = OrganismalVars()
 env_vars = EnvironmentalVars()
 
-convection(body_organism, model_params, org_vars, env_vars)
+conv_out = convection(body_organism, model_params, org_vars, env_vars)
 solar(body_organism, model_params, org_vars, env_vars)
 radin(body_organism, model_params, org_vars, env_vars)
 radout(body_organism, model_params, org_vars, env_vars)
-
+J_resp = 1.177235e-09kg/s
+evap(body_organism, model_params, org_vars, env_vars, J_resp, conv_out.Hd)
 # energy_balance(T_x, body_organism, body_organism.insulation, model_params, org_vars, env_vars)
 # T_surf = find_zero(energy_balance(T_x, body_organism, body_organism.insulation, model_params, org_vars, env_vars),
 #  (T_air - 10K, T_air + 100K), Bisection())

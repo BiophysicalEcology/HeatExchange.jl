@@ -402,3 +402,10 @@ function evap(
 
   (Q_evap = Q_evap, J_evap = J_evap, J_resp = J_resp, J_cut = J_cut, J_eyes = J_eyes)
 end
+
+evap(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, J_resp, Hd) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    env_pars = model_pars[2]
+    evap(o.T_core, o.T_surf, J_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.P_atmos)
+end
