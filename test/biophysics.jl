@@ -81,11 +81,15 @@ T_surf_C = (Unitful.ustrip(T_surf) - 273.15)°C
 
 
 # using structs to pass parameters
+
 model_params = Model((OrganismalPars(), EnvironmentalPars()))
 org_vars = OrganismalVars()
 env_vars = EnvironmentalVars()
 
 convection(body_organism, model_params, org_vars, env_vars)
+solar(body_organism, model_params, org_vars, env_vars)
+radin(body_organism, model_params, org_vars, env_vars)
+radout(body_organism, model_params, org_vars, env_vars)
 
 # energy_balance(T_x, body_organism, body_organism.insulation, model_params, org_vars, env_vars)
 # T_surf = find_zero(energy_balance(T_x, body_organism, body_organism.insulation, model_params, org_vars, env_vars),

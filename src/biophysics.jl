@@ -279,7 +279,7 @@ function convection(Body, area, T_air, T_surf, vel, P_atmos, elev, fluid)
     (Q_conv=Q_conv, Hc=Hc, Hd=Hd, Sh=Sh, Q_free=Q_free, Hc_free=Hc_free, Hc_forc=Hc_forc, Sh_free=Sh_free, Sh_forc=Sh_forc, Hd_free=Hd_free, Hd_forc=Hd_forc)
 end
 
-function convection(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars)
+convection(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
     model_pars = stripparams(p)
     env_pars = model_pars[2]
     Ac = Body.geometry.area * (1 - o.p_cond)
@@ -298,6 +298,15 @@ function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky,
     (Q_direct + Q_sol_sub + Q_sol_sky)
 end
 
+solar(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    env_pars = model_pars[2]
+    A_sil = sil_area_of_cylinder(body_organism.geometry.lengths[2]/2, body_organism.geometry.lengths[1], e.zen) # have to make general function
+    A_up = Body.geometry.area / 2
+    A_down = A_up
+    solar(org_pars.α_org_dorsal, org_pars.α_org_ventral, A_sil, A_up, A_down, org_pars.F_sub, org_pars.F_sky, env_pars.α_sub, e.Q_dir, e.Q_dif)
+end
 
 function radin(A_tot = 0.01325006m^2,
     F_sky = 0.4,
@@ -314,6 +323,13 @@ Q_ir_sub = ϵ_org * F_sub * A_tot * ϵ_sub * σ * T_sub ^ 4
 (Q_ir_sky + Q_ir_sub)
 end
 
+radin(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    env_pars = model_pars[2]
+    radin(Body.geometry.area, org_pars.F_sky, org_pars.F_sub, org_pars.ϵ_org, env_pars.ϵ_sub, env_pars.ϵ_sky, e.Tsky, e.Tsub)
+end
+
 function radout(
     T_skin = (25.1+273.15)K,
     A_tot = 0.01325006m^2,
@@ -325,6 +341,13 @@ function radout(
 Q_ir_to_sky = A_tot * F_sky * ϵ_org * σ  * T_skin ^ 4
 Q_ir_to_sub = A_tot * F_sub * ϵ_org * σ  * T_skin ^ 4
 (Q_ir_to_sky + Q_ir_to_sub)
+end
+
+radout(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    env_pars = model_pars[2]
+    radout(o.T_surf, Body.geometry.area, org_pars.F_sky, org_pars.F_sub, org_pars.ϵ_org)
 end
 
 function evap(
