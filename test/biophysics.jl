@@ -23,6 +23,9 @@ Q_norm = Q_dir / cos(Z) # use this as Q_dir if want organism to be orienting tow
 α_sub = 0.85
 ϵ_sub = 1
 ϵ_sky = 1
+pctO2 = 20.95
+pctCO2 = 0.03
+pctN2 = 79.0
 
 # organism geometry
 mass_organism = 0.04kg
@@ -45,8 +48,9 @@ p_wet = 0.1/100
 p_eyes = 0.03 / 100
 p_cond = 0.1
 p_cont = 0
-
-J_resp = 1.177235e-09kg/s # respiratory water loss to be calculated by function resp
+O2_ext_ref = 20
+pant = 1
+rq = 0.8
 
 A_v = A_tot * p_cond
 A_t = A_tot * p_cont
@@ -58,9 +62,15 @@ Q_norm = Q_dir / cos(Z)
 Q_solar = solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, α_sub, F_sub, F_sky, Q_dir, Q_dif)
 Q_IR_in = radin(A_tot, F_sky, F_sub, ϵ_org, ϵ_sub, ϵ_sky, T_sky, T_sub)
 Q_IR_out = radout(T_surf, A_tot, F_sky, F_sub, ϵ_org)
+Q_metab = 0.01241022W
+T_x = T_air
+
+resp_out = resp(T_x, mass_organism, Q_metab, O2_ext_ref, pant, rq, T_air, rh, P_atmos, pctO2, pctCO2, pctN2)
+M_resp = resp_out.M_resp
+#M_resp = 1.177235e-09kg/s # respiratory water loss to be calculated by function resp
 
 conv_out = convection(body_organism, A_v, T_air, T_surf, vel, P_atmos, elev, fluid)
-evap_out = evap(T_core, T_surf, J_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
+evap_out = evap(T_core, T_surf, M_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
 
 Q_conv = conv_out.Q_conv
 Q_evap = evap_out.Q_evap
