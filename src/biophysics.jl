@@ -291,9 +291,28 @@ convection(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
     convection(Body, Ac, e.Ta, o.T_surf, e.vel, env_pars.P_atmos, env_pars.elev, env_pars.fluid)
 end
 
+convection(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    env_pars = model_pars[2]
+    Ac = Body.geometry.area * (1 - o.p_cond)
+    convection(Body, Ac, e.Ta, T_x, e.vel, env_pars.P_atmos, env_pars.elev, env_pars.fluid)
+end
 
-function conduction(A, L, T_org, T_sub, k_sub)
-    A * (k_sub / L) * (T_org - T_sub)
+
+function conduction(A, L, T_surf, T_sub, k_sub)
+    A * (k_sub / L) * (T_surf - T_sub)
+end
+
+conduction(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    L = 0.025m
+    Av = Body.geometry.area * o.p_cond
+    conduction(Av, L, o.T_surf, e.Tsub, e.k_sub)
+end
+
+conduction(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    L = 0.025m
+    Av = Body.geometry.area * o.p_cond
+    conduction(Av, L, T_x, e.Tsub, e.k_sub)
 end
 
 function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
@@ -351,11 +370,16 @@ end
 radout(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
     model_pars = stripparams(p)
     org_pars = model_pars[1]
-    env_pars = model_pars[2]
     radout(o.T_surf, Body.geometry.area, org_pars.F_sky, org_pars.F_sub, org_pars.ϵ_org)
 end
 
-function evap(
+radout(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    radout(T_x, Body.geometry.area, org_pars.F_sky, org_pars.F_sub, org_pars.ϵ_org)
+end
+
+function evaporation(
     T_core = (25+273.15)K,
     T_skin = (25.1+273.15)K,
     m_resp = 1.177235e-09kg/s,
@@ -409,12 +433,18 @@ function evap(
   (Q_evap = Q_evap, m_evap = m_evap, m_resp = m_resp, m_cut = m_cut, m_eyes = m_eyes)
 end
 
-
-evap(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, m_resp, Hd) = begin
+evaporation(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, m_resp, Hd) = begin
     model_pars = stripparams(p)
     org_pars = model_pars[1]
     env_pars = model_pars[2]
-    evap(o.T_core, o.T_surf, m_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
+    evaporation(o.T_core, o.T_surf, m_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
+end
+
+evaporation(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, m_resp, Hd) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    env_pars = model_pars[2]
+    evaporation(T_x, o.T_surf, m_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
 end
 
 """
@@ -438,7 +468,7 @@ Note that there is no recovery of heat or moisture assumed in the nose.
     - `fN2`; fractional N2 concentration in atmosphere, -
     ...    
 """
-function resp(
+function respiration(
     T_x = 296.15K,
     Q_metab = 0.01241022W,
     fO2_ext = 0.20,
@@ -446,6 +476,7 @@ function resp(
     rq = 0.8,
     T_air = 293.15K,
     rh = 50,
+    elev = 0m,
     P_atmos = 101325Pa,
     fO2 = 0.2095,
     fCO2 = 0.00042,
@@ -500,24 +531,36 @@ function resp(
   (Q_resp = Q_resp, m_resp = m_resp, J_air_in = J_air_in, J_air_out = J_air_out, J_H2O_in = J_H2O_in, J_H2O_out = J_H2O_out, J_O2_in = J_O2_in, J_O2_out = J_O2_out, J_CO2_in = J_CO2_in, J_CO2_out = J_CO2_out)
 end
 
-resp(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, Q_metab) = begin
+respiration(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, Q_metab) = begin
     model_pars = stripparams(p)
     org_pars = model_pars[1]
     env_pars = model_pars[2]
-    resp(o.T_core, Q_metab, org_pars.fO2_ext, o.pant, org_pars.rq, e.Ta, e.rh, env_pars.P_atmos, env_pars.fO2, env_pars.fCO2, env_pars.fN2)
+    respiration(o.T_core, Q_metab, org_pars.fO2_ext, o.pant, org_pars.rq, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos, env_pars.fO2, env_pars.fCO2, env_pars.fN2)
 end
 
-
-function metab(mass = 0.04kg, T_core = K(25°C), M1 = 0.013, M2 = 0.8, M3 = 0.038)
-    mass_g = uconvert(u"g", mass)
-    T_core = uconvert(u"°C", T_core)
-    T_core > 50°C && return (0.0056 * 10^(M3 * 50) * M1 * Unitful.ustrip(mass_g)^M2)W
-    T_core < 1°C && return 0.01W
-    (0.0056 * 10^(M3 * Unitful.ustrip(T_core)) * M1 * Unitful.ustrip(mass_g)^M2)W
-end
-
-metab(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+respiration(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, Q_metab) = begin
     model_pars = stripparams(p)
     org_pars = model_pars[1]
-    metab(Body.shape.mass, o.T_core, org_pars.M1, org_pars.M2, org_pars.M3)
+    env_pars = model_pars[2]
+    respiration(T_x, Q_metab, org_pars.fO2_ext, o.pant, org_pars.rq, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos, env_pars.fO2, env_pars.fCO2, env_pars.fN2)
+end
+
+function metabolism(mass = 0.04kg, T_core = K(25°C), M1 = 0.013, M2 = 0.8, M3 = 0.038)
+    mass_g = uconvert(u"g", mass)
+    T_core = uconvert(u"°C", T_core)
+    T_core > 50°C && return (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * 50))W
+    T_core < 1°C && return 0.01W
+    (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * Unitful.ustrip(T_core)))W
+end
+
+metabolism(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    metabolism(Body.shape.mass, o.T_core, org_pars.M1, org_pars.M2, org_pars.M3)
+end
+
+metabolism(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    metabolism(Body.shape.mass, T_x, org_pars.M1, org_pars.M2, org_pars.M3)
 end

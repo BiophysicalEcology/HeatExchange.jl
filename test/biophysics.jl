@@ -12,18 +12,19 @@ include("../src/heat_balance.jl")
 
 # environment
 T_air = (20+273.15)K
-T_sky = (10+273.15)K
+T_sky = (-5+273.15)K
 T_sub = (30+273.15)K
+k_sub = 0.5W/m/K
 P_atmos = 101325Pa
-rh = 50
+rh = 5
 elev = 0m
 vel = 1m/s
 fluid = 0
-Z = 0°
-Q_dir = 700W/m^2
-Q_dif = 150W/m^2
+Z = 20°
+Q_dir = 1000W/m^2
+Q_dif = 200W/m^2
 Q_norm = Q_dir / cos(Z) # use this as Q_dir if want organism to be orienting towards beam
-α_sub = 0.85
+α_sub = 0.2
 ϵ_sub = 1
 ϵ_sky = 1
 fO2 = 0.2095
@@ -43,8 +44,8 @@ T_core = K(20°C)
 T_surf = K(20°C) # skin
 F_sky = 0.4
 F_sub = 0.4
-α_org_dorsal = 0.8
-α_org_ventral = 0.8
+α_org_dorsal = 0.85
+α_org_ventral = 0.85
 ϵ_org = 0.95
 ψ_org = -7.07 * 100J/kg
 p_wet = 0.1/100
@@ -68,26 +69,29 @@ Q_norm = Q_dir / cos(Z)
 Q_solar = solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
 Q_IR_in = radin(A_tot, F_sky, F_sub, ϵ_org, ϵ_sub, ϵ_sky, T_sky, T_sub)
 Q_IR_out = radout(T_surf, A_tot, F_sky, F_sub, ϵ_org)
-Q_metab = metab(body_organism.shape.mass, T_core, M1, M2, M3)
+Q_metab = metabolism(body_organism.shape.mass, T_core, M1, M2, M3)
+Le = 0.025m
+Q_cond = conduction(A_v, Le, T_surf, T_sub, k_sub)
 
 T_x = T_air
 
 conv_out = convection(body_organism, A_v, T_air, T_surf, vel, P_atmos, elev, fluid)
-resp_out = resp(T_x, Q_metab, fO2_ext, pant, rq, T_air, rh, P_atmos, fO2, fCO2, fN2)
+resp_out = respiration(T_x, Q_metab, fO2_ext, pant, rq, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
 m_resp = resp_out.m_resp
-evap_out = evap(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
+evap_out = evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
 
 Q_conv = conv_out.Q_conv
 Q_evap = evap_out.Q_evap
+Q_resp = resp_out.Q_resp
 
-Q_in = Q_solar + Q_IR_in
-Q_out = Q_IR_out + Q_conv + Q_evap 
+Q_in = Q_solar + Q_IR_in + Q_metab
+Q_out = Q_IR_out + Q_conv + Q_evap + Q_resp + Q_cond
 Q_in - Q_out
 
 T_x = T_air
 
-T_surf = find_zero(energy_balance, (T_air - 10K, T_air + 100K), Bisection())
-T_surf_C = (Unitful.ustrip(T_surf) - 273.15)°C
+T_surf_s = find_zero(energy_balance, (T_air - 40K, T_air + 100K), Bisection())
+T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C
 
 
 # using structs to pass parameters
@@ -100,10 +104,11 @@ conv_out = convection(body_organism, model_params, org_vars, env_vars)
 solar(body_organism, model_params, org_vars, env_vars)
 radin(body_organism, model_params, org_vars, env_vars)
 radout(body_organism, model_params, org_vars, env_vars)
-Q_metab = metab(body_organism, model_params, org_vars, env_vars)
-resp_out = resp(body_organism, model_params, org_vars, env_vars, Q_metab)
-evap(body_organism, model_params, org_vars, env_vars, resp_out.m_resp, conv_out.Hd)
-energy_balance(body_organism, model_params, org_vars, env_vars)
-# T_surf = find_zero(energy_balance(T_x, body_organism, body_organism.insulation, model_params, org_vars, env_vars),
-#  (T_air - 10K, T_air + 100K), Bisection())
+Q_metab = metabolism(body_organism, model_params, org_vars, env_vars)
+resp_out = respiration(body_organism, model_params, org_vars, env_vars, Q_metab)
+evaporation(body_organism, model_params, org_vars, env_vars, resp_out.m_resp, conv_out.Hd)
+conduction(body_organism, model_params, org_vars, env_vars)
+
+# energy_balance(body_organism, model_params, org_vars, env_vars)
+# T_surf_s = find_zero(energy_balance_str(, model_params, org_vars, env_vars),(T_air - 10K, T_air + 100K), Bisection())
 
