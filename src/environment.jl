@@ -1,8 +1,8 @@
 
 Base.@kwdef struct EnvironmentalPars{F,P,E,L}
-    α_sub::F = Param(0.85)
-    ϵ_sub::F = Param(1.0)
-    ϵ_sky::F = Param(1.0)
+    α_sub::F = Param(0.85, bounds=(0.2, 1.0))
+    ϵ_sub::F = Param(1.0, bounds=(0.2, 1.0))
+    ϵ_sky::F = Param(1.0, bounds=(0.2, 1.0))
     P_atmos::P = Param(101325, units=u"Pa")
     elev::E = Param(0, units=u"m")
     fluid::L = Param(0)

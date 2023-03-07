@@ -1,12 +1,12 @@
 
 
 Base.@kwdef struct OrganismalPars{F}
-    α_org_dorsal::F = Param(0.8)
-    α_org_ventral::F = Param(0.8)
-    ϵ_org::F = Param(0.95)
-    F_sky::F = Param(0.4)
-    F_sub::F = Param(0.4)
-    p_eyes::F = Param(0.03 / 100)
+    α_org_dorsal::F = Param(0.8, bounds=(0.2, 1.0))
+    α_org_ventral::F = Param(0.8, bounds=(0.2, 1.0))
+    ϵ_org::F = Param(0.95, bounds=(0.1, 0.0))
+    F_sky::F = Param(0.4, bounds=(0.3, 0.5))
+    F_sub::F = Param(0.4, bounds=(0.3, 0.5))
+    p_eyes::F = Param(3e-4, bounds=(2e-4, 4e-4))
 end
 
 Base.@kwdef struct OrganismalVars{T,P,F}
