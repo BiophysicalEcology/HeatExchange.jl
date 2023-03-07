@@ -7,12 +7,15 @@ Base.@kwdef struct OrganismalPars{F}
     F_sky::F = Param(0.4, bounds=(0.3, 0.5))
     F_sub::F = Param(0.4, bounds=(0.3, 0.5))
     p_eyes::F = Param(3e-4, bounds=(2e-4, 4e-4))
+    fO2_ext::F = Param(0.20, bounds=(0.10, 0.30))
+    rq::F = Param(0.8, bounds=(0.7, 0.9))
 end
 
-Base.@kwdef struct OrganismalVars{T,P,F}
-    T_core::T = K(20.0°C)
-    T_surf::T = K(20.0°C)
+Base.@kwdef struct OrganismalVars{T,P,F,B}
+    T_core::T = K(20°C)
+    T_surf::T = K(20°C)
     ψ_org::P = -707J/kg
     p_wet::F = 0.001
     p_cond::F = 0.1
+    pant::B = 1
 end
