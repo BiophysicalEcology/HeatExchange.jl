@@ -23,9 +23,9 @@ Q_norm = Q_dir / cos(Z) # use this as Q_dir if want organism to be orienting tow
 α_sub = 0.85
 ϵ_sub = 1
 ϵ_sky = 1
-pctO2 = 20.95
-pctCO2 = 0.03
-pctN2 = 79.0
+fO2 = 0.2095
+fCO2 = 0.00042
+fN2 = 0.79
 
 # organism geometry
 mass_organism = 0.04kg
@@ -37,7 +37,7 @@ body_organism = Body(shape_organism, Naked()) # construct a Body, which is naked
 A_tot = body_organism.geometry.area
 
 T_core = (20+273.15)K
-T_surf = (20+273.15)K # skin
+T_surf = (20+273.25)K # skin
 F_sky = 0.4
 F_sub = 0.4
 α_org_dorsal = 0.8
@@ -48,7 +48,7 @@ p_wet = 0.1/100
 p_eyes = 0.03 / 100
 p_cond = 0.1
 p_cont = 0
-O2_ext_ref = 20
+fO2_ext = 0.20
 pant = 1
 rq = 0.8
 
@@ -65,12 +65,10 @@ Q_IR_out = radout(T_surf, A_tot, F_sky, F_sub, ϵ_org)
 Q_metab = 0.01241022W
 T_x = T_air
 
-resp_out = resp(T_x, mass_organism, Q_metab, O2_ext_ref, pant, rq, T_air, rh, P_atmos, pctO2, pctCO2, pctN2)
-M_resp = resp_out.M_resp
-#M_resp = 1.177235e-09kg/s # respiratory water loss to be calculated by function resp
-
 conv_out = convection(body_organism, A_v, T_air, T_surf, vel, P_atmos, elev, fluid)
-evap_out = evap(T_core, T_surf, M_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
+resp_out = resp(T_x, Q_metab, fO2_ext, pant, rq, T_air, rh, P_atmos, fO2, fCO2, fN2)
+m_resp = resp_out.m_resp
+evap_out = evap(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
 
 Q_conv = conv_out.Q_conv
 Q_evap = evap_out.Q_evap
@@ -95,7 +93,9 @@ Q_IR_in = radin(A_tot, F_sky, F_sub, ϵ_org, ϵ_sub, ϵ_sky, T_sky, T_sub)
 Q_IR_out = radout(T_x, A_tot, F_sky, F_sub, ϵ_org)
 
 conv_out = convection(body_organism, A_v, T_air, T_x, vel, P_atmos, elev, fluid)
-evap_out = evap(T_x, T_x, J_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
+resp_out = resp(T_x, Q_metab, fO2_ext, pant, rq, T_air, rh, P_atmos, fO2, fCO2, fN2)
+m_resp = resp_out.m_resp
+evap_out = evap(T_x, T_surf, m_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
 
 Q_conv = conv_out.Q_conv # convective heat loss
 Q_evap = evap_out.Q_evap # evaporative heat loss

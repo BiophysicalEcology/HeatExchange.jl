@@ -1,3 +1,6 @@
+using Unitful
+using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
+
 # Biophysics
 """
     vapour_pressure
@@ -55,17 +58,17 @@ If T_dew is known then set T_wetublb = 0 and rh = 0.
 # - `rh`: Relative humidity (%)
 ...    
 """
-function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=999K, P_atmos=101325Pa)
+function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=101325Pa)
     #T = T_drybulb + 273.15°C
     f_w = 1.0053 # (-) correction factor for the departure of the mixture of air and water vapour from ideal gas laws
     M_w = 0.018016kg/mol # molar mass of water
     M_a = 0.028965924869122257kg/mol # molar mass of air
     P_vap_sat = vapour_pressure(T_drybulb)
-    if T_dew < 999K
+    if T_dew !== nothing
         P_vap = vapour_pressure(T_dew)
         rh = (P_vap / P_vap_sat) * 100
     else
-        if min(rh) > -1
+        if rh !== nothing
             P_vap = P_vap_sat * rh / 100
         else
             δ_bulb = T_drybulb - T_wetbulb
@@ -90,11 +93,13 @@ function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=999K, P_atmos=10132
     (P_vap=P_vap, P_vap_sat, ρ_vap, r_w, T_vinc, ρ_air, cp, ψ, rh)
 end
 
-function dry_air(T_drybulb, P_atmos=101325Pa, elev=0m)
+function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
     σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
     M_a = 0.028965924869122257kg/mol # molar mass of air
-    P_std = 101325Pa
-    P_atmos = P_std * ((1 - (0.0065 * elev / 288m))^(1 / 0.190284))
+    if P_atmos === nothing
+     P_std = 101325Pa
+     P_atmos = P_std * ((1 - (0.0065 * elev / 288m))^(1 / 0.190284))
+    end
     ρ_air = (M_a / Unitful.R) * P_atmos / (T_drybulb)
     ρ_air = Unitful.uconvert(u"kg/m^3",ρ_air) # simplify units
     vis_not = 1.8325e-5kg/m/s
@@ -322,7 +327,7 @@ end
 function evap(
     T_core = (25+273.15)K,
     T_skin = (25.1+273.15)K,
-    J_resp = 1.177235e-09kg/s,
+    m_resp = 1.177235e-09kg/s,
     ψ_org = -7.07 * 100J/kg,
     p_wet = 0.1,
     A_tot = 0.01325006m^2,
@@ -348,145 +353,109 @@ function evap(
   ρ_vap_air = wet_air_out.ρ_vap
 
   # water lost from eyes if present
-  J_eyes = Hd * p_eyes * A_tot * (ρ_vap_surf - ρ_vap_air)
-  if J_eyes > 0kg/s
-    J_cut = A_tot * p_wet * (1 - p_eyes) * Hd * (ρ_vap_surf - ρ_vap_air)
+  m_eyes = Hd * p_eyes * A_tot * (ρ_vap_surf - ρ_vap_air)
+  if m_eyes > 0kg/s
+    m_cut = A_tot * p_wet * (1 - p_eyes) * Hd * (ρ_vap_surf - ρ_vap_air)
   else
-    J_cut = A_tot * p_wet * Hd * (ρ_vap_surf - ρ_vap_air)
+    m_cut = A_tot * p_wet * Hd * (ρ_vap_surf - ρ_vap_air)
   end
   
   # total water lost
-  J_evap = J_eyes + J_resp + J_cut
+  m_evap = m_eyes + m_resp + m_cut
 
   # get latent heat of vapourisation and compute heat exchange due to evaporation
   dry_air_out = dry_air(T_air, P_atmos, elev)
   L_v = dry_air_out.L_v
-  Q_evap = (J_eyes + J_cut) * L_v
+  Q_evap = (m_eyes + m_cut) * L_v
   
   # convert from kg/s to g/s
-  J_eyes = uconvert(u"g/s",J_eyes)
-  J_resp = uconvert(u"g/s",J_resp)
-  J_cut = uconvert(u"g/s",J_cut)
-  J_evap = uconvert(u"g/s",J_evap)
+  m_eyes = uconvert(u"g/s",m_eyes)
+  m_resp = uconvert(u"g/s",m_resp)
+  m_cut = uconvert(u"g/s",m_cut)
+  m_evap = uconvert(u"g/s",m_evap)
 
-  (Q_evap = Q_evap, J_evap = J_evap, J_resp = J_resp, J_cut = J_cut, J_eyes = J_eyes)
+  (Q_evap = Q_evap, m_evap = m_evap, m_resp = m_resp, m_cut = m_cut, m_eyes = m_eyes)
 end
 
+"""
+resp
+
+Computes respiratory heat and water loss via mass flow through the lungs 
+given gas concentrations, pressure, respiration rate and humidity.
+Note that there is no recovery of heat or moisture assumed in the nose.
+    ...
+    # Arguments
+    - `T_x`: current core temperature guess, K
+    - `Q_metab`: metabolic rate, W
+    - `fO2_ext`: extraction efficiency, fractional
+    - `pant`: multiplier on breathing rate due to panting, -
+    - `rq`: respiratory quotient, (mol CO2 / mol O2)
+    - `T_air`: air temperature, K
+    - `rh`: relative humidity, %
+    - `P_atmos`: barometric pressure, Pa
+    - `fO2`; fractional O2 concentration in atmosphere, -
+    - `fCO2`; fractional CO2 concentration in atmosphere, -
+    - `fN2`; fractional N2 concentration in atmosphere, -
+    ...    
+"""
 function resp(
-    T_x = (23+273.15)K,
-    mass = 0.04kg,
+    T_x = 296.15K,
     Q_metab = 0.01241022W,
-    O2_ext_ref = 20,
+    fO2_ext = 0.20,
     pant = 1,
     rq = 0.8,
-    T_air = (20+273.15)K,
+    T_air = 293.15K,
     rh = 50,
     P_atmos = 101325Pa,
-    pctO2 = 20.95,
-    pctCO2 = 0.03,
-    pctN2 = 79.02)
-  # C     COMPUTES RESPIRATORY HEAT AND WATER LOSS VIA MASS FLOW THROUGH THE LUNGS,
-  # C     GIVEN GAS CONCENTRATIONS, PRESSURE, RESPIRATION RATE AND HUMIDITY
-  #
-  # C     NOTE THAT THERE IS NO RECOVERY OF HEAT OR MOISTURE ASSUMED IN THE NOSE
-
-  # C     DEFINING VARIABLES
-  # C     P_atmos = BAROMETRIC PRESSURE (PA)
-  # C     O2_ext_ref = EXTRACTION EFFICIENCY (PER CENT)
-  # C     GEVAP = GRAMS OF WATER EVAPORATED FROM RESPIRATORY TRACT/S
-  # C     Q_resp = HEAT LOSS DUE TO RESPIRATORY EVAPORATION (W)
-  # C     R = UNIVERSAL GAS CONSTANT (PA-M3/MOL-K) = (J/MOL-K)
-  # C     rh = RELATIVE HUMIDITY (PER CENT)
-  # C     rq = RESPIRATORY QUOTIENT (MOL CO2 / MOL O2)
-  # C     TC = ANIMAL CORE TEMPERATURE(C)
-
-  # C     ASSIGNING REFERENCE VALUES TO VARIABLES
-  # C     AIR FRACTIONS FROM SCHMIDT-NIELSEN, 2ND ED. ANIMAL PHYSIOLOGY CITING
-  # C     OTIS, 1964
-
-  fO2_ref = 0.2095
-  fN2_ref = 0.7902
-  fCO2_ref = 0.0003
-  fO2 = fO2_ref
-  fN2 = fN2_ref
-  fCO2 = fCO2_ref
-  #C     ALLOWING USER TO MODIFY GAS VALUES FOR BURROW, ETC. CONDITIONS
-  if fO2 != pctO2 / 100
-    fO2 = pctO2 / 100
-  else
-    fO2 = fO2_ref
-  end
-  if fN2 != pctN2 / 100
-    fN2 = pctN2 / 100
-  else
-    fN2 = fN2_ref
-  end
-  if fCO2 != pctCO2 / 100
-    fCO2 = pctCO2 / 100
-  else
-    fCO2 = fCO2_ref
-  end
-
-  #C     ERROR CHECKING for % of each air constituent summing to 1
-  totgas = fO2 + fN2 + fCO2
-  if totgas  >  1
-    fO2 = 1 - (fN2 + fCO2)
-  end
-  if totgas  <  1
-    fO2 = 1 - (fN2 + fCO2)
-  end
-
+    fO2 = 0.2095,
+    fCO2 = 0.00042,
+    fN2 = 0.7902)
+  
   P_O2 = P_atmos * fO2
-  V_O2_STP = ((1 / 3.6E+06) * (Unitful.ustrip(Q_metab) / 0.0056)/1000)m^3
-  #C     CONVERTING STP -> VOL. OF O2 AT ANIMAL TCORE, ATM. PRESS.
+  Joule_m3_O2 = 20.1e6J/m^3 # joules of energy dissipated per m3 O2 consumed at STP (enthalpy of combustion)
+  V_O2_STP = uconvert(u"m^3/s", Q_metab / Joule_m3_O2)
+  
+  # converting stp -> vol. of O2 at animal lung temperature, atm. press.
   T_lung = T_x
   V_O2 = (V_O2_STP * P_O2 / 273.15K) * (T_lung / P_O2)
-  #C     N = PV/RT (IDEAL GAS LAW: NUMBER OF MOLES FROM PRESS,VOL,TEMP)
-  J_O2 = uconvert(u"mol", P_atmos * V_O2 / (R * T_x)) #! MOL OXYGEN CONSUMED
-  #C     MOLES/S O2,N2, & DRY AIR AT 1: (ENTRANCE) (AIR FLOW = F(O2 CONSUMPTION)
-  J_O2_in = J_O2 / (O2_ext_ref / 100) #! ACTUAL OXYGEN FLOW IN (MOLES/S), ACCOUNTING FOR EFFICIENCY OF EXTRACTION
-  J_N2_in = J_O2_in * (fN2 / fO2) #! ACTUAL NITROGEN FLOW IN (MOLES/S), ACCOUNTING FOR EFFICIENCY OF EXTRACTION
-  V_air = V_O2 / fO2 #! CHANGE FROM WPP 16/10/2021
-  V_CO2 = fCO2 * V_air #! CHANGE FROM WPP 16/10/2021
-  J_CO2_in = P_atmos * V_CO2 / (R * T_lung) #! CHANGE FROM WPP 16/10/2021
+  #n = PV/RT (ideal gas law: number of moles from press,vol,temp)
+  J_O2 = uconvert(u"mol/s", P_atmos * V_O2 / (R * T_x)) # mol O2 consumed
+  # moles/s of O2, N2, dry air at entrance [air flow = f(O2 consumption)]
+  J_O2_in = J_O2 / fO2_ext # actual oxygen flow in (moles/s), accounting for efficiency of extraction
+  J_N2_in = J_O2_in * (fN2 / fO2) #  actual nitrogen flow in (moles/s), accounting for efficiency of extraction
+  V_air = V_O2 / fO2 # air flow
+  V_CO2 = fCO2 * V_air # CO2 flow
+  J_CO2_in = P_atmos * V_CO2 / (R * T_lung)
   J_air_in = (J_O2_in + J_N2_in + J_CO2_in) * pant
-  #C     AIR VOLUME @ STP (LITERS/S)
-  V_air = (J_air_in * R * 273.15K / 101325Pa)
-  # C     COMPUTING THE VAPOR PRESSURE AT SATURATION FOR THE SUBSEQUENT
-  # C     CALCULATION OF ACTUAL MOLES OF WATER BASED ON ACTUAL RELATIVE
-  # C     HUMIDITY.
+  V_air = uconvert(u"m^3/s",(J_air_in * R * 273.15K / 101325Pa)) # air volume @ stp (m3/s)
+  # computing the vapor pressure at saturation for the subsequent calculation of 
+  # actual moles of water based on actual relative humidity
   wet_air_out = wet_air(T_air, 0K, rh, 999K, P_atmos)
   P_vap_sat = wet_air_out.P_vap_sat
   J_H2O_in = J_air_in * (P_vap_sat * (rh / 100)) / (P_atmos - P_vap_sat * (rh / 100))
-  #C     MOLES AT 2: (EXIT)
-  J_O2_out = J_O2_in - J_O2 #! REMOVE CONSUMED OXYGEN FROM THE TOTAL
+  # moles at exit
+  J_O2_out = J_O2_in - J_O2 # remove consumed oxygen from the total
   J_N2_out = J_N2_in
-  #C      J_CO2_out=rq*J_O2
   J_CO2_out = rq * J_O2 + J_CO2_in
-  # C     TOTAL MOLES OF AIR AT 2 (EXIT) WILL BE APPROXIMATELY THE SAME
-  # C     AS AT 1, SINCE THE MOLES OF O2 REMOVED = APPROX. THE # MOLES OF CO2
-  # C     ADDED.  AVOGADRO'S # SPECIFIES THE # MOLECULES/MOLE.
+  #  total moles of air at exit will be approximately the same as at entrance, since 
+  # the moles of O2 removed = approx. the # moles of co2 added
   J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
-  #C     SETTING UP CALL TO WETAIR; TEMP. OF EXHALED AIR AT BODY TEMP.
-  #C     ASSUMING SATURATED AIR AT EXHALATION
+  # setting up call to wet_air using temperature of exhaled air at body temperature, assuming saturated air
   rh_exit = 100
   wet_air_out = wet_air(T_x, 0K, rh_exit, 999K, P_atmos)
   P_vap_sat = wet_air_out.P_vap_sat
   J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
-  # C     ENTHALPY = U2-U1, INTERNAL ENERGY ONLY, I.E. LAT. HEAT OF VAP.
-  # C     ONLY INVOLVED, SINCE ASSUME P,V,T CONSTANT, SO NOT SIGNIFICANT
-  # C     FLOW ENERGY, PV. (H = U + PV)
+  # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 
+  # P,T,V constant, so not significant flow energy, PV. (H = U + PV)
 
-  #C     MOLES/S LOST BY BREATHING:
+  # moles/s lost by breathing:
   J_evap = J_H2O_out - J_H2O_in
-  #C     GRAMS/S LOST BY BREATHING = MOLES LOST * GRAM MOLECULAR WEIGHT OF WATER:
-  M_resp = J_evap * 18g/mol
-
-  #C     LATENT HEAT OF VAPORIZATION FROM SUB. DRYAIR
+  # grams/s lost by breathing = moles lost * gram molecular weight of water:
+  m_resp = J_evap * 18g/mol
   # get latent heat of vapourisation and compute heat exchange due to respiration
   dry_air_out = dry_air(T_lung, P_atmos, elev)
   L_v = dry_air_out.L_v
-  #C     HEAT LOSS BY BREATHING (J/S)=(J/KG)*(KG/S)
-  Q_resp = L_v * M_resp / 1000
-  (Q_resp = Q_resp, M_resp = M_resp, J_air_in = J_air_in, J_air_out = J_air_out, J_H2O_in = J_H2O_in, J_H2O_out = J_H2O_out, J_O2_in = J_O2_in, J_O2_out = J_O2_out, J_CO2_in = J_CO2_in, J_CO2_out = J_CO2_out)
+  # heat loss by breathing (J/s)=(J/kg)*(kg/s)
+  Q_resp = uconvert(u"W",L_v * m_resp)
+  (Q_resp = Q_resp, m_resp = m_resp, J_air_in = J_air_in, J_air_out = J_air_out, J_H2O_in = J_H2O_in, J_H2O_out = J_H2O_out, J_O2_in = J_O2_in, J_O2_out = J_O2_out, J_CO2_in = J_CO2_in, J_CO2_out = J_CO2_out)
 end
