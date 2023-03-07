@@ -409,6 +409,14 @@ function evap(
   (Q_evap = Q_evap, m_evap = m_evap, m_resp = m_resp, m_cut = m_cut, m_eyes = m_eyes)
 end
 
+
+evap(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, m_resp, Hd) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    env_pars = model_pars[2]
+    evap(o.T_core, o.T_surf, m_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
+end
+
 """
 resp
 
@@ -492,9 +500,9 @@ function resp(
   (Q_resp = Q_resp, m_resp = m_resp, J_air_in = J_air_in, J_air_out = J_air_out, J_H2O_in = J_H2O_in, J_H2O_out = J_H2O_out, J_O2_in = J_O2_in, J_O2_out = J_O2_out, J_CO2_in = J_CO2_in, J_CO2_out = J_CO2_out)
 end
 
-evap(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, J_resp, Hd) = begin
+resp(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, Q_metab) = begin
     model_pars = stripparams(p)
     org_pars = model_pars[1]
     env_pars = model_pars[2]
-    evap(o.T_core, o.T_surf, J_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
+    resp(o.T_core, Q_metab, org_pars.fO2_ext, o.pant, org_pars.rq, e.Ta, e.rh, env_pars.P_atmos, env_pars.fO2, env_pars.fCO2, env_pars.fN2)
 end
