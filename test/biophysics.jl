@@ -54,6 +54,9 @@ p_cont = 0
 fO2_ext = 0.20
 pant = 1
 rq = 0.8
+M1 = 0.013
+M2 = 0.8
+M3 = 0.038
 
 A_v = A_tot * p_cond
 A_c = A_tot * (1 - p_cond)
@@ -65,7 +68,8 @@ Q_norm = Q_dir / cos(Z)
 Q_solar = solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
 Q_IR_in = radin(A_tot, F_sky, F_sub, ϵ_org, ϵ_sub, ϵ_sky, T_sky, T_sub)
 Q_IR_out = radout(T_surf, A_tot, F_sky, F_sub, ϵ_org)
-Q_metab = 0.01241022W
+Q_metab = metab(body_organism.shape.mass, T_core, M1, M2, M3)
+
 T_x = T_air
 
 conv_out = convection(body_organism, A_v, T_air, T_surf, vel, P_atmos, elev, fluid)
@@ -96,7 +100,7 @@ conv_out = convection(body_organism, model_params, org_vars, env_vars)
 solar(body_organism, model_params, org_vars, env_vars)
 radin(body_organism, model_params, org_vars, env_vars)
 radout(body_organism, model_params, org_vars, env_vars)
-Q_metab = 0.01241022W
+Q_metab = metab(body_organism, model_params, org_vars, env_vars)
 resp_out = resp(body_organism, model_params, org_vars, env_vars, Q_metab)
 evap(body_organism, model_params, org_vars, env_vars, resp_out.m_resp, conv_out.Hd)
 energy_balance(body_organism, model_params, org_vars, env_vars)

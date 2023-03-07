@@ -35,14 +35,14 @@ energy_balance(b::Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = beg
     Q_IR_in = radin(body_organism, model_params, org_vars, env_vars)
     Q_IR_out = radout(body_organism, model_params, org_vars, env_vars)
     conv_out = convection(body_organism, model_params, org_vars, env_vars)
-    Q_conv = conv_out.Q_conv # convective heat loss
-    Q_metab = 0.01241022W
+    Q_conv = conv_out.Q_conv
+    Q_metab = metab(body_organism, model_params, org_vars, env_vars)
     resp_out = resp(body_organism, model_params, org_vars, env_vars, Q_metab)
     Q_resp = resp_out.Q_resp
     evap_out = evap(body_organism, model_params, org_vars, env_vars, resp_out.m_resp, conv_out.Hd)
-    Q_evap = evap_out.Q_evap # evaporative heat loss
+    Q_evap = evap_out.Q_evap
 
-    Q_in = Q_solar + Q_IR_in # energy in
+    Q_in = Q_solar + Q_IR_in + Q_metab # energy in
     Q_out = Q_IR_out + Q_conv + Q_resp + Q_evap # energy out
     Q_in - Q_out # this must balance
 end

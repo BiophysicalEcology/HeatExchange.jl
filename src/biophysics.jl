@@ -506,3 +506,18 @@ resp(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, Q_metab) = begin
     env_pars = model_pars[2]
     resp(o.T_core, Q_metab, org_pars.fO2_ext, o.pant, org_pars.rq, e.Ta, e.rh, env_pars.P_atmos, env_pars.fO2, env_pars.fCO2, env_pars.fN2)
 end
+
+
+function metab(mass = 0.04kg, T_core = K(25°C), M1 = 0.013, M2 = 0.8, M3 = 0.038)
+    mass_g = uconvert(u"g", mass)
+    T_core = uconvert(u"°C", T_core)
+    T_core > 50°C && return (0.0056 * 10^(M3 * 50) * M1 * Unitful.ustrip(mass_g)^M2)W
+    T_core < 1°C && return 0.01W
+    (0.0056 * 10^(M3 * Unitful.ustrip(T_core)) * M1 * Unitful.ustrip(mass_g)^M2)W
+end
+
+metab(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
+    model_pars = stripparams(p)
+    org_pars = model_pars[1]
+    metab(Body.shape.mass, o.T_core, org_pars.M1, org_pars.M2, org_pars.M3)
+end

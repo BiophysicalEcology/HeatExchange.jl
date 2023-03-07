@@ -9,6 +9,9 @@ Base.@kwdef struct OrganismalPars{F}
     p_eyes::F = Param(3e-4, bounds=(2e-4, 4e-4))
     fO2_ext::F = Param(0.20, bounds=(0.10, 0.30))
     rq::F = Param(0.8, bounds=(0.7, 0.9))
+    M1::F = Param(0.013, bounds=(0.01, 0.02))
+    M2::F = Param(0.8, bounds=(0.7, 0.9))
+    M3::F = Param(0.038, bounds=(0.02, 0.04))
 end
 
 Base.@kwdef struct OrganismalVars{T,P,F,B}
