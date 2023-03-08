@@ -46,7 +46,8 @@ F_sky = 0.4
 F_sub = 0.4
 α_org_dorsal = 0.85
 α_org_ventral = 0.85
-ϵ_org = 0.95
+ϵ_org_dorsal = 0.95
+ϵ_org_ventral = 0.95
 ψ_org = -7.07 * 100J/kg
 p_wet = 0.1/100
 p_eyes = 0.03 / 100
@@ -67,8 +68,8 @@ A_down = A_tot / 2
 
 Q_norm = Q_dir / cos(Z)
 Q_solar = solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
-Q_IR_in = radin(A_tot, F_sky, F_sub, ϵ_org, ϵ_sub, ϵ_sky, T_sky, T_sub)
-Q_IR_out = radout(T_surf, A_tot, F_sky, F_sub, ϵ_org)
+Q_IR_in = radin(A_tot, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral, ϵ_sub, ϵ_sky, T_sky, T_sub)
+Q_IR_out = radout(T_surf, A_tot, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
 Q_metab = metabolism(body_organism.shape.mass, T_core, M1, M2, M3)
 Le = 0.025m
 Q_cond = conduction(A_v, Le, T_surf, T_sub, k_sub)
@@ -90,16 +91,16 @@ Q_in - Q_out
 
 T_x = T_air
 
-T_surf_s = find_zero(energy_balance, (T_air - 40K, T_air + 100K), Bisection())
+T_surf_s = find_zero(heat_balance, (T_air - 40K, T_air + 100K), Bisection())
 T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C
 
 
 # using structs to pass parameters
 
-model_params = Model((OrganismalPars(), EnvironmentalPars()))
-org_vars = OrganismalVars()
-env_vars = EnvironmentalVars()
-
+mod = Model((body=body_organism, 
+             parameters = (OrganismalPars(), EnvironmentalPars()), 
+             variables = (OrganismalVars(), EnvironmentalVars())))
+model = stripparams(model_params)
 conv_out = convection(body_organism, model_params, org_vars, env_vars)
 solar(body_organism, model_params, org_vars, env_vars)
 radin(body_organism, model_params, org_vars, env_vars)
@@ -109,6 +110,6 @@ resp_out = respiration(body_organism, model_params, org_vars, env_vars, Q_metab)
 evaporation(body_organism, model_params, org_vars, env_vars, resp_out.m_resp, conv_out.Hd)
 conduction(body_organism, model_params, org_vars, env_vars)
 
-# energy_balance(body_organism, model_params, org_vars, env_vars)
-# T_surf_s = find_zero(energy_balance_str(, model_params, org_vars, env_vars),(T_air - 10K, T_air + 100K), Bisection())
+# heat_balance(body_organism, model_params, org_vars, env_vars)
+# T_surf_s = find_zero(heat_balance(, model_params, org_vars, env_vars),(T_air - 10K, T_air + 100K), Bisection())
 
