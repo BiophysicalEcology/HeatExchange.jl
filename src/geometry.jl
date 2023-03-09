@@ -84,7 +84,14 @@ end
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
 
+calc_area(body::AbstractBody) = calc_area(shape(body), body)
 calc_area(shape::Plate, a, b, c) = a * b * 2 + a * c * 2 + b * c * 2
+function calc_area(shape::Plate, body)
+    a = body.geometry.lengths[1] / 2
+    b = body.geometry.lengths[2] / 2
+    c = body.geometry.lengths[3] / 2
+    a * b * 2 + a * c * 2 + b * c * 2
+end
 
 """
     Cylinder <: Shape
@@ -112,7 +119,6 @@ end
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
-calc_area(body::AbstractBody) = calc_area(shape(body), body)
 calc_area(shape::Cylinder, r, l) = 2 * π * r * l + 2 * π * r^2
 function calc_area(shape::Cylinder, body)
     r = body.geometry.lengths[2] / 2
