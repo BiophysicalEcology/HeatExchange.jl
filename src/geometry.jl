@@ -112,7 +112,13 @@ end
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
+calc_area(body::AbstractBody) = calc_area(shape(body), body)
 calc_area(shape::Cylinder, r, l) = 2 * π * r * l + 2 * π * r^2
+function calc_area(shape::Cylinder, body)
+    r = body.geometry.lengths[2] / 2
+    l = body.geometry.lengths[1]
+    2 * π * r * l + 2 * π * r^2
+end
 
 """
     sil_area_of_cylinder
@@ -121,7 +127,10 @@ Calculates the silhouette (projected) area of a cylinder.
 Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
 (1998). Environmental Biophysics. Springer.
 """
-function calc_silhouette_area(shape::Cylinder, r, l, θ)
+calc_silhouette_area(body::AbstractBody, θ) = calc_silhouette_area(shape(body), body, θ)
+function calc_silhouette_area(shape::Cylinder, body, θ)
+    r = body.geometry.lengths[2] / 2
+    l = body.geometry.lengths[1]
     2 * r * l * sin(θ) + π * r^2 * cos(θ)
 end
 
@@ -154,8 +163,14 @@ end
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area)
 # end
-
-calc_area(shape::Ellipsoid, a, b, c) = begin
+function calc_area(shape::Ellipsoid, a, b, c)
+    e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
+    2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
+end
+function calc_area(shape::Ellipsoid, body)
+    a = body.geometry.lengths[1] / 2
+    b = body.geometry.lengths[2] / 2
+    c = body.geometry.lengths[3] / 2
     e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
     2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
 end
@@ -178,7 +193,12 @@ function calc_silhouette_area(shape::Ellipsoid, a, b, c, θ)
     semax2 = 1 / sqrt(b3)
     π * semax1  * semax2
 end
-
+function calc_silhouette_area(shape::Ellipsoid, body, θ)
+    a = body.geometry.lengths[1] / 2
+    b = body.geometry.lengths[2] / 2
+    c = body.geometry.lengths[3] / 2
+    calc_silhouette_area(shape, a, b, c, θ)
+end
 
 """
     LeopardFrog <: Shape
@@ -201,7 +221,6 @@ end
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area)
 # end
-
 calc_area(shape::LeopardFrog) = begin
     mass_g = Unitful.uconvert(u"g", shape.mass)
     Unitful.uconvert(u"m^2", (12.79 * Unitful.ustrip(mass_g) ^ 0.606)u"cm^2") # eq in Fig. 5

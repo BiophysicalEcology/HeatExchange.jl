@@ -17,7 +17,7 @@ function heat_balance(insulation::Naked, o, pars, e_pars, vars)
     A_tot = o.body.geometry.area
     A_c = A_tot * (1 - o_vars.p_cond)
     A_v = A_tot * o_vars.p_cond
-    A_sil = sil_area_of_cylinder(o.body.geometry.lengths[2] / 2, o.body.geometry.lengths[1], e_vars.zen)
+    A_sil = calc_silhouette_area(o.body, e_vars.zen)
     A_up = A_tot / 2
     A_down = A_tot / 2
 
@@ -50,7 +50,7 @@ function heat_balance(T_x)
 
     # compute areas for exchange
     A_c = A_tot * (1 - p_cond)
-    A_sil = sil_area_of_cylinder(body_organism.geometry.lengths[2] / 2, body_organism.geometry.lengths[1], Z)
+    A_sil = calc_silhouette_area(body_organism, Z)
     A_up = A_tot / 2
     A_down = A_tot / 2
 

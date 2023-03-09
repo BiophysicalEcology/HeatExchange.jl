@@ -5,6 +5,7 @@ abstract type AbstractOrganism end
 # With some generic methods to get the params and body
 body(o::AbstractOrganism) = o.body
 shape(o::AbstractOrganism) = body(o).shape
+shape(b::AbstractBody) = b.shape
 insulation(o::AbstractOrganism) = body(o).insulation
 params(o::AbstractOrganism) = o.params
 

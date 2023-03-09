@@ -62,7 +62,7 @@ M3 = 0.038
 
 A_v = A_tot * p_cond
 A_c = A_tot * (1 - p_cond)
-A_sil = sil_area_of_cylinder(body_organism.geometry.lengths[2]/2, body_organism.geometry.lengths[1], Z)
+A_sil = calc_silhouette_area(body_organism, Z)
 A_up = A_tot / 2
 A_down = A_tot / 2
 
