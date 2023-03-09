@@ -74,7 +74,7 @@ function geometry(shape::Plate, ::Naked)
     length1 = a * 2
     length2 = b * 2
     length3 = c * 2
-    area = area_of_plate(a, b, c)
+    area = calc_area(shape, a, b, c)
     return Geometry(volume, length, (length1, length2, length3), area)
 end
 
@@ -84,9 +84,7 @@ end
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
 
-function area_of_plate(a, b, c)
-    a * b * 2 + a * c * 2 + b * c * 2
-end
+calc_area(shape::Plate, a, b, c) = a * b * 2 + a * c * 2 + b * c * 2
 
 """
     Cylinder <: Shape
@@ -105,7 +103,7 @@ function geometry(shape::Cylinder, ::Naked)
     r = (volume / (shape.b * π * 2))^(1 / 3)
     length1 = shape.b * r * 2
     length2 = 2 * r
-    area = area_of_cylinder(r, length1)
+    area = calc_area(shape, r, length1)
     return Geometry(volume, length, (length1, length2), area)
 end
 
@@ -114,10 +112,7 @@ end
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
-
-function area_of_cylinder(r, l)
-    2 * π * r * l + 2 * π * r^2
-end
+calc_area(shape::Cylinder, r, l) = 2 * π * r * l + 2 * π * r^2
 
 """
     sil_area_of_cylinder
@@ -126,7 +121,7 @@ Calculates the silhouette (projected) area of a cylinder.
 Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
 (1998). Environmental Biophysics. Springer.
 """
-function sil_area_of_cylinder(r, l, θ)
+function calc_silhouette_area(shape::Cylinder, r, l, θ)
     2 * r * l * sin(θ) + π * r^2 * cos(θ)
 end
 
@@ -151,7 +146,7 @@ function geometry(shape::Ellipsoid, ::Naked)
     length1 = a * 2m
     length2 = b * 2m
     length3 = c * 2m
-    area = area_of_ellipsoid(a, b, c)
+    area = calc_area(shape, a, b, c)
     return Geometry(volume, length, (length1, length2, length3), area)
 end
 # function geometry(shape::Ellipsoid, fur::Fur)
@@ -160,7 +155,7 @@ end
 #     return Geometry(volume, length, (length1, length2, length3), area)
 # end
 
-function area_of_ellipsoid(a, b, c)
+calc_area(shape::Ellipsoid, a, b, c) = begin
     e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
     2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
 end
@@ -170,7 +165,7 @@ end
 
 Calculates the silhouette (projected) area of a prolate spheroid.
 """
-function sil_area_of_ellipsoid(a, b, c, θ)
+function calc_silhouette_area(shape::Ellipsoid, a, b, c, θ)
     a2 = cos(90) ^ 2 * (cos(θ) ^ 2 / a ^ 2 + sin(θ) ^ 2 / b ^ 2) + sin(90) ^ 2 / c ^ 2
     twohh = 2 * cos(90) * sin(90) * cos(θ) * (1 / b ^ 2 - 1 / a ^ 2)
     b2 = sin(θ) ^ 2 / a ^ 2 + cos(θ) ^ 2 / b ^ 2
@@ -183,8 +178,6 @@ function sil_area_of_ellipsoid(a, b, c, θ)
     semax2 = 1 / sqrt(b3)
     π * semax1  * semax2
 end
-
-
 
 
 """
@@ -200,8 +193,7 @@ end
 function geometry(shape::LeopardFrog, ::Naked)
     volume = shape.mass / shape.density
     length = volume^(1 / 3)
-    mass_g = Unitful.uconvert(u"g", shape.mass)
-    area = Unitful.uconvert(u"m^2", (12.79 * Unitful.ustrip(mass_g) ^ 0.606)u"cm^2") # eq in Fig. 5
+    area = calc_area(shape)
     return Geometry(volume, length, nothing, area)
 end
 # function geometry(shape::Ellipsoid, fur::Fur)
@@ -210,12 +202,18 @@ end
 #     return Geometry(volume, length, (length1, length2, length3), area)
 # end
 
+calc_area(shape::LeopardFrog) = begin
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    Unitful.uconvert(u"m^2", (12.79 * Unitful.ustrip(mass_g) ^ 0.606)u"cm^2") # eq in Fig. 5
+end
+
 """
     sil_area_of_leopardfrog
 
 Calculates the silhouette (projected) area of a leopard frog.
 """
-function sil_area_of_leopardfrog(area, θ)
+function calc_silhouette_area(shape::LeopardFrog, θ)
+    area = calc_area(shape)
     pct = 1.38171e-6 * θ ^ 4 - 1.93335e-4 * θ ^ 3 + 4.75761e-3 * θ ^ 2 - 0.167912 * θ + 45.8228
     sil_area = pct * area / 100
 end
@@ -235,7 +233,7 @@ function geometry(shape::DesertIguana, ::Naked)
     volume = shape.mass / shape.density
     length = volume^(1 / 3)
     mass_g = Unitful.uconvert(u"g", shape.mass)
-    area = Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2") # eq in Fig. 5
+    area = calc_area(shape)
     return Geometry(volume, length, nothing, area)
 end
 # function geometry(shape::Ellipsoid, fur::Fur)
@@ -244,12 +242,8 @@ end
 #     return Geometry(volume, length, (length1, length2, length3), area)
 # end
 
-# """
-#     sil_area_of_frog
+calc_area(shape::DesertIguana) = begin
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    area = Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2")
+end
 
-# Calculates the silhouette (projected) area of a leopard frog.
-# """
-# function sil_area_of_lizard(area, θ)
-#     pct = 1.38171e-6 * θ ^ 4 - 1.93335e-4 * θ ^ 3 + 4.75761e-3 * θ ^ 2 - 0.167912 * θ + 45.8228
-#     sil_area = pct * area / 100
-# end
