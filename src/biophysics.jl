@@ -284,35 +284,8 @@ function convection(Body, area, T_air, T_surf, vel, P_atmos, elev, fluid)
     (Q_conv=Q_conv, Hc=Hc, Hd=Hd, Sh=Sh, Q_free=Q_free, Hc_free=Hc_free, Hc_forc=Hc_forc, Sh_free=Sh_free, Sh_forc=Sh_forc, Hd_free=Hd_free, Hd_forc=Hd_forc)
 end
 
-convection(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    env_pars = model_pars[2]
-    Ac = Body.geometry.area * (1 - o.p_cond)
-    convection(Body, Ac, e.Ta, o.T_surf, e.vel, env_pars.P_atmos, env_pars.elev, env_pars.fluid)
-end
-
-convection(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    env_pars = model_pars[2]
-    Ac = Body.geometry.area * (1 - o.p_cond)
-    convection(Body, Ac, e.Ta, T_x, e.vel, env_pars.P_atmos, env_pars.elev, env_pars.fluid)
-end
-
-
 function conduction(A, L, T_surf, T_sub, k_sub)
     A * (k_sub / L) * (T_surf - T_sub)
-end
-
-conduction(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    L = 0.025m
-    Av = Body.geometry.area * o.p_cond
-    conduction(Av, L, o.T_surf, e.Tsub, e.k_sub)
-end
-
-conduction(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    L = 0.025m
-    Av = Body.geometry.area * o.p_cond
-    conduction(Av, L, T_x, e.Tsub, e.k_sub)
 end
 
 function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
@@ -320,16 +293,6 @@ function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky,
     Q_sol_sky = α_org_dorsal * F_sky * A_up * Q_dif
     Q_sol_sub = α_org_ventral * F_sub * A_down * (1 - α_sub) * (Q_dir + Q_dif)
     (Q_direct + Q_sol_sub + Q_sol_sky)
-end
-
-solar(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    env_pars = model_pars[2]
-    A_sil = sil_area_of_cylinder(body_organism.geometry.lengths[2]/2, body_organism.geometry.lengths[1], e.zen) # have to make general function
-    A_up = Body.geometry.area / 2
-    A_down = A_up
-    solar(org_pars.α_org_dorsal, org_pars.α_org_ventral, A_sil, A_up, A_down, org_pars.F_sub, org_pars.F_sky, env_pars.α_sub, e.Q_dir, e.Q_dif)
 end
 
 function radin(A_tot = 0.01325006m^2,
@@ -348,13 +311,6 @@ Q_ir_sub = ϵ_org_ventral * F_sub * A_tot * ϵ_sub * σ * T_sub ^ 4
 (Q_ir_sky + Q_ir_sub)
 end
 
-radin(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    env_pars = model_pars[2]
-    radin(Body.geometry.area, org_pars.F_sky, org_pars.F_sub, org_pars.ϵ_org_dorsal, org_pars.ϵ_org_ventral, env_pars.ϵ_sub, env_pars.ϵ_sky, e.Tsky, e.Tsub)
-end
-
 function radout(
     T_skin = (25.1+273.15)K,
     A_tot = 0.01325006m^2,
@@ -367,18 +323,6 @@ function radout(
 Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ  * T_skin ^ 4
 Q_ir_to_sub = A_tot * F_sub * ϵ_org_ventral * σ  * T_skin ^ 4
 (Q_ir_to_sky + Q_ir_to_sub)
-end
-
-radout(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    radout(o.T_surf, Body.geometry.area, org_pars.F_sky, org_pars.F_sub, org_pars.ϵ_org_dorsal, org_pars.ϵ_org_ventral)
-end
-
-radout(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    radout(T_x, Body.geometry.area, org_pars.F_sky, org_pars.F_sub, org_pars.ϵ_org_dorsal, org_pars.ϵ_org_ventral)
 end
 
 function evaporation(
@@ -433,20 +377,6 @@ function evaporation(
   m_evap = uconvert(u"g/s",m_evap)
 
   (Q_evap = Q_evap, m_evap = m_evap, m_resp = m_resp, m_cut = m_cut, m_eyes = m_eyes)
-end
-
-evaporation(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, m_resp, Hd) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    env_pars = model_pars[2]
-    evaporation(o.T_core, o.T_surf, m_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
-end
-
-evaporation(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, m_resp, Hd) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    env_pars = model_pars[2]
-    evaporation(T_x, o.T_surf, m_resp, o.ψ_org, o.p_wet, Body.geometry.area, Hd, org_pars.p_eyes, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos)
 end
 
 """
@@ -536,36 +466,10 @@ function respiration(
   (Q_resp = Q_resp, m_resp = m_resp, J_air_in = J_air_in, J_air_out = J_air_out, J_H2O_in = J_H2O_in, J_H2O_out = J_H2O_out, J_O2_in = J_O2_in, J_O2_out = J_O2_out, J_CO2_in = J_CO2_in, J_CO2_out = J_CO2_out)
 end
 
-respiration(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, Q_metab) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    env_pars = model_pars[2]
-    respiration(o.T_core, Q_metab, org_pars.fO2_ext, o.pant, org_pars.rq, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos, env_pars.fO2, env_pars.fCO2, env_pars.fN2)
-end
-
-respiration(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars, Q_metab) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    env_pars = model_pars[2]
-    respiration(T_x, Q_metab, org_pars.fO2_ext, o.pant, org_pars.rq, e.Ta, e.rh, env_pars.elev, env_pars.P_atmos, env_pars.fO2, env_pars.fCO2, env_pars.fN2)
-end
-
 function metabolism(mass = 0.04kg, T_core = K(25°C), M1 = 0.013, M2 = 0.8, M3 = 0.038)
     mass_g = uconvert(u"g", mass)
     T_core = uconvert(u"°C", T_core)
     T_core > 50°C && return (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * 50))W
     T_core < 1°C && return 0.01W
     (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * Unitful.ustrip(T_core)))W
-end
-
-metabolism(Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    metabolism(Body.shape.mass, o.T_core, org_pars.M1, org_pars.M2, org_pars.M3)
-end
-
-metabolism(T_x, Body, p::Model, o::OrganismalVars, e::EnvironmentalVars) = begin
-    model_pars = stripparams(p)
-    org_pars = model_pars[1]
-    metabolism(Body.shape.mass, T_x, org_pars.M1, org_pars.M2, org_pars.M3)
 end

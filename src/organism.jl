@@ -1,6 +1,14 @@
 
+# We have a generic abstract type for all organisms
+abstract type AbstractOrganism end
 
-Base.@kwdef struct OrganismalPars{F}
+# With some generic methods to get the params and body
+body(o::AbstractOrganism) = o.body
+shape(o::AbstractOrganism) = body(o).shape
+insulation(o::AbstractOrganism) = body(o).insulation
+params(o::AbstractOrganism) = o.params
+
+Base.@kwdef struct OrganismParams{F}
     α_org_dorsal::F = Param(0.8, bounds=(0.2, 1.0))
     α_org_ventral::F = Param(0.8, bounds=(0.2, 1.0))
     ϵ_org_dorsal::F = Param(0.95, bounds=(0.1, 0.0))
@@ -22,4 +30,10 @@ Base.@kwdef struct OrganismalVars{T,P,F,B}
     p_wet::F = 0.001
     p_cond::F = 0.1
     pant::B = 1
+end
+
+# Then define a concrete organism struct  
+struct Organism{B<:Body,P<:OrganismParams} <: AbstractOrganism
+    body::B
+    params::P
 end

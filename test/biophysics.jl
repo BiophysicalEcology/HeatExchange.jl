@@ -4,9 +4,9 @@ using Unitful
 using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
 using Roots
 
+include("../src/geometry.jl")
 include("../src/organism.jl")
 include("../src/environment.jl")
-include("../src/geometry.jl")
 include("../src/biophysics.jl")
 include("../src/heat_balance.jl")
 
@@ -97,19 +97,14 @@ T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C
 
 # using structs to pass parameters
 
-mod = Model((body=body_organism, 
-             parameters = (OrganismalPars(), EnvironmentalPars()), 
-             variables = (OrganismalVars(), EnvironmentalVars())))
-model = stripparams(model_params)
-conv_out = convection(body_organism, model_params, org_vars, env_vars)
-solar(body_organism, model_params, org_vars, env_vars)
-radin(body_organism, model_params, org_vars, env_vars)
-radout(body_organism, model_params, org_vars, env_vars)
-Q_metab = metabolism(body_organism, model_params, org_vars, env_vars)
-resp_out = respiration(body_organism, model_params, org_vars, env_vars, Q_metab)
-evaporation(body_organism, model_params, org_vars, env_vars, resp_out.m_resp, conv_out.Hd)
-conduction(body_organism, model_params, org_vars, env_vars)
+mass_organism = 0.04kg
+ρ_organism = 1000kg/m^3
+shapeb_organism = 2
+shape_organism = Cylinder(mass_organism, ρ_organism, shapeb_organism)
+body_organism = Body(shape_organism, Naked())
 
-# heat_balance(body_organism, model_params, org_vars, env_vars)
-# T_surf_s = find_zero(heat_balance(, model_params, org_vars, env_vars),(T_air - 10K, T_air + 100K), Bisection())
+lizard = Model(Organism(body_organism, OrganismParams()))
+environmental_params = EnvironmentalParams()
+variables = (organism=OrganismalVars(), environment=EnvironmentalVars())
 
+heat_balance(lizard, environmental_params, variables)

@@ -1,5 +1,5 @@
 
-Base.@kwdef struct EnvironmentalPars{A,P,E,L,F}
+Base.@kwdef struct EnvironmentalParams{A,P,E,L,F}
     α_sub::A = Param(0.2, bounds=(0.0, 1.0))
     ϵ_sub::A = Param(1.0, bounds=(0.2, 1.0))
     ϵ_sky::A = Param(1.0, bounds=(0.2, 1.0))
