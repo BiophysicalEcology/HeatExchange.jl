@@ -76,7 +76,7 @@ Q_cond = conduction(A_v, Le, T_surf, T_sub, k_sub)
 
 T_x = T_air
 
-conv_out = convection(body_organism, A_v, T_air, T_surf, vel, P_atmos, elev, fluid)
+conv_out = convection(body_organism, A_c, T_air, T_surf, vel, P_atmos, elev, fluid)
 resp_out = respiration(T_x, Q_metab, fO2_ext, pant, rq, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
 m_resp = resp_out.m_resp
 evap_out = evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
@@ -108,3 +108,7 @@ environmental_params = EnvironmentalParams()
 variables = (organism=OrganismalVars(), environment=EnvironmentalVars())
 
 heat_balance(lizard, environmental_params, variables)
+
+T_air = EnvironmentalVars().Ta
+T_surf_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40K, T_air + 100K), Bisection())
+T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C
