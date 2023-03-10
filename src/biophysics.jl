@@ -413,10 +413,14 @@ function respiration(
     rh = 50,
     elev = nothing,
     P_atmos = 101325Pa,
-    fO2 = 0.2095,
+    fO2 = 0.20938,
     fCO2 = 0.00042,
     fN2 = 0.7902)
   
+  # adjust O2 to ensure sum to 1
+  if fO2 + fCO2 + fN2  !=  1
+    fO2 = 1 - (fN2 + fCO2)
+  end
   P_O2 = P_atmos * fO2
   Joule_m3_O2 = 20.1e6J/m^3 # joules of energy dissipated per m3 O2 consumed at STP (enthalpy of combustion)
   V_O2_STP = uconvert(u"m^3/s", Q_metab / Joule_m3_O2)
