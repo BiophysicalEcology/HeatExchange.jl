@@ -284,8 +284,8 @@ function convection(Body, area, T_air, T_surf, vel, P_atmos, elev, fluid)
     (Q_conv=Q_conv, Hc=Hc, Hd=Hd, Sh=Sh, Q_free=Q_free, Hc_free=Hc_free, Hc_forc=Hc_forc, Sh_free=Sh_free, Sh_forc=Sh_forc, Hd_free=Hd_free, Hd_forc=Hd_forc)
 end
 
-function conduction(A, L, T_org, T_sub, k_sub)
-    A * (k_sub / L) * (T_org - T_sub)
+function conduction(A, L, T_surf, T_sub, k_sub)
+    A * (k_sub / L) * (T_surf - T_sub)
 end
 
 function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
@@ -295,19 +295,19 @@ function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky,
     (Q_direct + Q_sol_sub + Q_sol_sky)
 end
 
-
 function radin(A_tot = 0.01325006m^2,
     F_sky = 0.4,
     F_sub = 0.4,
-    ϵ_org = 0.95,
+    ϵ_org_dorsal = 0.95,
+    ϵ_org_ventral = 0.95,
     ϵ_sub = 0.95,
     ϵ_sky = 0.8,
     T_sky = (10+273.15)K,
     T_sub = (30+273.15)K)
 
 σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
-Q_ir_sky = ϵ_org * F_sky * A_tot * ϵ_sky * σ * T_sky ^ 4
-Q_ir_sub = ϵ_org * F_sub * A_tot * ϵ_sub * σ * T_sub ^ 4
+Q_ir_sky = ϵ_org_dorsal * F_sky * A_tot * ϵ_sky * σ * T_sky ^ 4
+Q_ir_sub = ϵ_org_ventral * F_sub * A_tot * ϵ_sub * σ * T_sub ^ 4
 (Q_ir_sky + Q_ir_sub)
 end
 
@@ -316,15 +316,16 @@ function radout(
     A_tot = 0.01325006m^2,
     F_sky = 0.4,
     F_sub = 0.4,
-    ϵ_org = 0.95)
+    ϵ_org_dorsal = 0.95,
+    ϵ_org_ventral = 0.95)
 # C     COMPUTES LONGWAVE RADIATION LOST
 σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
-Q_ir_to_sky = A_tot * F_sky * ϵ_org * σ  * T_skin ^ 4
-Q_ir_to_sub = A_tot * F_sub * ϵ_org * σ  * T_skin ^ 4
+Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ  * T_skin ^ 4
+Q_ir_to_sub = A_tot * F_sub * ϵ_org_ventral * σ  * T_skin ^ 4
 (Q_ir_to_sky + Q_ir_to_sub)
 end
 
-function evap(
+function evaporation(
     T_core = (25+273.15)K,
     T_skin = (25.1+273.15)K,
     m_resp = 1.177235e-09kg/s,
@@ -335,6 +336,7 @@ function evap(
     p_eyes = 0.03 / 100,
     T_air = (20+273.15)K,
     rh = 50,
+    elev = 0m,
     P_atmos = 101325Pa)
     
   # C     THIS SUBROUTINE COMPUTES SURFACE EVAPORATION BASED ON THE MASS TRANSFER
@@ -383,6 +385,8 @@ resp
 Computes respiratory heat and water loss via mass flow through the lungs 
 given gas concentrations, pressure, respiration rate and humidity.
 Note that there is no recovery of heat or moisture assumed in the nose.
+If barometric preassure is known, elevation will be ignored. Otherwise, 
+if atmospheric pressure is unknown, elevation will be used to estimate it.
     ...
     # Arguments
     - `T_x`: current core temperature guess, K
@@ -392,13 +396,14 @@ Note that there is no recovery of heat or moisture assumed in the nose.
     - `rq`: respiratory quotient, (mol CO2 / mol O2)
     - `T_air`: air temperature, K
     - `rh`: relative humidity, %
+    - `elev`: elevation, m
     - `P_atmos`: barometric pressure, Pa
     - `fO2`; fractional O2 concentration in atmosphere, -
     - `fCO2`; fractional CO2 concentration in atmosphere, -
     - `fN2`; fractional N2 concentration in atmosphere, -
     ...    
 """
-function resp(
+function respiration(
     T_x = 296.15K,
     Q_metab = 0.01241022W,
     fO2_ext = 0.20,
@@ -406,6 +411,7 @@ function resp(
     rq = 0.8,
     T_air = 293.15K,
     rh = 50,
+    elev = nothing,
     P_atmos = 101325Pa,
     fO2 = 0.2095,
     fCO2 = 0.00042,
@@ -458,4 +464,12 @@ function resp(
   # heat loss by breathing (J/s)=(J/kg)*(kg/s)
   Q_resp = uconvert(u"W",L_v * m_resp)
   (Q_resp = Q_resp, m_resp = m_resp, J_air_in = J_air_in, J_air_out = J_air_out, J_H2O_in = J_H2O_in, J_H2O_out = J_H2O_out, J_O2_in = J_O2_in, J_O2_out = J_O2_out, J_CO2_in = J_CO2_in, J_CO2_out = J_CO2_out)
+end
+
+function metabolism(mass = 0.04kg, T_core = K(25°C), M1 = 0.013, M2 = 0.8, M3 = 0.038)
+    mass_g = uconvert(u"g", mass)
+    T_core = uconvert(u"°C", T_core)
+    T_core > 50°C && return (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * 50))W
+    T_core < 1°C && return 0.01W
+    (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * Unitful.ustrip(T_core)))W
 end
