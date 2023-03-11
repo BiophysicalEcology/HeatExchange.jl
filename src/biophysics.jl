@@ -56,7 +56,6 @@ If T_dew is known then set T_wetublb = 0 and rh = 0.
 ...    
 """
 function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=101325Pa)
-    #T = T_drybulb + 273.15°C
     f_w = 1.0053 # (-) correction factor for the departure of the mixture of air and water vapour from ideal gas laws
     M_w = 0.018016kg/mol # molar mass of water
     M_a = 0.028965924869122257kg/mol # molar mass of air
@@ -115,8 +114,8 @@ function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
 end
 
 function get_Nusselt_free(shape::Cylinder, Gr, Pr)
-    #C      FREE CONVECTION OF A CYLINDER
-    #C      FROM P.334 KREITH (1965): MC ADAM'S 1954 RECOMMENDED COORDINATES
+    #  free convection for a cylinder
+    #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
     Ra = Gr * Pr
     if Ra < 1.0E-05
         Nu_free = 0.4
@@ -144,26 +143,26 @@ function get_Nusselt_free(shape::Cylinder, Gr, Pr)
     (Nu_free)
 end
 
-# function get_Nusselt_free(shape::Plate, Gr, Pr)
-#     Ra = Gr * Pr
-#     Nu_free = 0.55 * Ra ^ 0.25
-#     (Nu_free)
-# end
+function get_Nusselt_free(shape::Plate, Gr, Pr)
+ Ra = Gr * Pr
+ Nu_free = 0.55 * Ra ^ 0.25
+ (Nu_free)
+end
 
 function get_Nusselt_free(shape::Ellipsoid, Gr, Pr)
-    #C      SPHERE FREE CONVECTION
-    #C      FROM P.413 BIRD ET AL (1960) TRANSPORT PHENOMENA)
+    #  sphere free convection
+    #  from p.413 Bird et all (1960) Transport Phenomena
     Ra = (Gr ^ (1 /4)) * (Pr ^ (1 / 3))
     Nu_free = 2 + 0.60 * Ra
     # if Ra >= 200
-    #     print(Ra, '(Gr ^ 0.25) * (Pr ^ 0.333) IS TOO LARGE FOR CORREL.'))
+    # print(Ra, '(Gr ^ 0.25) * (Pr ^ 0.333) is too large for correlation'))
     # end
     (Nu_free)
 end
 
 function get_Nusselt_forced(shape::Cylinder, Re)
-    #C      FORCED CONVECTION OF A CYLINDER
-    #C      ADJUSTING Nu - Re CORRELATION FOR Re NUMBER (P. 260 MCADAMS,1954)
+    #  forced convection of a cylinder
+    #  adjusting Nu - Re correlation for Re number (p. 260 McAdams, 1954)
     if Re < 4
         Nu = 0.891 * Re^0.33
     else
@@ -186,24 +185,24 @@ function get_Nusselt_forced(shape::Cylinder, Re)
     (Nu)
 end
 
-# function get_Nusselt_forced(shape::Plate, Re)
-#     #C      FORCED CONVECTION OF A PLATE
-#     Nu = 0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
-#     (Nu)
-# end
+function get_Nusselt_forced(shape::Plate, Re)
+ # forced convection of a plate
+ Nu = 0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
+ (Nu)
+end
 
 function get_Nusselt_forced(shape::Ellipsoid, Re)
-    #C      FORCED CONVECTION OF A SPHERE
-    Nu = 0.35 * Re ^ 0.6 # FROM McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
+    #  forced convection of a sphere
+    Nu = 0.35 * Re ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
     (Nu)
 end
 
 function water_prop(T_water)
-  #     β = COEFFICIENT OF EXPANSION (1/C)
-  #     cp_fluid = SPECIFIC HEAT (J/KG-C)
-  #     ρ_air = WATER DENSITY (KG/M3)
-  #     k_fluid = THERMAL CONDUCTIVITY (W/M-C)
-  #     μ = DYNAMIC VISCOSITY (KG/M-S)
+  # β = coefficient of expansion (1/K)
+  # cp_fluid = specific heat (J/kg-K)
+  # ρ_water = water density (kg/m3)
+  # k_fluid = thermal conductivity (W/m-K)
+  # μ = dynamic viscosity (kg/m-s)
   β = 0.21E-031/K
   T_water = Unitful.ustrip(T_water)-273.15
   cp_fluid = 4220.02 - 4.5531 * T_water + 0.182958  * T_water ^ 2 - 0.00310614 *  T_water ^ 3 + 1.89399E-5 * T_water ^ 4
@@ -231,7 +230,7 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     D = shape.characteristic_dimension
     dry_air_out = dry_air(T_air, P_atmos, elev)
     dif_vpr = dry_air_out.dif_vpr
-    #C     CHECKING TO SEE IF THE FLUID IS WATER, NOT AIR
+    # checking to see if the fluid is water, not air
     if fluid == 1
         water_prop_out = water_prop(T_air)
         cp_fluid = water_prop_out.cp_fluid
@@ -244,10 +243,12 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
         k_fluid = dry_air_out.k_fluid
         μ = dry_air_out.μ
     end
+
+    # free convection
     Pr = cp_fluid * μ / k_fluid
     Pr = Unitful.ustrip(Pr) # is dimensionless, enforce this
     if fluid == 1
-        #C      WATER; NO MEANING
+        #  water; no meaning
         Sc = 1
     else
         Sc = μ / (ρ_air * dif_vpr)
@@ -256,28 +257,30 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     Gr = abs(((ρ_air^2) * β * G * (D^3) * δ_T) / (μ^2))
     Re = ρ_air * vel * D / μ
     Nu_free = get_Nusselt_free(Body.shape, Gr, Pr)
-    Hc_free = (Nu_free * k_fluid) / D
-    #C     CALCULATING THE SHERWOOD NUMBER FROM THE COLBURN ANALOGY
-    #C     (BIRD, STEWART & LIGHTFOOT, 1960. TRANSPORT PHENOMENA. WILEY.Nu_comb
-    Sh_free = Nu_free * (Sc / Pr)^(1 / 3)
-    #C     CALCULATING THE MASS TRANSFER COEFFICIENT FROM THE SHERWOOD NUMBER
-    Hd_free = Sh_free * dif_vpr / D
-    #C     CALCULATING THE CONVECTIVE HEAT LOSS AT THE SKIN
-    Q_free = Hc_free * A_conv * (T_surf - T_air)
+    Hc_free = (Nu_free * k_fluid) / D # heat transfer coefficient, free
+    # calculating the Sherwood number from the Colburn analogy
+    # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
+    Sh_free = Nu_free * (Sc / Pr)^(1 / 3) # Sherwood number, free
+    # calculating the mass transfer coefficient from the Sherwood number
+    Hd_free = Sh_free * dif_vpr / D # mass transfer coefficient, free
+    Q_free = Hc_free * A_conv * (T_surf - T_air) # free convective heat loss at surface
+
+    # forced convection
     Nu = get_Nusselt_forced(Body.shape, Re)
-    #C     FORCED CONVECTION FOR ANIMAL
-    Hc_forc = Nu * k_fluid / D # HEAT TRANFER COEFFICIENT
-    Sh_forc = Nu * (Sc / Pr)^(1 / 3) # SHERWOOD NUMBER
-    Hd_forc = Sh_forc * dif_vpr / D # MASS TRANSFER COEFFICIENT
-    #C     USING BIRD, STEWART, & LIGHTFOOT'S MIXED CONVECTION FORMULA (P. 445, TRANSPORT PHENOMENA, 2002)
+    # forced convection for object
+    Hc_forc = Nu * k_fluid / D # heat transfer coefficient, forced
+    Sh_forc = Nu * (Sc / Pr)^(1 / 3) # Sherwood number, forced
+    Hd_forc = Sh_forc * dif_vpr / D # mass transfer coefficient
+    Q_forc = Hd_forc * A_conv * (T_surf - T_air) # forced convective heat transfer
+
+    # combined free and forced convection
+    # using Bird, Stewart & Lightfoot's mixed convection formula (p. 445, Transport Phenomena, 2002)
     Nu_comb = (Nu_free^3 + Nu^3)^(1 / 3)
-    Hc = Nu_comb * (k_fluid / D) # MIXED CONVECTION HEAT TRANSFER
-    Q_conv = Hc * A_conv * (T_surf - T_air) # TOTAL CONVECTIVE TRANSFER
-    #C     CALCULATING THE SHERWOOD NUMBERs FROM THE COLBURN ANALOGY
-    #C     (BIRD, STEWART & LIGHTFOOT, 1960. TRANSPORT PHENOMENA. WILEY.
-    Sh = Nu_comb * (Sc / Pr)^(1 / 3) # SHERWOOD NUMBER
-    Hd = Sh * dif_vpr / D # MASS TRANSFER COEFFICIENT
-    (Q_conv=Q_conv, Hc=Hc, Hd=Hd, Sh=Sh, Q_free=Q_free, Hc_free=Hc_free, Hc_forc=Hc_forc, Sh_free=Sh_free, Sh_forc=Sh_forc, Hd_free=Hd_free, Hd_forc=Hd_forc)
+    Hc = Nu_comb * (k_fluid / D) # mixed convection heat transfer
+    Q_conv = Hc * A_conv * (T_surf - T_air) # total convective heat loss
+    Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
+    Hd = Sh * dif_vpr / D # mass transfer coefficient, combined
+    (Q_conv=Q_conv, Hc=Hc, Hd=Hd, Sh=Sh, Q_free=Q_free, Q_forc=Q_forc, Hc_free=Hc_free, Hc_forc=Hc_forc, Sh_free=Sh_free, Sh_forc=Sh_forc, Hd_free=Hd_free, Hd_forc=Hd_forc)
 end
 
 function conduction(A, L, T_surf, T_sub, k_sub)
@@ -314,7 +317,7 @@ function radout(
     F_sub = 0.4,
     ϵ_org_dorsal = 0.95,
     ϵ_org_ventral = 0.95)
-#     COMPUTES LONGWAVE RADIATION LOST
+# computes longwave radiation lost
 σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
 Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ  * T_surf ^ 4
 Q_ir_to_sub = A_tot * F_sub * ϵ_org_ventral * σ  * T_surf ^ 4
@@ -335,10 +338,10 @@ function evaporation(
     elev = 0m,
     P_atmos = 101325Pa)
     
-  #     THIS SUBROUTINE COMPUTES SURFACE EVAPORATION BASED ON THE MASS TRANSFER
-  #     COEFFICIENT, % OF SURFACE OF THE SKIN ACTING AS A FREE WATER SURFACE
-  #     AND EXPOSED TO THE AIR, AND THE VAPOR DENSITY GRADIENT BETWEEN THE
-  #     SURFACE AND THE AIR, EACH AT THEIR OWN TEMPERATURE.
+  # this subroutine computes surface evaporation based on the mass transfer
+  # coefficient, fraction of surface of the skin acting as a free water surface
+  # and exposed to the air, and the vapor density gradient between the
+  # surface and the air, each at their own temperature.
 
   # get vapour density at surface based on water potential of body
   m_w = 0.018kg/mol #! molar mass of water, kg/mol
