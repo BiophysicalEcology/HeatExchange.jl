@@ -103,18 +103,22 @@ T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C
 
 # using structs to pass parameters
 
+# define the geometry
 mass_organism = 0.04kg
 ρ_organism = 1000kg/m^3
 shapeb_organism = 2
 shape_organism = Cylinder(mass_organism, ρ_organism, shapeb_organism)
 body_organism = Body(shape_organism, Naked())
 
+# construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
 lizard = Model(Organism(body_organism, OrganismParams()))
+# get the environmental parameters
 environmental_params = EnvironmentalParams()
+# get the variables for both the organism and environment
 variables = (organism=OrganismalVars(), environment=EnvironmentalVars())
 
-heat_balance(lizard, environmental_params, variables)
-
-T_air = EnvironmentalVars().Ta
+# define the method 'heat_balance' for passing to find_zero, which dispatches off 'lizard' 
+T_air = EnvironmentalVars().T_air
+heat_balance(T_air, lizard, environmental_params, variables)
 T_surf_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40K, T_air + 100K), Bisection())
 T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C

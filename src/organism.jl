@@ -2,11 +2,11 @@
 abstract type AbstractOrganism end
 
 # With some generic methods to get the params and body
-body(o::AbstractOrganism) = o.body
-shape(o::AbstractOrganism) = body(o).shape
-shape(b::AbstractBody) = b.shape
-insulation(o::AbstractOrganism) = body(o).insulation
-params(o::AbstractOrganism) = o.params
+body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
+shape(o::AbstractOrganism) = body(o).shape # gets the shape from an object of type AbstractOrganism
+shape(b::AbstractBody) = b.shape # gets the shape from an object of type AbstractBody
+insulation(o::AbstractOrganism) = body(o).insulation # gets the insulation from an object of type AbstractOrganism
+params(o::AbstractOrganism) = o.params # gets the parameters from an object of type AbstractOrganism
 
 Base.@kwdef struct OrganismParams{F}
     α_org_dorsal::F = Param(0.8, bounds=(0.2, 1.0))
@@ -17,6 +17,7 @@ Base.@kwdef struct OrganismParams{F}
     F_sub::F = Param(0.4, bounds=(0.3, 0.5))
     p_eyes::F = Param(3e-4, bounds=(2e-4, 4e-4))
     fO2_extract::F = Param(0.20, bounds=(0.10, 0.30))
+    k_body::F = Param(0.5, bounds=(0.412, 2.8))
     rq::F = Param(0.8, bounds=(0.7, 0.9))
     M1::F = Param(0.013, bounds=(0.01, 0.02))
     M2::F = Param(0.8, bounds=(0.7, 0.9))
