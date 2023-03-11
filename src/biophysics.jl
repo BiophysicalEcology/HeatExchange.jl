@@ -1,6 +1,3 @@
-using Unitful
-using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
-
 # Biophysics
 """
     vapour_pressure
@@ -94,7 +91,7 @@ function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=10
 end
 
 function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
-    σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
+    σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
     M_a = 0.028965924869122257kg/mol # molar mass of air
     if P_atmos === nothing
      P_std = 101325Pa
@@ -202,11 +199,11 @@ function get_Nusselt_forced(shape::Ellipsoid, Re)
 end
 
 function water_prop(T_water)
-  # C     β = COEFFICIENT OF EXPANSION (1/C)
-  # C     cp_fluid = SPECIFIC HEAT (J/KG-C)
-  # C     ρ_air = WATER DENSITY (KG/M3)
-  # C     k_fluid = THERMAL CONDUCTIVITY (W/M-C)
-  # C     μ = DYNAMIC VISCOSITY (KG/M-S)
+  #     β = COEFFICIENT OF EXPANSION (1/C)
+  #     cp_fluid = SPECIFIC HEAT (J/KG-C)
+  #     ρ_air = WATER DENSITY (KG/M3)
+  #     k_fluid = THERMAL CONDUCTIVITY (W/M-C)
+  #     μ = DYNAMIC VISCOSITY (KG/M-S)
   β = 0.21E-031/K
   T_water = Unitful.ustrip(T_water)-273.15
   cp_fluid = 4220.02 - 4.5531 * T_water + 0.182958  * T_water ^ 2 - 0.00310614 *  T_water ^ 3 + 1.89399E-5 * T_water ^ 4
@@ -227,11 +224,10 @@ end
   (β = β, cp_fluid = cp_fluid, ρ_water = ρ_water, k_fluid = k_fluid, μ = μ)
 end
 
-function convection(Body, area, T_air, T_surf, vel, P_atmos, elev, fluid)
+function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     shape = Body.geometry
     G = Unitful.gn # acceleration due to gravity, m.s^2
     β = 1 / T_air
-    A_conv = area # m2
     D = shape.characteristic_dimension
     dry_air_out = dry_air(T_air, P_atmos, elev)
     dif_vpr = dry_air_out.dif_vpr
@@ -305,32 +301,32 @@ function radin(A_tot = 0.01325006m^2,
     T_sky = (10+273.15)K,
     T_sub = (30+273.15)K)
 
-σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
+    σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
 Q_ir_sky = ϵ_org_dorsal * F_sky * A_tot * ϵ_sky * σ * T_sky ^ 4
 Q_ir_sub = ϵ_org_ventral * F_sub * A_tot * ϵ_sub * σ * T_sub ^ 4
 (Q_ir_sky + Q_ir_sub)
 end
 
 function radout(
-    T_skin = (25.1+273.15)K,
+    T_surf = (25.1+273.15)K,
     A_tot = 0.01325006m^2,
     F_sky = 0.4,
     F_sub = 0.4,
     ϵ_org_dorsal = 0.95,
     ϵ_org_ventral = 0.95)
-# C     COMPUTES LONGWAVE RADIATION LOST
-σ = Unitful.k^4*π^2/(60*Unitful.ħ^3*Unitful.c0^2) # Stefan-Boltzmann constant, W/m^2/K^4, make Unitful.σ when error is fixed in Unitful
-Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ  * T_skin ^ 4
-Q_ir_to_sub = A_tot * F_sub * ϵ_org_ventral * σ  * T_skin ^ 4
+#     COMPUTES LONGWAVE RADIATION LOST
+σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
+Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ  * T_surf ^ 4
+Q_ir_to_sub = A_tot * F_sub * ϵ_org_ventral * σ  * T_surf ^ 4
 (Q_ir_to_sky + Q_ir_to_sub)
 end
 
 function evaporation(
     T_core = (25+273.15)K,
-    T_skin = (25.1+273.15)K,
+    T_surf = (25.1+273.15)K,
     m_resp = 1.177235e-09kg/s,
     ψ_org = -7.07 * 100J/kg,
-    p_wet = 0.1,
+    p_wet = 0.1 / 100,
     A_tot = 0.01325006m^2,
     Hd = 0.02522706m/s,
     p_eyes = 0.03 / 100,
@@ -339,25 +335,25 @@ function evaporation(
     elev = 0m,
     P_atmos = 101325Pa)
     
-  # C     THIS SUBROUTINE COMPUTES SURFACE EVAPORATION BASED ON THE MASS TRANSFER
-  # C     COEFFICIENT, % OF SURFACE OF THE SKIN ACTING AS A FREE WATER SURFACE
-  # C     AND EXPOSED TO THE AIR, AND THE VAPOR DENSITY GRADIENT BETWEEN THE
-  # C     SURFACE AND THE AIR, EACH AT THEIR OWN TEMPERATURE.
+  #     THIS SUBROUTINE COMPUTES SURFACE EVAPORATION BASED ON THE MASS TRANSFER
+  #     COEFFICIENT, % OF SURFACE OF THE SKIN ACTING AS A FREE WATER SURFACE
+  #     AND EXPOSED TO THE AIR, AND THE VAPOR DENSITY GRADIENT BETWEEN THE
+  #     SURFACE AND THE AIR, EACH AT THEIR OWN TEMPERATURE.
 
   # get vapour density at surface based on water potential of body
   m_w = 0.018kg/mol #! molar mass of water, kg/mol
-  rh_surf = exp(ψ_org / (Unitful.R / m_w * T_skin)) * 100 #
-  wet_air_out = wet_air(T_skin, 0K, rh_surf, 999K, P_atmos)
+  rh_surf = exp(ψ_org / (Unitful.R / m_w * T_surf)) * 100 #
+  wet_air_out = wet_air(T_surf, 0K, rh_surf, nothing, P_atmos)
   ρ_vap_surf = wet_air_out.ρ_vap
 
   # get air vapour density
-  wet_air_out = wet_air(T_air, 0K, rh, 999K, P_atmos)
+  wet_air_out = wet_air(T_air, 0K, rh, nothing, P_atmos)
   ρ_vap_air = wet_air_out.ρ_vap
 
   # water lost from eyes if present
   m_eyes = Hd * p_eyes * A_tot * (ρ_vap_surf - ρ_vap_air)
   if m_eyes > 0kg/s
-    m_cut = A_tot * p_wet * (1 - p_eyes) * Hd * (ρ_vap_surf - ρ_vap_air)
+    m_cut = (A_tot * p_wet  - A_tot * p_wet * p_eyes) * Hd * (ρ_vap_surf - ρ_vap_air)
   else
     m_cut = A_tot * p_wet * Hd * (ρ_vap_surf - ρ_vap_air)
   end
@@ -368,9 +364,9 @@ function evaporation(
   # get latent heat of vapourisation and compute heat exchange due to evaporation
   dry_air_out = dry_air(T_air, P_atmos, elev)
   L_v = dry_air_out.L_v
-  Q_evap = (m_eyes + m_cut) * L_v
+  Q_evap = Unitful.uconvert(u"W",(m_eyes + m_cut) * L_v)
   
-  # convert from kg/s to g/s
+  #onvert from kg/s to g/s
   m_eyes = uconvert(u"g/s",m_eyes)
   m_resp = uconvert(u"g/s",m_resp)
   m_cut = uconvert(u"g/s",m_cut)
@@ -391,7 +387,7 @@ if atmospheric pressure is unknown, elevation will be used to estimate it.
     # Arguments
     - `T_x`: current core temperature guess, K
     - `Q_metab`: metabolic rate, W
-    - `fO2_ext`: extraction efficiency, fractional
+    - `fO2_extract`: extraction efficiency, fractional
     - `pant`: multiplier on breathing rate due to panting, -
     - `rq`: respiratory quotient, (mol CO2 / mol O2)
     - `T_air`: air temperature, K
@@ -406,7 +402,7 @@ if atmospheric pressure is unknown, elevation will be used to estimate it.
 function respiration(
     T_x = 296.15K,
     Q_metab = 0.01241022W,
-    fO2_ext = 0.20,
+    fO2_extract = 0.20,
     pant = 1,
     rq = 0.8,
     T_air = 293.15K,
@@ -425,22 +421,22 @@ function respiration(
   Joule_m3_O2 = 20.1e6J/m^3 # joules of energy dissipated per m3 O2 consumed at STP (enthalpy of combustion)
   V_O2_STP = uconvert(u"m^3/s", Q_metab / Joule_m3_O2)
   
-  # converting stp -> vol. of O2 at animal lung temperature, atm. press.
+  #onverting stp -> vol. of O2 at animal lung temperature, atm. press.
   T_lung = T_x
   V_O2 = (V_O2_STP * P_O2 / 273.15K) * (T_lung / P_O2)
   #n = PV/RT (ideal gas law: number of moles from press,vol,temp)
   J_O2 = uconvert(u"mol/s", P_atmos * V_O2 / (R * T_x)) # mol O2 consumed
   # moles/s of O2, N2, dry air at entrance [air flow = f(O2 consumption)]
-  J_O2_in = J_O2 / fO2_ext # actual oxygen flow in (moles/s), accounting for efficiency of extraction
+  J_O2_in = J_O2 / fO2_extract # actual oxygen flow in (moles/s), accounting for efficiency of extraction
   J_N2_in = J_O2_in * (fN2 / fO2) #  actual nitrogen flow in (moles/s), accounting for efficiency of extraction
   V_air = V_O2 / fO2 # air flow
-  V_CO2 = fCO2 * V_air # CO2 flow
+  V_CO2 = fCO2 * V_air #O2 flow
   J_CO2_in = P_atmos * V_CO2 / (R * T_lung)
   J_air_in = (J_O2_in + J_N2_in + J_CO2_in) * pant
   V_air = uconvert(u"m^3/s",(J_air_in * R * 273.15K / 101325Pa)) # air volume @ stp (m3/s)
-  # computing the vapor pressure at saturation for the subsequent calculation of 
+  #omputing the vapor pressure at saturation for the subsequent calculation of 
   # actual moles of water based on actual relative humidity
-  wet_air_out = wet_air(T_air, 0K, rh, 999K, P_atmos)
+  wet_air_out = wet_air(T_air, 0K, rh, nothing, P_atmos)
   P_vap_sat = wet_air_out.P_vap_sat
   J_H2O_in = J_air_in * (P_vap_sat * (rh / 100)) / (P_atmos - P_vap_sat * (rh / 100))
   # moles at exit
@@ -452,7 +448,7 @@ function respiration(
   J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
   # setting up call to wet_air using temperature of exhaled air at body temperature, assuming saturated air
   rh_exit = 100
-  wet_air_out = wet_air(T_x, 0K, rh_exit, 999K, P_atmos)
+  wet_air_out = wet_air(T_x, 0K, rh_exit, nothing, P_atmos)
   P_vap_sat = wet_air_out.P_vap_sat
   J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
   # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 
@@ -476,4 +472,46 @@ function metabolism(mass = 0.04kg, T_core = K(25°C), M1 = 0.013, M2 = 0.8, M3 =
     T_core > 50°C && return (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * 50))W
     T_core < 1°C && return 0.01W
     (0.0056 * M1 * Unitful.ustrip(mass_g)^M2 * 10^(M3 * Unitful.ustrip(T_core)))W
+end
+
+get_Tsurf_Tlung(body::AbstractBody, k_body, Q_gen_spec, T_core) = get_Tsurf_Tlung(shape(body), body, k_body, Q_gen_spec, T_core)
+
+function get_Tsurf_Tlung(shape::Cylinder, body, k_body, Q_gen_spec, T_core)
+    # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
+    R_flesh = body.geometry.lengths[2]
+    T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
+    T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
+    (T_surf = T_surf, T_lung = T_lung)  
+end
+
+function get_Tsurf_Tlung(shape::Ellipsoid, body, k_body, Q_gen_spec, T_core)
+    a = body.geometry.lengths[1] ^ 2
+    b = body.geometry.lengths[2] ^ 2
+    c = body.geometry.lengths[3] ^ 2
+    T_surf = T_core - (Q_gen_spec / (2 * k_body)) * ((a * b * c) / (a * b + a * c + b * c))
+    T_lung = (Q_gen_spec / (4 * k_body)) * ((a * b * c) / (a * b + a * c + b * c)) + T_surf
+    (T_surf = T_surf, T_lung = T_lung)  
+end
+
+#= function get_Tsurf_Tlung(shape::Sphere, body, k_body, Q_gen_spec, T_core)
+    R_flesh = body.geometry.lengths[2]
+    T_surf = T_core - (Q_gen_spec * R_flesh ^ 2) / (6 * k_body)
+    T_lung = (Q_gen_spec * R_flesh ^ 2) / (12 * k_body) + T_surf
+    (T_surf = T_surf, T_lung = T_lung) 
+end =#
+
+function get_Tsurf_Tlung(shape::DesertIguana, body, k_body, Q_gen_spec, T_core)
+    # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
+    R_flesh = body.geometry.lengths[2]
+    T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
+    T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
+    (T_surf = T_surf, T_lung = T_lung)  
+end
+
+function get_Tsurf_Tlung(shape::LeopardFrog, body, k_body, Q_gen_spec, T_core)
+    # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
+    R_flesh = body.geometry.lengths[2]
+    T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
+    T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
+    (T_surf = T_surf, T_lung = T_lung)  
 end

@@ -13,9 +13,9 @@ end
 
 
 Base.@kwdef struct EnvironmentalVars{T,R,V,Z,K,Q}
-    Ta::T = K(20°C)
-    Tsky::T = K(-5°C)
-    Tsub::T = K(30°C)
+    T_air::T = K(20°C)
+    T_sky::T = K(-5°C)
+    T_sub::T = K(30°C)
     rh::R = 5
     vel::V = 1m/s
     zen::Z = 20°

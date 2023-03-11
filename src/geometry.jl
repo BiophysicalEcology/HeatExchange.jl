@@ -1,6 +1,3 @@
-using Unitful
-using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
-
 """
     Shape
 
@@ -161,7 +158,7 @@ function geometry(shape::Ellipsoid, ::Naked)
     length1 = a * 2m
     length2 = b * 2m
     length3 = c * 2m
-    area = calc_area(shape, a, b, c)
+    area = calc_area(shape, a, b, c)m^2
     return Geometry(volume, length, (length1, length2, length3), area)
 end
 # function geometry(shape::Ellipsoid, fur::Fur)

@@ -1,4 +1,3 @@
-
 # We have a generic abstract type for all organisms
 abstract type AbstractOrganism end
 
@@ -17,7 +16,7 @@ Base.@kwdef struct OrganismParams{F}
     F_sky::F = Param(0.4, bounds=(0.3, 0.5))
     F_sub::F = Param(0.4, bounds=(0.3, 0.5))
     p_eyes::F = Param(3e-4, bounds=(2e-4, 4e-4))
-    fO2_ext::F = Param(0.20, bounds=(0.10, 0.30))
+    fO2_extract::F = Param(0.20, bounds=(0.10, 0.30))
     rq::F = Param(0.8, bounds=(0.7, 0.9))
     M1::F = Param(0.013, bounds=(0.01, 0.02))
     M2::F = Param(0.8, bounds=(0.7, 0.9))
