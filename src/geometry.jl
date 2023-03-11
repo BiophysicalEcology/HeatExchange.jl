@@ -167,40 +167,50 @@ end
 #     return Geometry(volume, length, (length1, length2, length3), area)
 # end
 function calc_area(shape::Ellipsoid, a, b, c)
-    e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
-    2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
+    #e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
+    #2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
+    p =  1.6075
+    (4 * π * (((a ^ p * b ^ p + a ^ p * c ^ p + b ^ p * c ^ p)) / 3) ^ (1 / p))
 end
 function calc_area(shape::Ellipsoid, body)
     a = body.geometry.lengths[1] / 2
     b = body.geometry.lengths[2] / 2
     c = body.geometry.lengths[3] / 2
-    e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
-    2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
+    p =  1.6075
+    (4 * π * (((a ^ p * b ^ p + a ^ p * c ^ p + b ^ p * c ^ p)) / 3) ^ (1 / p))
+    # e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
+    # 2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
 end
 
-"""
-    sil_area_of_ellipsoid
+# """
+#     sil_area_of_ellipsoid
 
-Calculates the silhouette (projected) area of a prolate spheroid.
-"""
-function calc_silhouette_area(shape::Ellipsoid, a, b, c, θ)
-    a2 = cos(90) ^ 2 * (cos(θ) ^ 2 / a ^ 2 + sin(θ) ^ 2 / b ^ 2) + sin(90) ^ 2 / c ^ 2
-    twohh = 2 * cos(90) * sin(90) * cos(θ) * (1 / b ^ 2 - 1 / a ^ 2)
-    b2 = sin(θ) ^ 2 / a ^ 2 + cos(θ) ^ 2 / b ^ 2
-    θ2 = 0.5 * atan(twohh, a2 - b2)
-    sps = sin(θ2)
-    cps = cos(θ2)
-    a3 = cps * (a2 * cps + twohh * sps) + b2 * sps * sps
-    b3 = sps * (a2 * sps - twohh * cps) + b2 * cps * cps
-    semax1 = 1 / sqrt(a3)
-    semax2 = 1 / sqrt(b3)
-    π * semax1  * semax2
-end
+# Calculates the silhouette (projected) area of a prolate spheroid.
+# """
+# function calc_silhouette_area(shape::Ellipsoid, a, b, c, θ)
+#     a2 = cos(90) ^ 2 * (cos(θ) ^ 2 / a ^ 2 + sin(θ) ^ 2 / b ^ 2) + sin(90) ^ 2 / c ^ 2
+#     twohh = 2 * cos(90) * sin(90) * cos(θ) * (1 / b ^ 2 - 1 / a ^ 2)
+#     b2 = sin(θ) ^ 2 / a ^ 2 + cos(θ) ^ 2 / b ^ 2
+#     θ2 = 0.5 * atan(twohh, a2 - b2)
+#     sps = sin(θ2)
+#     cps = cos(θ2)
+#     a3 = cps * (a2 * cps + twohh * sps) + b2 * sps * sps
+#     b3 = sps * (a2 * sps - twohh * cps) + b2 * cps * cps
+#     semax1 = 1 / sqrt(a3)
+#     semax2 = 1 / sqrt(b3)
+#     π * semax1  * semax2
+# end
+# function calc_silhouette_area(shape::Ellipsoid, body, θ)
+#     a = body.geometry.lengths[1] / 2
+#     b = body.geometry.lengths[2] / 2
+#     c = body.geometry.lengths[3] / 2
+#     calc_silhouette_area(shape, a, b, c, θ)
+# end
 function calc_silhouette_area(shape::Ellipsoid, body, θ)
     a = body.geometry.lengths[1] / 2
     b = body.geometry.lengths[2] / 2
     c = body.geometry.lengths[3] / 2
-    calc_silhouette_area(shape, a, b, c, θ)
+    max(π * a * c, π * b * c)
 end
 
 """

@@ -20,6 +20,7 @@ Base.@kwdef struct EnvironmentalVars{T,R,V,Z,K,Q}
     vel::V = 1m/s
     zen::Z = 20°
     k_sub::K = 0.5W/m/K
-    Q_dir::Q = 1000W/m^2
-    Q_dif::Q = 200W/m^2
+    Q_sol::Q = 1000W/m^2
+    Q_dir::Q = 964W/m^2
+    Q_dif::Q = 100W/m^2
 end

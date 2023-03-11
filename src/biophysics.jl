@@ -105,7 +105,8 @@ function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
     ν = μ / ρ_air # m2 / s or J.s/kg
     dif_vpr = 2.26e-5m^2/s * ((T_drybulb / 273.15K)^1.81) * (1.e5Pa / P_atmos) # m2 / s
     k_fluid = (0.02425 + (7.038e-5 * (Unitful.ustrip(T_drybulb) - 273.15)))W/m/K
-    L_v = (2.5012E6 - 2.3787e3 * Unitful.ustrip(T_drybulb) - 273.15)J/kg
+    L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_drybulb) - 273.15))J/kg
+
     tcoeff = 1 / T_drybulb
     ggroup = 0.0980616m/s^2 * tcoeff / (ν^2) # 1 / m3.K
     bbemit = σ * ((T_drybulb)^4) # W/m2
@@ -283,36 +284,53 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     (Q_conv=Q_conv, Hc=Hc, Hd=Hd, Sh=Sh, Q_free=Q_free, Q_forc=Q_forc, Hc_free=Hc_free, Hc_forc=Hc_forc, Sh_free=Sh_free, Sh_forc=Sh_forc, Hd_free=Hd_free, Hd_forc=Hd_forc)
 end
 
-function conduction(A, L, T_surf, T_sub, k_sub)
-    A * (k_sub / L) * (T_surf - T_sub)
+function conduction(A_cond = 0.001325006m^2,
+    L=0.025m,
+    T_surf=K(25°C),
+    T_sub=K(10°C),
+    k_sub=0.1W/m/K)
+    A_cond * (k_sub / L) * (T_surf - T_sub)
 end
 
-function solar(α_org_dorsal, α_org_ventral, A_sil, A_up, A_down, F_sub, F_sky, α_sub, Q_dir, Q_dif)
+function solar(α_org_dorsal=0.85,
+    α_org_ventral=0.85,
+    A_sil=0.004718043m^2,
+    A_tot=0.01325006m^2,
+    A_cond=0.001325006m^2,
+    F_sub=0.4,
+    F_sky=0.4,
+    α_sub=0.8,
+    Q_sol=1000W / m^2,
+    Q_dir=964.177772475912W / m^2,
+    Q_dif=100W / m^2)
+
     Q_direct = α_org_dorsal * A_sil * Q_dir
-    Q_sol_sky = α_org_dorsal * F_sky * A_up * Q_dif
-    Q_sol_sub = α_org_ventral * F_sub * A_down * (1 - α_sub) * (Q_dir + Q_dif)
+    Q_sol_sky = α_org_dorsal * F_sky * A_tot * Q_dif
+    Q_sol_sub = α_org_ventral * F_sub * (A_tot - A_cond) * (1 - α_sub) * Q_sol
     (Q_direct + Q_sol_sub + Q_sol_sky)
 end
 
-function radin(A_tot = 0.01325006m^2,
-    F_sky = 0.4,
-    F_sub = 0.4,
-    ϵ_org_dorsal = 0.95,
-    ϵ_org_ventral = 0.95,
-    ϵ_sub = 0.95,
-    ϵ_sky = 0.8,
-    T_sky = (10+273.15)K,
-    T_sub = (30+273.15)K)
+function radin(A_tot=0.01325006m^2,
+    A_cond=0.001325006m^2,
+    F_sky=0.4,
+    F_sub=0.4,
+    ϵ_org_dorsal=0.95,
+    ϵ_org_ventral=0.95,
+    ϵ_sub=0.95,
+    ϵ_sky=0.8,
+    T_sky=(10 + 273.15)K,
+    T_sub=(30 + 273.15)K)
 
-    σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
-Q_ir_sky = ϵ_org_dorsal * F_sky * A_tot * ϵ_sky * σ * T_sky ^ 4
-Q_ir_sub = ϵ_org_ventral * F_sub * A_tot * ϵ_sub * σ * T_sub ^ 4
-(Q_ir_sky + Q_ir_sub)
+    σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
+    Q_ir_sky = ϵ_org_dorsal * F_sky * A_tot * ϵ_sky * σ * T_sky^4
+    Q_ir_sub = ϵ_org_ventral * F_sub * (A_tot - A_cond) * ϵ_sub * σ * T_sub^4
+    (Q_ir_sky + Q_ir_sub)
 end
 
 function radout(
     T_surf = (25.1+273.15)K,
     A_tot = 0.01325006m^2,
+    A_cond = 0.001325006m^2,
     F_sky = 0.4,
     F_sub = 0.4,
     ϵ_org_dorsal = 0.95,
@@ -320,7 +338,7 @@ function radout(
 # computes longwave radiation lost
 σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
 Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ  * T_surf ^ 4
-Q_ir_to_sub = A_tot * F_sub * ϵ_org_ventral * σ  * T_surf ^ 4
+Q_ir_to_sub = (A_tot - A_cond) * F_sub * ϵ_org_ventral * σ  * T_surf ^ 4
 (Q_ir_to_sky + Q_ir_to_sub)
 end
 
@@ -412,8 +430,8 @@ function respiration(
     rh = 50,
     elev = nothing,
     P_atmos = 101325Pa,
-    fO2 = 0.20938,
-    fCO2 = 0.00042,
+    fO2 = 0.2095,
+    fCO2 = 0.0003,
     fN2 = 0.7902)
   
   # adjust O2 to ensure sum to 1
@@ -424,7 +442,7 @@ function respiration(
   Joule_m3_O2 = 20.1e6J/m^3 # joules of energy dissipated per m3 O2 consumed at STP (enthalpy of combustion)
   V_O2_STP = uconvert(u"m^3/s", Q_metab / Joule_m3_O2)
   
-  #onverting stp -> vol. of O2 at animal lung temperature, atm. press.
+  # converting stp -> vol. of O2 at animal lung temperature, atm. press.
   T_lung = T_x
   V_O2 = (V_O2_STP * P_O2 / 273.15K) * (T_lung / P_O2)
   #n = PV/RT (ideal gas law: number of moles from press,vol,temp)
@@ -437,16 +455,16 @@ function respiration(
   J_CO2_in = P_atmos * V_CO2 / (R * T_lung)
   J_air_in = (J_O2_in + J_N2_in + J_CO2_in) * pant
   V_air = uconvert(u"m^3/s",(J_air_in * R * 273.15K / 101325Pa)) # air volume @ stp (m3/s)
-  #omputing the vapor pressure at saturation for the subsequent calculation of 
+  # computing the vapor pressure at saturation for the subsequent calculation of 
   # actual moles of water based on actual relative humidity
-  wet_air_out = wet_air(T_air, 0K, rh, nothing, P_atmos)
+  wet_air_out = wet_air(T_air, 273.15K, rh, nothing, P_atmos)
   P_vap_sat = wet_air_out.P_vap_sat
   J_H2O_in = J_air_in * (P_vap_sat * (rh / 100)) / (P_atmos - P_vap_sat * (rh / 100))
   # moles at exit
   J_O2_out = J_O2_in - J_O2 # remove consumed oxygen from the total
   J_N2_out = J_N2_in
   J_CO2_out = rq * J_O2 + J_CO2_in
-  #  total moles of air at exit will be approximately the same as at entrance, since 
+  # total moles of air at exit will be approximately the same as at entrance, since 
   # the moles of O2 removed = approx. the # moles of co2 added
   J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
   # setting up call to wet_air using temperature of exhaled air at body temperature, assuming saturated air
@@ -462,8 +480,7 @@ function respiration(
   # grams/s lost by breathing = moles lost * gram molecular weight of water:
   m_resp = J_evap * 18g/mol
   # get latent heat of vapourisation and compute heat exchange due to respiration
-  dry_air_out = dry_air(T_lung, P_atmos, elev)
-  L_v = dry_air_out.L_v
+  L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_lung)-273.15))J/kg # from dry_air
   # heat loss by breathing (J/s)=(J/kg)*(kg/s)
   Q_resp = uconvert(u"W",L_v * m_resp)
   (Q_resp = Q_resp, m_resp = m_resp, J_air_in = J_air_in, J_air_out = J_air_out, J_H2O_in = J_H2O_in, J_H2O_out = J_H2O_out, J_O2_in = J_O2_in, J_O2_out = J_O2_out, J_CO2_in = J_CO2_in, J_CO2_out = J_CO2_out)
