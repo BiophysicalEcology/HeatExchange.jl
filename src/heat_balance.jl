@@ -7,7 +7,7 @@ heat_balance(mod::Model, e_params, vars) = heat_balance(stripparams(mod), stripp
 heat_balance(T_x, mod::Model, e_params, vars) = heat_balance(T_x, stripparams(mod), stripparams(e_params), vars)
 # A generic method that expands dispatch to include the insulation
 # this could be <:Ectotherm or <:Endotherm?
-#heat_balance(T_x, o::Organism, e_pars, vars) = heat_balance(T_x, insulation(o), o, params(o), e_pars, vars)
+heat_balance(T_x, o::Organism, e_pars, vars) = heat_balance(T_x, insulation(o), o, params(o), e_pars, vars)
 # A method for Naked organisms
 
 function heat_balance(T_x, insulation::Naked, o, pars, e_pars, vars)
@@ -28,12 +28,13 @@ function heat_balance(T_x, insulation::Naked, o, pars, e_pars, vars)
     Q_gen_spec = Q_gen_net / o.body.geometry.volume
     Tsurf_Tlung_out = get_Tsurf_Tlung(o.body, pars.k_body, Q_gen_spec, T_x)
     T_surf = Tsurf_Tlung_out.T_surf
+    
     #T_lung = Tsurf_Tlung_out.T_lung
     Q_solar = solar(pars.α_org_dorsal, pars.α_org_ventral, A_sil, A_tot, A_cond, pars.F_sub, pars.F_sky, e_pars.α_sub, e_vars.Q_sol, e_vars.Q_dir, e_vars.Q_dif)
     Q_IR_in = radin(A_tot, A_cond, pars.F_sky, pars.F_sub, pars.ϵ_org_dorsal, pars.ϵ_org_ventral, e_pars.ϵ_sub, e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_sub)
     Q_IR_out = radout(T_surf, A_tot, A_cond, pars.F_sky, pars.F_sub, pars.ϵ_org_dorsal, pars.ϵ_org_ventral)
     Le = 0.025m
-    Q_cond = conduction(A_cond, Le, T_surf, e_vars.Tsub, e_vars.k_sub)
+    Q_cond = conduction(A_cond, Le, T_surf, e_vars.T_sub, e_vars.k_sub)
     conv_out = convection(o.body, A_conv, e_vars.T_air, T_surf, e_vars.vel, e_pars.P_atmos, e_pars.elev, e_pars.fluid)
     evap_out = evaporation(T_x, T_surf, resp_out.m_resp, o_vars.ψ_org, o_vars.p_wet, A_conv, conv_out.Hd, pars.p_eyes, e_vars.T_air, e_vars.rh, e_pars.P_atmos)
     Q_conv = conv_out.Q_conv # convective heat loss

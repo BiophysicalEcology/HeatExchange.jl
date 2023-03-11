@@ -96,8 +96,8 @@ Q_out = Q_IR_out + Q_conv + Q_evap + Q_resp + Q_cond
 Q_in - Q_out
 
 
-T_surf_s = find_zero(heat_balance, (T_air - 40K, T_air + 100K), Bisection())
-T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C
+T_core_s = find_zero(heat_balance, (T_air - 40K, T_air + 100K), Bisection())
+T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
 
 
 # using structs to pass parameters
@@ -123,5 +123,5 @@ variables = (organism=OrganismalVars(), environment=EnvironmentalVars())
 # define the method 'heat_balance' for passing to find_zero, which dispatches off 'lizard' 
 T_air = EnvironmentalVars().T_air
 heat_balance(T_air, lizard, environmental_params, variables)
-T_surf_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40K, T_air + 100K), Bisection())
-T_surf_C = (Unitful.ustrip(T_surf_s) - 273.15)°C
+T_core_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40K, T_air + 100K), Bisection())
+T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
