@@ -69,7 +69,7 @@ M2 = 0.8
 M3 = 0.038
 
 # organism state
-T_core = K(35.35236°C)
+T_core = K(35.497186492935384°C)
 
 # calculate heat fluxes
 metab_out = metabolism(mass_organism, T_core, M1, M2, M3)
