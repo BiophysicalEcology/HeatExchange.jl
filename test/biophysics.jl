@@ -1,7 +1,7 @@
 using Revise
 using ModelParameters
 using Unitful
-using Unitful: °, rad, °C, K, Pa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, R
+using Unitful: °, rad, °C, K, Pa, J, kJ, W, ml, L, g, kg, cm, m, s, hr, d, mol, R
 using Roots
 
 include("../src/geometry.jl")
@@ -72,7 +72,8 @@ M3 = 0.038
 T_core = K(35.35236°C)
 
 # calculate heat fluxes
-Q_metab = metabolism(mass_organism, T_core, M1, M2, M3)
+metab_out = metabolism(mass_organism, T_core, M1, M2, M3)
+Q_metab = metab_out.Q_metab
 resp_out = respiration(T_core, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
 Q_resp = resp_out.Q_resp
 Q_gen_net = Q_metab - Q_resp
@@ -80,10 +81,12 @@ Q_gen_spec = Q_gen_net / body_organism.geometry.volume
 Tsurf_Tlung_out = get_Tsurf_Tlung(body_organism, k_body, Q_gen_spec, T_core)
 T_surf = Tsurf_Tlung_out.T_surf
 T_lung = Tsurf_Tlung_out.T_lung
-Q_solar = solar(α_org_dorsal, α_org_ventral, A_sil, A_tot, A_cond, F_sub, F_sky, α_sub, Q_sol, Q_dir, Q_dif)
-Q_IR_in = radin(A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral, ϵ_sub, ϵ_sky, T_sky, T_sub)
-Q_IR_out = radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
-Q_metab = metabolism(body_organism.shape.mass, T_core, M1, M2, M3)
+solar_out = solar(α_org_dorsal, α_org_ventral, A_sil, A_tot, A_cond, F_sub, F_sky, α_sub, Q_sol, Q_dir, Q_dif)
+Q_solar = solar_out.Q_solar
+ir_gain = radin(A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral, ϵ_sub, ϵ_sky, T_sky, T_sub)
+Q_ir_in = ir_gain.Q_ir_in
+ir_loss = radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
+Q_ir_out = ir_loss.Q_ir_out
 Q_cond = conduction(A_cond, Le, T_surf, T_sub, k_sub)
 conv_out = convection(body_organism, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
 evap_out = evaporation(T_core, T_surf, resp_out.m_resp, ψ_org, p_wet, A_conv, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
@@ -91,14 +94,15 @@ Q_conv = conv_out.Q_conv
 Q_evap = evap_out.Q_evap
 Q_resp = resp_out.Q_resp
 
-Q_in = Q_solar + Q_IR_in + Q_metab
-Q_out = Q_IR_out + Q_conv + Q_evap + Q_resp + Q_cond
+Q_in = Q_solar + Q_ir_in + Q_metab
+Q_out = Q_ir_out + Q_conv + Q_evap + Q_resp + Q_cond
 Q_in - Q_out
 
 
 T_core_s = find_zero(heat_balance, (T_air - 40K, T_air + 100K), Bisection())
 T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
 
+heat_balance_out = heat_balance(T_core_s)
 
 # using structs to pass parameters
 
@@ -125,3 +129,4 @@ T_air = EnvironmentalVars().T_air
 heat_balance(T_air, lizard, environmental_params, variables)
 T_core_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40K, T_air + 100K), Bisection())
 T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
+heat_balance_out = heat_balance(T_core_s)
