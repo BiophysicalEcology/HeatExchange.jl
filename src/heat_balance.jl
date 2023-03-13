@@ -29,8 +29,8 @@ function heat_balance(T_x, insulation::Naked, o, pars, e_pars, vars)
     Q_gen_spec = Q_gen_net / o.body.geometry.volume
     Tsurf_Tlung_out = get_Tsurf_Tlung(o.body, pars.k_body, Q_gen_spec, T_x)
     T_surf = Tsurf_Tlung_out.T_surf
+    T_lung = Tsurf_Tlung_out.T_lung
     
-    #T_lung = Tsurf_Tlung_out.T_lung
     solar_out = solar(pars.α_org_dorsal, pars.α_org_ventral, A_sil, A_tot, A_cond, pars.F_sub, pars.F_sky, e_pars.α_sub, e_vars.Q_sol, e_vars.Q_dir, e_vars.Q_dif)
     Q_solar = solar_out.Q_solar
     ir_gain = radin(A_tot, A_cond, pars.F_sky, pars.F_sub, pars.ϵ_org_dorsal, pars.ϵ_org_ventral, e_pars.ϵ_sub, e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_sub)
@@ -53,7 +53,7 @@ function heat_balance(T_x, insulation::Naked, o, pars, e_pars, vars)
     enbal = [Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal]
     #enbal = [Q_solar = Q_solar, Q_ir_in = Q_ir_in, Q_metab = Q_metab, Q_resp = Q_resp, Q_evap = Q_evap, Q_ir_out = Q_ir_out, Q_conv = Q_conv, Q_cond = Q_cond, Q_bal = Q_bal]
     masbal = [metab_out.V_O2, evap_out.m_resp, evap_out.m_cut, evap_out.m_eyes]
-    (Q_bal=Q_bal, T_core=T_core, T_surf=T_surf, T_lung=T_lung, enbal=enbal, masbal=masbal, resp_out=resp_out, solar_out=solar_out, ir_gain=ir_gain, ir_loss=ir_loss, conv_out=conv_out, evap_out=evap_out)
+    (Q_bal=Q_bal, T_core=T_x, T_surf=T_surf, T_lung=T_lung, enbal=enbal, masbal=masbal, resp_out=resp_out, solar_out=solar_out, ir_gain=ir_gain, ir_loss=ir_loss, conv_out=conv_out, evap_out=evap_out)
 
 end
 function heat_balance(insulation::Fur, params, organism, vars) # A method for organisms with fur
@@ -75,7 +75,7 @@ function heat_balance(T_x)
     Q_gen_spec = Q_gen_net / geometric_traits.geometry.volume
     Tsurf_Tlung_out = get_Tsurf_Tlung(geometric_traits, k_body, Q_gen_spec, T_x)
     T_surf = Tsurf_Tlung_out.T_surf
-    #T_lung = Tsurf_Tlung_out.T_lung
+    T_lung = Tsurf_Tlung_out.T_lung
     #Q_norm = Q_dir / cos(Z)
     solar_out = solar(α_org_dorsal, α_org_ventral, A_sil, A_tot, A_cond, F_sub, F_sky, α_sub, Q_sol, Q_dir, Q_dif)
     Q_solar = solar_out.Q_solar
@@ -98,5 +98,5 @@ function heat_balance(T_x)
     enbal = [Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal]
     #enbal = [Q_solar = Q_solar, Q_ir_in = Q_ir_in, Q_metab = Q_metab, Q_resp = Q_resp, Q_evap = Q_evap, Q_ir_out = Q_ir_out, Q_conv = Q_conv, Q_cond = Q_cond, Q_bal = Q_bal]
     masbal = [metab_out.V_O2, evap_out.m_resp, evap_out.m_cut, evap_out.m_eyes]
-    (Q_bal=Q_bal, T_core=T_core, T_surf=T_surf, T_lung=T_lung, enbal=enbal, masbal=masbal, resp_out=resp_out, solar_out=solar_out, ir_gain=ir_gain, ir_loss=ir_loss, conv_out=conv_out, evap_out=evap_out)
+    (Q_bal=Q_bal, T_core=T_x, T_surf=T_surf, T_lung=T_lung, enbal=enbal, masbal=masbal, resp_out=resp_out, solar_out=solar_out, ir_gain=ir_gain, ir_loss=ir_loss, conv_out=conv_out, evap_out=evap_out)
 end
