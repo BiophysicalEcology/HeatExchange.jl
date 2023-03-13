@@ -53,7 +53,7 @@ function heat_balance(T_x, insulation::Naked, o, pars, e_pars, vars)
     enbal = [Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal]
     #enbal = [Q_solar = Q_solar, Q_ir_in = Q_ir_in, Q_metab = Q_metab, Q_resp = Q_resp, Q_evap = Q_evap, Q_ir_out = Q_ir_out, Q_conv = Q_conv, Q_cond = Q_cond, Q_bal = Q_bal]
     masbal = [metab_out.V_O2, evap_out.m_resp, evap_out.m_cut, evap_out.m_eyes]
-    (Q_bal=Q_bal, T_core=T_x, T_surf=T_surf, T_lung=T_lung, enbal=enbal, masbal=masbal, resp_out=resp_out, solar_out=solar_out, ir_gain=ir_gain, ir_loss=ir_loss, conv_out=conv_out, evap_out=evap_out)
+    (;Q_bal, T_core=T_x, T_surf, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
 
 end
 function heat_balance(insulation::Fur, params, organism, vars) # A method for organisms with fur
@@ -98,5 +98,5 @@ function heat_balance(T_x)
     enbal = [Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal]
     #enbal = [Q_solar = Q_solar, Q_ir_in = Q_ir_in, Q_metab = Q_metab, Q_resp = Q_resp, Q_evap = Q_evap, Q_ir_out = Q_ir_out, Q_conv = Q_conv, Q_cond = Q_cond, Q_bal = Q_bal]
     masbal = [metab_out.V_O2, evap_out.m_resp, evap_out.m_cut, evap_out.m_eyes]
-    (Q_bal=Q_bal, T_core=T_x, T_surf=T_surf, T_lung=T_lung, enbal=enbal, masbal=masbal, resp_out=resp_out, solar_out=solar_out, ir_gain=ir_gain, ir_loss=ir_loss, conv_out=conv_out, evap_out=evap_out)
+    (;Q_bal, T_core=T_x, T_surf, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
 end
