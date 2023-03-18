@@ -86,7 +86,7 @@ function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=10
     else
         ψ = (4.615e+5 * Unitful.ustrip(T_drybulb) * log(rh / 100))Pa
     end
-    (P_vap=P_vap, P_vap_sat, ρ_vap, r_w, T_vinc, ρ_air, cp, ψ, rh)
+    (;P_vap, P_vap_sat, ρ_vap, r_w, T_vinc, ρ_air, cp, ψ, rh)
 end
 
 function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
@@ -111,7 +111,7 @@ function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
     ggroup = 0.0980616m/s^2 * tcoeff / (ν^2) # 1 / m3.K
     bbemit = σ * ((T_drybulb)^4) # W/m2
     emtmax = 2.897e-3K*m / (T_drybulb) # m
-    (P_atmos=P_atmos, ρ_air=ρ_air, μ=μ, ν=ν, dif_vpr=dif_vpr, k_fluid=k_fluid, L_v=L_v, tcoeff=tcoeff, ggroup=ggroup, bbemit=bbemit, emtmax=emtmax)
+    (;P_atmos, ρ_air, μ, ν, dif_vpr, k_fluid, L_v, tcoeff, ggroup, bbemit, emtmax)
 end
 
 function get_Nusselt_free(shape::Cylinder, Gr, Pr)
@@ -221,7 +221,7 @@ function water_prop(T_water)
     k_fluid = (0.551666 + 0.00282144 * T_water - 2.02383E-5 * T_water^2)W / m / K
     μ = (0.0017515 - 4.31502E-5 * T_water + 3.71431E-7 * T_water^2)kg / m / s
     ρ_water = (ρ_water)kg / m^3
-    (β=β, cp_fluid=cp_fluid, ρ_water=ρ_water, k_fluid=k_fluid, μ=μ)
+    (;β, cp_fluid, ρ_water, k_fluid, μ)
 end
 
 function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
@@ -281,7 +281,7 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     Q_conv = Hc * A_conv * (T_surf - T_air) # total convective heat loss
     Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
     Hd = Sh * dif_vpr / D # mass transfer coefficient, combined
-    (Q_conv=Q_conv, Hc=Hc, Hd=Hd, Sh=Sh, Q_free=Q_free, Q_forc=Q_forc, Hc_free=Hc_free, Hc_forc=Hc_forc, Sh_free=Sh_free, Sh_forc=Sh_forc, Hd_free=Hd_free, Hd_forc=Hd_forc)
+    (;Q_conv, Hc, Hd, Sh, Q_free, Q_forc, Hc_free, Hc_forc, Sh_free, Sh_forc, Hd_free, Hd_forc)
 end
 
 function conduction(A_cond = 0.001325006m^2,
@@ -308,7 +308,7 @@ function solar(α_org_dorsal=0.85,
     Q_sol_sky = α_org_dorsal * F_sky * A_tot * Q_dif
     Q_sol_sub = α_org_ventral * F_sub * (A_tot - A_cond) * (1 - α_sub) * Q_sol
     Q_solar = (Q_direct + Q_sol_sub + Q_sol_sky)
-    (Q_solar = Q_solar, Q_direct = Q_direct, Q_sol_sky = Q_sol_sky, Q_sol_sub = Q_sol_sub)
+    (;Q_solar, Q_direct, Q_sol_sky, Q_sol_sub)
 end
 
 function radin(A_tot=0.01325006m^2,
@@ -326,7 +326,7 @@ function radin(A_tot=0.01325006m^2,
     Q_ir_sky = ϵ_org_dorsal * F_sky * A_tot * ϵ_sky * σ * T_sky^4
     Q_ir_sub = ϵ_org_ventral * F_sub * (A_tot - A_cond) * ϵ_sub * σ * T_sub^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
-    (Q_ir_in=Q_ir_in, Q_ir_sky=Q_ir_sky, Q_ir_sub=Q_ir_sub)
+    (;Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
 
 function radout(
@@ -342,7 +342,7 @@ function radout(
     Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ * T_surf^4
     Q_ir_to_sub = (A_tot - A_cond) * F_sub * ϵ_org_ventral * σ * T_surf^4
     Q_ir_out = Q_ir_to_sky + Q_ir_to_sub
-    (Q_ir_out=Q_ir_out, Q_ir_to_sky=Q_ir_to_sky, Q_ir_to_sub=Q_ir_to_sub)
+    (;Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end
 
 function evaporation(
@@ -396,7 +396,7 @@ function evaporation(
     m_cut = uconvert(u"g/s", m_cut)
     m_evap = uconvert(u"g/s", m_evap)
 
-    (Q_evap=Q_evap, m_evap=m_evap, m_resp=m_resp, m_cut=m_cut, m_eyes=m_eyes)
+    (;Q_evap, m_evap, m_resp, m_cut, m_eyes)
 end
 
 """
@@ -486,7 +486,7 @@ function respiration(
     L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_lung) - 273.15))J / kg # from dry_air
     # heat loss by breathing (J/s)=(J/kg)*(kg/s)
     Q_resp = uconvert(u"W", L_v * m_resp)
-    (Q_resp=Q_resp, m_resp=m_resp, J_air_in=J_air_in, J_air_out=J_air_out, J_H2O_in=J_H2O_in, J_H2O_out=J_H2O_out, J_O2_in=J_O2_in, J_O2_out=J_O2_out, J_CO2_in=J_CO2_in, J_CO2_out=J_CO2_out)
+    (;Q_resp, m_resp, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out)
 end
 
 function metabolism(mass=0.04kg, T_core=K(25°C), M1=0.013, M2=0.8, M3=0.038)
@@ -503,7 +503,7 @@ function metabolism(mass=0.04kg, T_core=K(25°C), M1=0.013, M2=0.8, M3=0.038)
         Q_metab = (0.0056 * V_O2)W
     end
     V_O2 = (V_O2)ml / hr
-    (Q_metab=Q_metab, V_O2=V_O2)
+    (;Q_metab, V_O2)
 end
 
 get_Tsurf_Tlung(body::AbstractBody, k_body, Q_gen_spec, T_core) = get_Tsurf_Tlung(shape(body), body, k_body, Q_gen_spec, T_core)
@@ -513,7 +513,7 @@ function get_Tsurf_Tlung(shape::Cylinder, body, k_body, Q_gen_spec, T_core)
     R_flesh = body.geometry.lengths[2]
     T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
-    (T_surf = T_surf, T_lung = T_lung)  
+    (;T_surf, T_lung)  
 end
 
 function get_Tsurf_Tlung(shape::Ellipsoid, body, k_body, Q_gen_spec, T_core)
@@ -522,7 +522,7 @@ function get_Tsurf_Tlung(shape::Ellipsoid, body, k_body, Q_gen_spec, T_core)
     c = body.geometry.lengths[3] ^ 2
     T_surf = T_core - (Q_gen_spec / (2 * k_body)) * ((a * b * c) / (a * b + a * c + b * c))
     T_lung = (Q_gen_spec / (4 * k_body)) * ((a * b * c) / (a * b + a * c + b * c)) + T_surf
-    (T_surf = T_surf, T_lung = T_lung)  
+    (;T_surf, T_lung)  
 end
 
 #= function get_Tsurf_Tlung(shape::Sphere, body, k_body, Q_gen_spec, T_core)
@@ -537,7 +537,7 @@ function get_Tsurf_Tlung(shape::DesertIguana, body, k_body, Q_gen_spec, T_core)
     R_flesh = body.geometry.lengths[2]
     T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
-    (T_surf = T_surf, T_lung = T_lung)  
+    (;T_surf, T_lung)  
 end
 
 function get_Tsurf_Tlung(shape::LeopardFrog, body, k_body, Q_gen_spec, T_core)
@@ -545,5 +545,5 @@ function get_Tsurf_Tlung(shape::LeopardFrog, body, k_body, Q_gen_spec, T_core)
     R_flesh = body.geometry.lengths[2]
     T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
-    (T_surf = T_surf, T_lung = T_lung)  
+    (;T_surf, T_lung) 
 end
