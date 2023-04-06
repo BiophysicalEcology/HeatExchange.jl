@@ -1,4 +1,4 @@
-# ectotherm
+# HeatExchange
 
 [![Build Status](https://travis-ci.com/urtzienriquez/ectotherm.jl.svg?branch=main)](https://travis-ci.com/urtzienriquez/ectotherm.jl)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/urtzienriquez/ectotherm.jl?svg=true)](https://ci.appveyor.com/project/urtzienriquez/ectotherm-jl)
