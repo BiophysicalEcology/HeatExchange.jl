@@ -19,7 +19,8 @@ function vapour_pressure(T)
 end
 
 """
-    wet_air(T_drybulb, T_wetbulb=T_drybulb, [rh=0, T_dew=nothing, P_atmos=101325Pa])
+    wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
+    wet_air(T_drybulb; kw...)
 
 Calculates several properties of humid air as output variables below. The program
 is based on equations from List, R. J. 1971. Smithsonian Meteorological Tables. Smithsonian
@@ -29,6 +30,7 @@ Input variables are shown below. The user must supply known values for T_drybulb
 atmosphere is 101 325 pascals). Values for the remaining variables are determined by whether the user has
 either (1) psychrometric data (T_wetbulb or rh), or (2) hygrometric data (T_dew)
 
+# TODO fix this desctiption
 (1) Psychrometric data:
 If T_wetbulb is known but not rh, then set rh=-1 and dp=999
 If rh is known but not T_wetbulb then set T_wetbulb=0 and dp=999
@@ -55,6 +57,14 @@ If T_dew is known then set T_wetublb = 0 and rh = 0.
 # - `rh`: Relative humidity (%)
 
 """
+function wet_air(T_drybulb; 
+    T_wetbulb=T_drybulb, 
+    rh=0, 
+    T_dew=nothing, 
+    P_atmos=101325Pa
+)
+    return wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
+end
 function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=101325Pa)
     f_w = 1.0053 # (-) correction factor for the departure of the mixture of air and water vapour from ideal gas laws
     M_w = 0.018016kg/mol # molar mass of water
@@ -81,12 +91,13 @@ function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=10
     ρ_air = (M_a / Unitful.R) * P_atmos / (0.999 * T_vir)
     ρ_air = Unitful.uconvert(u"kg/m^3",ρ_air) # simplify units
     cp = ((1004.84 + (r_w * 1846.40)) / (1 + r_w))J/K/kg
-    if min(rh) <= 0
-        ψ = -999Pa
+    ψ = if min(rh) <= 0
+        -999Pa
     else
-        ψ = (4.615e+5 * Unitful.ustrip(T_drybulb) * log(rh / 100))Pa
+        (4.615e+5 * Unitful.ustrip(T_drybulb) * log(rh / 100))Pa
     end
-    (;P_vap, P_vap_sat, ρ_vap, r_w, T_vinc, ρ_air, cp, ψ, rh)
+
+    return (;P_vap, P_vap_sat, ρ_vap, r_w, T_vinc, ρ_air, cp, ψ, rh)
 end
 
 """
@@ -117,6 +128,7 @@ function dry_air(T_drybulb, P_atmos, elev)
     ggroup = 0.0980616m/s^2 * tcoeff / (ν^2) # 1 / m3.K
     bbemit = σ * ((T_drybulb)^4) # W/m2
     emtmax = 2.897e-3K*m / (T_drybulb) # m
+
     return (;P_atmos, ρ_air, μ, ν, dif_vpr, k_fluid, L_v, tcoeff, ggroup, bbemit, emtmax)
 end
 
@@ -304,13 +316,11 @@ function conduction(;
     L=0.025m,
     T_surf=K(25°C),
     T_sub=K(10°C),
-    k_sub=0.1W/m/K
+    k_suub=0.1W/m/K
 )
-    conduction(A_cond, L, T_surf, T_sub, k_sub)
+    return conduction(A_cond, L, T_surf, T_sub, k_sub)
 end
-function conduction(A_cond, L, T_surf, T_sub, k_sub)
-    A_cond * (k_sub / L) * (T_surf - T_sub)
-end
+conduction(A_cond, L, T_surf, T_sub, k_sub) = A_cond * (k_sub / L) * (T_surf - T_sub)
 
 """
     solar(; kw...)
