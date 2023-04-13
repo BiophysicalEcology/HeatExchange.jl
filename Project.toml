@@ -1,9 +1,21 @@
+name = "HeatExchange"
+uuid = "720bd838-cdd6-4aad-926b-452b962dce21"
+authors = ["Michael Kearney, Urtzi Enriquez Urzelai and Rafael Schouten"]
+version = "0.1.0"
+
 [deps]
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
+
+[compat]
 julia = "1"
+Unitful = "1"
+ModelParameters = "0.3"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Aqua", "SafeTestsets", "Test"]
