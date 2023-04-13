@@ -204,7 +204,7 @@ function calc_area(shape::Ellipsoid, a, b, c)
     p =  1.6075
     return(4 * π * (((a ^ p * b ^ p + a ^ p * c ^ p + b ^ p * c ^ p)) / 3) ^ (1 / p))
 end
-h
+
 # TODO: should we use this rather than the one below that ignores theta?
 # """
 #     calc_silhouette_area
