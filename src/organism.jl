@@ -8,7 +8,7 @@ abstract type AbstractFunctionalTraits end
 """
     FunctionalTraits <: AbstractFunctionalTraits
 
-A collection of funcitonal traits for an organism.
+A collection of functional traits for an organism.
 """
 Base.@kwdef struct FunctionalTraits{F,K,M,B} <: AbstractFunctionalTraits
     α_org_dorsal::F = Param(0.85, bounds=(0.2, 1.0))
@@ -47,8 +47,8 @@ insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from
 
     Organism(body, traits)
 
-A concrete implementation of AbstractOrganism, it accepts an `AbstractBody` and 
-`AbstractFunctionalTraits` object.
+A concrete implementation of `AbstractOrganism`, it accepts an
+[`AbstractBody`](@ref) and [`AbstractFunctionalTraits`](@ref) object.
 """
 struct Organism{B<:Body,T<:AbstractFunctionalTraits} <: AbstractOrganism
     body::B
@@ -65,7 +65,7 @@ abstract type AbstractOrganismalVars end
 """
     OrganismalVars <: AbstractOrganismalVars
 
-Variables for an `AbstractOrganism` model
+Variables for an [`AbstractOrganism`](@ref) model.
 """
 Base.@kwdef mutable struct OrganismalVars{T,P} <: AbstractOrganismalVars
     T_core::T = K(20°C)
