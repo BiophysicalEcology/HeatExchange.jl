@@ -1,14 +1,16 @@
-# We have a generic abstract type for all organisms
-abstract type AbstractOrganism end
+"""
+    AbstractFunctionalTraits 
 
-# With some generic methods to get the params and body
-body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
-shape(o::AbstractOrganism) = body(o).shape # gets the shape from an object of type AbstractOrganism
-shape(b::AbstractBody) = b.shape # gets the shape from an object of type AbstractBody
-insulation(o::AbstractOrganism) = body(o).insulation # gets the insulation from an object of type AbstractOrganism
-traits(o::AbstractOrganism) = o.traits # gets the traits from an object of type AbstractOrganism
+An abstract super type for organism functional traits.
+"""
+abstract type AbstractFunctionalTraits end
 
-Base.@kwdef struct FunctionalTraits{F,K,M,B}
+"""
+    FunctionalTraits <: AbstractFunctionalTraits
+
+A collection of funcitonal traits for an organism.
+"""
+Base.@kwdef struct FunctionalTraits{F,K,M,B} <: AbstractFunctionalTraits
     α_org_dorsal::F = Param(0.85, bounds=(0.2, 1.0))
     α_org_ventral::F = Param(0.85, bounds=(0.2, 1.0))
     ϵ_org_dorsal::F = Param(0.95, bounds=(0.1, 1.0))
@@ -27,15 +29,47 @@ Base.@kwdef struct FunctionalTraits{F,K,M,B}
     pant::B = Param(1.0, bounds=(1.0, 10.0))
 end
 
-Base.@kwdef mutable struct OrganismalVars{T,P}
+"""
+    AbstractOrganism
+
+Abstract supertype for organisms.
+"""
+abstract type AbstractOrganism end
+
+# With some generic methods to get the params and body
+body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
+traits(o::AbstractOrganism) = o.traits # gets the traits from an object of type AbstractOrganism
+shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
+insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
+
+"""
+    Organism <: AbstractOrganism
+
+    Organism(body, traits)
+
+A concrete implementation of AbstractOrganism, it accepts an `AbstractBody` and 
+`AbstractFunctionalTraits` object.
+"""
+struct Organism{B<:Body,T<:AbstractFunctionalTraits} <: AbstractOrganism
+    body::B
+    traits::T
+end
+
+"""
+    AbstractOrganismalVars
+
+Abstract supertype for organismal variables.
+"""
+abstract type AbstractOrganismalVars end
+
+"""
+    OrganismalVars <: AbstractOrganismalVars
+
+Variables for an `AbstractOrganism` model
+"""
+Base.@kwdef mutable struct OrganismalVars{T,P} <: AbstractOrganismalVars
     T_core::T = K(20°C)
     T_surf::T = K(20°C)
     T_lung::T = K(20°C)
     ψ_org::P = -707J/kg
-end
-
-# Then define a concrete organism struct  
-struct Organism{B<:Body,T<:FunctionalTraits} <: AbstractOrganism
-    body::B
-    traits::T
 end
