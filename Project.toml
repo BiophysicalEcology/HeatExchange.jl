@@ -4,18 +4,19 @@ authors = ["Michael Kearney, Urtzi Enriquez Urzelai and Rafael Schouten"]
 version = "0.1.0"
 
 [deps]
-Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-julia = "1"
-Unitful = "1"
 ModelParameters = "0.3"
+Unitful = "1"
+julia = "1"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "SafeTestsets", "Test"]
+test = ["Aqua", "Roots", "SafeTestsets", "Test"]
