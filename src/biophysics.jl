@@ -1,12 +1,11 @@
 # Biophysics
 """
-    vapour_pressure
+    vapour_pressure(T)
 
 Calculates saturation vapour pressure (Pa) for a given air temperature.
-    ...
-    # Arguments
-    - `T`: air temperature in K.
-    ...    
+
+# Arguments
+- `T`: air temperature in K.
 """
 function vapour_pressure(T)
     T = Unitful.ustrip(T)# + 273.15
@@ -20,7 +19,8 @@ function vapour_pressure(T)
 end
 
 """
-    wet_air
+    wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
+    wet_air(T_drybulb; kw...)
 
 Calculates several properties of humid air as output variables below. The program
 is based on equations from List, R. J. 1971. Smithsonian Meteorological Tables. Smithsonian
@@ -30,14 +30,16 @@ Input variables are shown below. The user must supply known values for T_drybulb
 atmosphere is 101 325 pascals). Values for the remaining variables are determined by whether the user has
 either (1) psychrometric data (T_wetbulb or rh), or (2) hygrometric data (T_dew)
 
+# TODO fix this desctiption
 (1) Psychrometric data:
 If T_wetbulb is known but not rh, then set rh=-1 and dp=999
 If rh is known but not T_wetbulb then set T_wetbulb=0 and dp=999
 
 (2) Hygrometric data:
 If T_dew is known then set T_wetublb = 0 and rh = 0.
-...
+
 # Arguments
+
 - `T_drybulb`: Dry bulb temperature (K)
 - `T_wetbulb`: Wet bulb temperature (K)
 - `rh`: Relative humidity (%)
@@ -53,8 +55,16 @@ If T_dew is known then set T_wetublb = 0 and rh = 0.
 # - `cp`: Specific heat of air at constant pressure (J kg-1 K-1)
 # - `ψ`: Water potential (Pa)
 # - `rh`: Relative humidity (%)
-...    
+
 """
+function wet_air(T_drybulb; 
+    T_wetbulb=T_drybulb, 
+    rh=0, 
+    T_dew=nothing, 
+    P_atmos=101325Pa
+)
+    return wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
+end
 function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=101325Pa)
     f_w = 1.0053 # (-) correction factor for the departure of the mixture of air and water vapour from ideal gas laws
     M_w = 0.018016kg/mol # molar mass of water
@@ -81,20 +91,27 @@ function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=10
     ρ_air = (M_a / Unitful.R) * P_atmos / (0.999 * T_vir)
     ρ_air = Unitful.uconvert(u"kg/m^3",ρ_air) # simplify units
     cp = ((1004.84 + (r_w * 1846.40)) / (1 + r_w))J/K/kg
-    if min(rh) <= 0
-        ψ = -999Pa
+    ψ = if min(rh) <= 0
+        -999Pa
     else
-        ψ = (4.615e+5 * Unitful.ustrip(T_drybulb) * log(rh / 100))Pa
+        (4.615e+5 * Unitful.ustrip(T_drybulb) * log(rh / 100))Pa
     end
-    (;P_vap, P_vap_sat, ρ_vap, r_w, T_vinc, ρ_air, cp, ψ, rh)
+
+    return (;P_vap, P_vap_sat, ρ_vap, r_w, T_vinc, ρ_air, cp, ψ, rh)
 end
 
-function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
+"""
+    dry_air(T_drybulb; kw...)
+    dry_air(T_drybulb, P_atmos, elev)
+
+"""
+dry_air(T_drybulb; P_atmos=nothing, elev=0m) = dry_air(T_drybulb, P_atmos, elev)
+function dry_air(T_drybulb, P_atmos, elev)
     σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
     M_a = 0.028965924869122257kg/mol # molar mass of air
-    if P_atmos === nothing
-     P_std = 101325Pa
-     P_atmos = P_std * ((1 - (0.0065 * elev / 288m))^(1 / 0.190284))
+    if isnothing(P_atmos)
+        P_std = 101325Pa
+        P_atmos = P_std * ((1 - (0.0065 * elev / 288m))^(1 / 0.190284))
     end
     ρ_air = (M_a / Unitful.R) * P_atmos / (T_drybulb)
     ρ_air = Unitful.uconvert(u"kg/m^3",ρ_air) # simplify units
@@ -111,10 +128,11 @@ function dry_air(T_drybulb, P_atmos=nothing, elev=0m)
     ggroup = 0.0980616m/s^2 * tcoeff / (ν^2) # 1 / m3.K
     bbemit = σ * ((T_drybulb)^4) # W/m2
     emtmax = 2.897e-3K*m / (T_drybulb) # m
-    (;P_atmos, ρ_air, μ, ν, dif_vpr, k_fluid, L_v, tcoeff, ggroup, bbemit, emtmax)
+
+    return (;P_atmos, ρ_air, μ, ν, dif_vpr, k_fluid, L_v, tcoeff, ggroup, bbemit, emtmax)
 end
 
-function get_Nusselt_free(shape::Cylinder, Gr, Pr)
+function get_nusselt_free(shape::Cylinder, Gr, Pr)
     #  free convection for a cylinder
     #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
     Ra = Gr * Pr
@@ -141,16 +159,14 @@ function get_Nusselt_free(shape::Cylinder, Gr, Pr)
             end
         end
     end
-    (Nu_free)
+    return Nu_free
 end
-
-function get_Nusselt_free(shape::Plate, Gr, Pr)
- Ra = Gr * Pr
- Nu_free = 0.55 * Ra ^ 0.25
- (Nu_free)
+function get_nusselt_free(shape::Plate, Gr, Pr)
+   Ra = Gr * Pr
+   Nu_free = 0.55 * Ra ^ 0.25
+   return Nu_free
 end
-
-function get_Nusselt_free(shape::Ellipsoid, Gr, Pr)
+function get_nusselt_free(shape::Ellipsoid, Gr, Pr)
     #  sphere free convection
     #  from p.413 Bird et all (1960) Transport Phenomena
     Ra = (Gr ^ (1 /4)) * (Pr ^ (1 / 3))
@@ -158,10 +174,10 @@ function get_Nusselt_free(shape::Ellipsoid, Gr, Pr)
     # if Ra >= 200
     # print(Ra, '(Gr ^ 0.25) * (Pr ^ 0.333) is too large for correlation'))
     # end
-    (Nu_free)
+    return Nu_free
 end
 
-function get_Nusselt_forced(shape::Cylinder, Re)
+function get_nusselt_forced(shape::Cylinder, Re)
     #  forced convection of a cylinder
     #  adjusting Nu - Re correlation for Re number (p. 260 McAdams, 1954)
     if Re < 4
@@ -183,21 +199,22 @@ function get_Nusselt_forced(shape::Cylinder, Re)
             end
         end
     end
-    (Nu)
+    return Nu
 end
-
-function get_Nusselt_forced(shape::Plate, Re)
- # forced convection of a plate
- Nu = 0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
- (Nu)
+function get_nusselt_forced(shape::Plate, Re)
+    # forced convection of a plate
+    0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
 end
-
-function get_Nusselt_forced(shape::Ellipsoid, Re)
+function get_nusselt_forced(shape::Ellipsoid, Re)
     #  forced convection of a sphere
-    Nu = 0.35 * Re ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
-    (Nu)
+    0.35 * Re ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end
 
+"""
+    water_prop(T)
+
+Calculate properties at temperature `T`.
+"""
 function water_prop(T_water)
     # β = coefficient of expansion (1/K)
     # cp_fluid = specific heat (J/kg-K)
@@ -221,14 +238,18 @@ function water_prop(T_water)
     k_fluid = (0.551666 + 0.00282144 * T_water - 2.02383E-5 * T_water^2)W / m / K
     μ = (0.0017515 - 4.31502E-5 * T_water + 3.71431E-7 * T_water^2)kg / m / s
     ρ_water = (ρ_water)kg / m^3
-    (;β, cp_fluid, ρ_water, k_fluid, μ)
+
+    return (;β, cp_fluid, ρ_water, k_fluid, μ)
 end
 
-function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
-    shape = Body.geometry
+"""
+    conduction(; kw...)
+    conduction(A_cond, L, T_surf, T_sub, k_sub)
+"""
+function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     G = Unitful.gn # acceleration due to gravity, m.s^2
     β = 1 / T_air
-    D = shape.characteristic_dimension
+    D = body.geometry.characteristic_dimension
     dry_air_out = dry_air(T_air, P_atmos, elev)
     dif_vpr = dry_air_out.dif_vpr
     # checking to see if the fluid is water, not air
@@ -257,7 +278,7 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     δ_T = T_surf - T_air
     Gr = abs(((ρ_air^2) * β * G * (D^3) * δ_T) / (μ^2))
     Re = ρ_air * vel * D / μ
-    Nu_free = get_Nusselt_free(Body.shape, Gr, Pr)
+    Nu_free = get_nusselt_free(body.shape, Gr, Pr)
     Hc_free = (Nu_free * k_fluid) / D # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
@@ -267,7 +288,7 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     Q_free = Hc_free * A_conv * (T_surf - T_air) # free convective heat loss at surface
 
     # forced convection
-    Nu = get_Nusselt_forced(Body.shape, Re)
+    Nu = get_nusselt_forced(body.shape, Re)
     # forced convection for object
     Hc_forc = Nu * k_fluid / D # heat transfer coefficient, forced
     Sh_forc = Nu * (Sc / Pr)^(1 / 3) # Sherwood number, forced
@@ -281,18 +302,34 @@ function convection(Body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
     Q_conv = Hc * A_conv * (T_surf - T_air) # total convective heat loss
     Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
     Hd = Sh * dif_vpr / D # mass transfer coefficient, combined
-    (;Q_conv, Hc, Hd, Sh, Q_free, Q_forc, Hc_free, Hc_forc, Sh_free, Sh_forc, Hd_free, Hd_forc)
+
+    return (;Q_conv, Hc, Hd, Sh, Q_free, Q_forc, Hc_free, Hc_forc, Sh_free, Sh_forc, Hd_free, Hd_forc)
 end
 
-function conduction(A_cond = 0.001325006m^2,
+
+"""
+    conduction(; kw...)
+    conduction(A_cond, L, T_surf, T_sub, k_sub)
+"""
+function conduction(;
+    A_cond=0.001325006m^2,
     L=0.025m,
     T_surf=K(25°C),
     T_sub=K(10°C),
-    k_sub=0.1W/m/K)
-    A_cond * (k_sub / L) * (T_surf - T_sub)
+    k_suub=0.1W/m/K
+)
+    return conduction(A_cond, L, T_surf, T_sub, k_sub)
 end
+conduction(A_cond, L, T_surf, T_sub, k_sub) = A_cond * (k_sub / L) * (T_surf - T_sub)
 
-function solar(α_org_dorsal=0.85,
+"""
+    solar(; kw...)
+    solar(α_org_dorsal, α_org_ventral, A_sil, A_tot, A_cond, F_sub, F_sky, α_sub, Q_sol, Q_dir, Q_dif)
+
+Calculate solar energy balance.
+"""
+function solar(;
+    α_org_dorsal=0.85,
     α_org_ventral=0.85,
     A_sil=0.004718043m^2,
     A_tot=0.01325006m^2,
@@ -302,16 +339,26 @@ function solar(α_org_dorsal=0.85,
     α_sub=0.8,
     Q_sol=1000W / m^2,
     Q_dir=964.177772475912W / m^2,
-    Q_dif=100W / m^2)
-
+    Q_dif=100W / m^2
+)
+    return solar(α_org_dorsal, α_org_ventral, A_sil, A_tot, A_cond, F_sub, F_sky, α_sub, Q_sol, Q_dir, Q_dif)
+end
+function solar(α_org_dorsal, α_org_ventral, A_sil, A_tot, A_cond, F_sub, F_sky, α_sub, Q_sol, Q_dir, Q_dif)
     Q_direct = α_org_dorsal * A_sil * Q_dir
     Q_sol_sky = α_org_dorsal * F_sky * A_tot * Q_dif
     Q_sol_sub = α_org_ventral * F_sub * (A_tot - A_cond) * (1 - α_sub) * Q_sol
     Q_solar = (Q_direct + Q_sol_sub + Q_sol_sky)
-    (;Q_solar, Q_direct, Q_sol_sky, Q_sol_sub)
+    return (;Q_solar, Q_direct, Q_sol_sky, Q_sol_sub)
 end
 
-function radin(A_tot=0.01325006m^2,
+"""
+    radout(; kw...)
+    radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
+
+Calculate incoming radiation.
+"""
+function radin(;
+    A_tot=0.01325006m^2,
     A_cond=0.001325006m^2,
     F_sky=0.4,
     F_sub=0.4,
@@ -320,32 +367,49 @@ function radin(A_tot=0.01325006m^2,
     ϵ_sub=0.95,
     ϵ_sky=0.8,
     T_sky=(10 + 273.15)K,
-    T_sub=(30 + 273.15)K)
-
+    T_sub=(30 + 273.15)K
+)
+    return radin(A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral, ϵ_sub, ϵ_sky, T_sky, T_sub)
+end
+function radin(A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral, ϵ_sub, ϵ_sky, T_sky, T_sub)
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
     Q_ir_sky = ϵ_org_dorsal * F_sky * A_tot * ϵ_sky * σ * T_sky^4
     Q_ir_sub = ϵ_org_ventral * F_sub * (A_tot - A_cond) * ϵ_sub * σ * T_sub^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
-    (;Q_ir_in, Q_ir_sky, Q_ir_sub)
+    return (;Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
 
-function radout(
+"""
+    radout(; kw...)
+    radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
+
+Calculate outgoing radiation.
+"""
+function radout(;
     T_surf=(25.1 + 273.15)K,
     A_tot=0.01325006m^2,
     A_cond=0.001325006m^2,
     F_sky=0.4,
     F_sub=0.4,
     ϵ_org_dorsal=0.95,
-    ϵ_org_ventral=0.95)
+    ϵ_org_ventral=0.95
+)
+    radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
+end
+function radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
     # computes longwave radiation lost
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
     Q_ir_to_sky = A_tot * F_sky * ϵ_org_dorsal * σ * T_surf^4
     Q_ir_to_sub = (A_tot - A_cond) * F_sub * ϵ_org_ventral * σ * T_surf^4
     Q_ir_out = Q_ir_to_sky + Q_ir_to_sub
-    (;Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
+    return (;Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end
 
-function evaporation(
+"""
+    evaporation(; kw...)
+    evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T_air, rh, elev, P_atmos)
+"""
+function evaporation(;
     T_core=(25 + 273.15)K,
     T_surf=(25.1 + 273.15)K,
     m_resp=1.177235e-09kg / s,
@@ -357,8 +421,11 @@ function evaporation(
     T_air=(20 + 273.15)K,
     rh=50,
     elev=0m,
-    P_atmos=101325Pa)
-
+    P_atmos=101325Pa
+)
+    return evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T_air, rh, elev, P_atmos)
+end
+function evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T_air, rh, elev, P_atmos)
     # this subroutine computes surface evaporation based on the mass transfer
     # coefficient, fraction of surface of the skin acting as a free water surface
     # and exposed to the air, and the vapor density gradient between the
@@ -396,34 +463,34 @@ function evaporation(
     m_cut = uconvert(u"g/s", m_cut)
     m_evap = uconvert(u"g/s", m_evap)
 
-    (;Q_evap, m_evap, m_resp, m_cut, m_eyes)
+    return (;Q_evap, m_evap, m_resp, m_cut, m_eyes)
 end
 
 """
-resp
+    respiration(; kw...)
+    respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atmos, fO2, fCO2, fN2) 
 
 Computes respiratory heat and water loss via mass flow through the lungs 
 given gas concentrations, pressure, respiration rate and humidity.
 Note that there is no recovery of heat or moisture assumed in the nose.
 If barometric preassure is known, elevation will be ignored. Otherwise, 
 if atmospheric pressure is unknown, elevation will be used to estimate it.
-    ...
-    # Arguments
-    - `T_x`: current core temperature guess, K
-    - `Q_metab`: metabolic rate, W
-    - `fO2_extract`: extraction efficiency, fractional
-    - `pant`: multiplier on breathing rate due to panting, -
-    - `rq`: respiratory quotient, (mol CO2 / mol O2)
-    - `T_air`: air temperature, K
-    - `rh`: relative humidity, %
-    - `elev`: elevation, m
-    - `P_atmos`: barometric pressure, Pa
-    - `fO2`; fractional O2 concentration in atmosphere, -
-    - `fCO2`; fractional CO2 concentration in atmosphere, -
-    - `fN2`; fractional N2 concentration in atmosphere, -
-    ...    
+
+# Keywords
+- `T_x`: current core temperature guess, K
+- `Q_metab`: metabolic rate, W
+- `fO2_extract`: extraction efficiency, fractional
+- `pant`: multiplier on breathing rate due to panting, -
+- `rq`: respiratory quotient, (mol CO2 / mol O2)
+- `T_air`: air temperature, K
+- `rh`: relative humidity, %
+- `elev`: elevation, m
+- `P_atmos`: barometric pressure, Pa
+- `fO2`; fractional O2 concentration in atmosphere, -
+- `fCO2`; fractional CO2 concentration in atmosphere, -
+- `fN2`; fractional N2 concentration in atmosphere, -
 """
-function respiration(
+function respiration(;
     T_x=296.15K,
     Q_metab=0.01241022W,
     fO2_extract=0.20,
@@ -435,8 +502,11 @@ function respiration(
     P_atmos=101325Pa,
     fO2=0.2095,
     fCO2=0.0003,
-    fN2=0.7902)
-
+    fN2=0.7902
+)
+    return respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
+end
+function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
     # adjust O2 to ensure sum to 1
     if fO2 + fCO2 + fN2 != 1
         fO2 = 1 - (fN2 + fCO2)
@@ -486,10 +556,12 @@ function respiration(
     L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_lung) - 273.15))J / kg # from dry_air
     # heat loss by breathing (J/s)=(J/kg)*(kg/s)
     Q_resp = uconvert(u"W", L_v * m_resp)
-    (;Q_resp, m_resp, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out)
+
+    return (;Q_resp, m_resp, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out)
 end
 
-function metabolism(mass=0.04kg, T_core=K(25°C), M1=0.013, M2=0.8, M3=0.038)
+metabolism(; mass=0.04kg, T_core=K(25°C), M1=0.013, M2=0.8, M3=0.038) = metabolism(mass, T_core, M1, M2, M3)
+function metabolism(mass, T_core, M1, M2, M3)
     mass_g = uconvert(u"g", mass)
     T_core = uconvert(u"°C", T_core)
     if T_core > 50°C
@@ -502,48 +574,49 @@ function metabolism(mass=0.04kg, T_core=K(25°C), M1=0.013, M2=0.8, M3=0.038)
     else
         Q_metab = (0.0056 * V_O2)W
     end
-    V_O2 = (V_O2)ml / hr
-    (;Q_metab, V_O2)
+    V_O2 = (V_O2)u"ml" / hr
+
+    return (;Q_metab, V_O2)
 end
 
 get_Tsurf_Tlung(body::AbstractBody, k_body, Q_gen_spec, T_core) = get_Tsurf_Tlung(shape(body), body, k_body, Q_gen_spec, T_core)
-
 function get_Tsurf_Tlung(shape::Cylinder, body, k_body, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.lengths[2]
     T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
-    (;T_surf, T_lung)  
-end
 
+    return (;T_surf, T_lung)  
+end
 function get_Tsurf_Tlung(shape::Ellipsoid, body, k_body, Q_gen_spec, T_core)
     a = body.geometry.lengths[1] ^ 2
     b = body.geometry.lengths[2] ^ 2
     c = body.geometry.lengths[3] ^ 2
-    T_surf = T_core - (Q_gen_spec / (2 * k_body)) * ((a * b * c) / (a * b + a * c + b * c))
-    T_lung = (Q_gen_spec / (4 * k_body)) * ((a * b * c) / (a * b + a * c + b * c)) + T_surf
-    (;T_surf, T_lung)  
-end
+    x = ((a * b * c) / (a * b + a * c + b * c))
+    T_surf = T_core - (Q_gen_spec / (2 * k_body)) * x
+    T_lung = (Q_gen_spec / (4 * k_body)) * x + T_surf
 
+    return (;T_surf, T_lung)  
+end
 #= function get_Tsurf_Tlung(shape::Sphere, body, k_body, Q_gen_spec, T_core)
     R_flesh = body.geometry.lengths[2]
     T_surf = T_core - (Q_gen_spec * R_flesh ^ 2) / (6 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (12 * k_body) + T_surf
     (T_surf = T_surf, T_lung = T_lung) 
 end =#
-
 function get_Tsurf_Tlung(shape::DesertIguana, body, k_body, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.lengths[2]
     T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
-    (;T_surf, T_lung)  
-end
 
+    return (;T_surf, T_lung)  
+end
 function get_Tsurf_Tlung(shape::LeopardFrog, body, k_body, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.lengths[2]
     T_surf = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surf 
-    (;T_surf, T_lung) 
+
+    return (;T_surf, T_lung) 
 end

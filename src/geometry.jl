@@ -1,20 +1,44 @@
 """
     Shape
 
-Abstract type for the shape of the object being modelled.
+Abstract supertype for the shape of the organism being modelled.
 """
 abstract type Shape end
 
+"""
+    Insulation
+
+Abstract supertype for the insulation of the organism being modelled.
+"""
 abstract type Insulation end
 
-abstract type AbstractBody end
+"""
+    Naked <: Insulation
 
+    Naked()
+
+Insulation trait for an organism without fur.
+"""
 struct Naked <: Insulation end
 
+"""
+    Fur <: Insulation
+    
+    Fur(thickness)
+
+Insulation trait for an organism with fur.
+"""
 struct Fur{T} <: Insulation
     thickness::T
 end
 
+"""
+    Geometry
+
+    Geometry(volume, characteristic_dimension, lengths, area)
+
+The geometry of an organism.
+"""
 struct Geometry{V,C,L,A}
     volume::V
     characteristic_dimension::C
@@ -23,7 +47,32 @@ struct Geometry{V,C,L,A}
 end
 
 """
+    AbstractBody
+
+Abstract supertype for organism bodies.
+"""
+abstract type AbstractBody end
+
+shape(body::AbstractBody) = body.shape
+insulation(body::AbstractBody) = body.insulation
+geometry(body::AbstractBody) = body.geometry
+calc_area(body::AbstractBody) = calc_area(shape(body), body)
+
+"""
+    calc_silhouette_area(body::AbstractBody, θ)
+
+Calculates the silhouette (projected) area of a cylinder given a solar zenith angle, θ.
+Calculates the silhouette (projected) area of a cylinder.
+Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
+(1998). Environmental Biophysics. Springer.
+"""
+calc_silhouette_area(body::AbstractBody, θ) = calc_silhouette_area(shape(body), body, θ)
+
+"""
     Body <: AbstractBody
+
+    Body(shape::Shape, insulation::Insulation)
+    Body(shape::Shape, insulation::Insulation, geometry::Geometry)
 
 Physical dimensions of a body or body part that may or may note be insulated.
 """
@@ -32,28 +81,14 @@ struct Body{S<:Shape,I<:Insulation,G} <: AbstractBody
     insulation::I
     geometry::G
 end
-
-# Add a Body constructor from shape, insulation, mass and density
 function Body(shape::Shape, insulation::Insulation)
     Body(shape, insulation, geometry(shape, insulation))
 end
 
-# struct BodyContext{B<:Body,S,X}
-#     body::B
-#     silhouette:S
-#     #other_time_location_dependent_thing::X
-# end
-# function BodyContext(body::Body, environment)
-#     silhouette = calc_silhouette(body, environment)
-#     #other_thing = calc_thing(body, environment)
-#     BodyContext(body, silhouette)
-# end
-
-
 """
     Plate <: Shape
 
-A flat plate-shaped organism.
+A flat plate-shaped organism shape.
 """
 struct Plate{M,D,B,C} <: Shape
     mass::M
@@ -74,26 +109,24 @@ function geometry(shape::Plate, ::Naked)
     area = calc_area(shape, a, b, c)
     return Geometry(volume, length, (length1, length2, length3), area)
 end
-
 # function geometry(shape::Plate, fur::Fur)
 #     # Something different with fur
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
 
-calc_area(body::AbstractBody) = calc_area(shape(body), body)
-calc_area(shape::Plate, a, b, c) = a * b * 2 + a * c * 2 + b * c * 2
 function calc_area(shape::Plate, body)
     a = body.geometry.lengths[1] / 2
     b = body.geometry.lengths[2] / 2
     c = body.geometry.lengths[3] / 2
-    a * b * 2 + a * c * 2 + b * c * 2
+    calc_area(shape, a, b, c)
 end
+calc_area(shape::Plate, a, b, c) = a * b * 2 + a * c * 2 + b * c * 2
 
 """
     Cylinder <: Shape
 
-A cylindrical organism.
+A cylindrical organism shape.
 """
 struct Cylinder{M,D,B} <: Shape
     mass::M
@@ -110,37 +143,30 @@ function geometry(shape::Cylinder, ::Naked)
     area = calc_area(shape, r, length1)
     return Geometry(volume, length, (length1, length2), area)
 end
-
 # function geometry(shape::Cylinder, fur::Fur)
 #     # Something different with fur
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
 # end
+
+function calc_area(shape::Cylinder, body::AbstractBody)
+    r = body.geometry.lengths[2] / 2
+    l = body.geometry.lengths[1]
+    calc_area(shape, r, l)
+end
 calc_area(shape::Cylinder, r, l) = 2 * π * r * l + 2 * π * r^2
-function calc_area(shape::Cylinder, body)
+
+function calc_silhouette_area(shape::Cylinder, body::AbstractBody, θ)
     r = body.geometry.lengths[2] / 2
     l = body.geometry.lengths[1]
-    2 * π * r * l + 2 * π * r^2
+    return calc_silhouette_area(shape, r, l, θ)
 end
-
-"""
-    sil_area_of_cylinder
-
-Calculates the silhouette (projected) area of a cylinder.
-Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
-(1998). Environmental Biophysics. Springer.
-"""
-calc_silhouette_area(body::AbstractBody, θ) = calc_silhouette_area(shape(body), body, θ)
-function calc_silhouette_area(shape::Cylinder, body, θ)
-    r = body.geometry.lengths[2] / 2
-    l = body.geometry.lengths[1]
-    2 * r * l * sin(θ) + π * r^2 * cos(θ)
-end
+calc_silhouette_area(shape::Cylinder, r, l, θ) = 2 * r * l * sin(θ) + π * r^2 * cos(θ)
 
 """
     Ellipsoid <: Shape
 
-An ellipsoidal organism.
+An ellipsoidal organism shape.
 """
 struct Ellipsoid{M,D,B,C} <: Shape
     mass::M
@@ -166,24 +192,23 @@ end
 #     # ...
 #     return Geometry(volume, length, (length1, length2, length3), area)
 # end
+
+function calc_area(shape::Ellipsoid, body::Body)
+    a = body.geometry.lengths[1] / 2
+    b = body.geometry.lengths[2] / 2
+    c = body.geometry.lengths[3] / 2
+    return calc_area(shape, a, b, c)
+end
 function calc_area(shape::Ellipsoid, a, b, c)
     #e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
     #2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
     p =  1.6075
-    (4 * π * (((a ^ p * b ^ p + a ^ p * c ^ p + b ^ p * c ^ p)) / 3) ^ (1 / p))
-end
-function calc_area(shape::Ellipsoid, body)
-    a = body.geometry.lengths[1] / 2
-    b = body.geometry.lengths[2] / 2
-    c = body.geometry.lengths[3] / 2
-    p =  1.6075
-    (4 * π * (((a ^ p * b ^ p + a ^ p * c ^ p + b ^ p * c ^ p)) / 3) ^ (1 / p))
-    # e = ((a ^ 2 - c ^ 2) ^ 0.5 ) / a # eccentricity
-    # 2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)
+    return(4 * π * (((a ^ p * b ^ p + a ^ p * c ^ p + b ^ p * c ^ p)) / 3) ^ (1 / p))
 end
 
+# TODO: should we use this rather than the one below that ignores theta?
 # """
-#     sil_area_of_ellipsoid
+#     calc_silhouette_area
 
 # Calculates the silhouette (projected) area of a prolate spheroid.
 # """
@@ -210,13 +235,14 @@ function calc_silhouette_area(shape::Ellipsoid, body, θ)
     a = body.geometry.lengths[1] / 2
     b = body.geometry.lengths[2] / 2
     c = body.geometry.lengths[3] / 2
-    max(π * a * c, π * b * c)
+    return calc_silhouette_area(shape, a, b, c, θ)
 end
+calc_silhouette_area(shape::Ellipsoid, a, b, c, θ) = max(π * a * c, π * b * c)
 
 """
     LeopardFrog <: Shape
 
-An frog-shaped organism. Based on the leopard frog (Tracy 1976 Ecol. Monog.)
+A frog-shaped organism. Based on the leopard frog (Tracy 1976 Ecol. Monog.).
 """
 struct LeopardFrog{M,D} <: Shape
     mass::M
@@ -226,35 +252,27 @@ end
 function geometry(shape::LeopardFrog, ::Naked)
     volume = shape.mass / shape.density
     length = volume^(1 / 3)
-    area = calc_area(shape)
+    area = calc_area(shape, body)
     return Geometry(volume, length, nothing, area)
 end
-# function geometry(shape::Ellipsoid, fur::Fur)
-#     # Something different with fur
-#     # ...
-#     return Geometry(volume, length, (length1, length2, length3), area)
-# end
-calc_area(shape::LeopardFrog) = begin
+
+calc_area(shape::LeopardFrog, body) = calc_area(shape)
+function calc_area(shape::LeopardFrog)
     mass_g = Unitful.uconvert(u"g", shape.mass)
     Unitful.uconvert(u"m^2", (12.79 * Unitful.ustrip(mass_g) ^ 0.606)u"cm^2") # eq in Fig. 5
 end
 
-"""
-    sil_area_of_leopardfrog
-
-Calculates the silhouette (projected) area of a leopard frog.
-"""
+calc_silhouette_area(shape::LeopardFrog, body, θ) = calc_silhouette_area(shape::LeopardFrog, θ)
 function calc_silhouette_area(shape::LeopardFrog, θ)
     area = calc_area(shape)
     pct = 1.38171e-6 * θ ^ 4 - 1.93335e-4 * θ ^ 3 + 4.75761e-3 * θ ^ 2 - 0.167912 * θ + 45.8228
-    sil_area = pct * area / 100
+    return pct * area / 100
 end
-
 
 """
     DesertIguana <: Shape
 
-An lizard-shaped organism. Based on the desert iguana (Porter and Tracy 1984)
+A lizard-shaped organism. Based on the desert iguana (Porter and Tracy 1984).
 """
 struct DesertIguana{M,D} <: Shape
     mass::M
@@ -268,14 +286,8 @@ function geometry(shape::DesertIguana, ::Naked)
     area = calc_area(shape)
     return Geometry(volume, length, nothing, area)
 end
-# function geometry(shape::Ellipsoid, fur::Fur)
-#     # Something different with fur
-#     # ...
-#     return Geometry(volume, length, (length1, length2, length3), area)
-# end
 
-calc_area(shape::DesertIguana) = begin
+function calc_area(shape::DesertIguana, body)
     mass_g = Unitful.uconvert(u"g", shape.mass)
-    area = Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2")
+    return Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2")
 end
-

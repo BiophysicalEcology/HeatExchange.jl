@@ -1,14 +1,9 @@
-using Revise
+using HeatExchange
 using ModelParameters
 using Unitful
 using Unitful: °, rad, °C, K, Pa, J, kJ, W, ml, L, g, kg, cm, m, s, hr, d, mol, R
 using Roots
-
-include("../src/geometry.jl")
-include("../src/organism.jl")
-include("../src/environment.jl")
-include("../src/biophysics.jl")
-include("../src/heat_balance.jl")
+using Test
 
 # environment
 T_air = K(20°C)
@@ -89,7 +84,7 @@ ir_loss = radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_vent
 Q_ir_out = ir_loss.Q_ir_out
 Q_cond = conduction(A_cond, Le, T_surf, T_sub, k_sub)
 conv_out = convection(geometric_traits, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
-evap_out = evaporation(T_core, T_surf, resp_out.m_resp, ψ_org, p_wet, A_conv, conv_out.Hd, p_eyes, T_air, rh, P_atmos)
+evap_out = evaporation(T_core, T_surf, resp_out.m_resp, ψ_org, p_wet, A_conv, conv_out.Hd, p_eyes, T_air, rh, elev, P_atmos)
 Q_conv = conv_out.Q_conv
 Q_evap = evap_out.Q_evap
 Q_resp = resp_out.Q_resp
@@ -98,11 +93,12 @@ Q_in = Q_solar + Q_ir_in + Q_metab
 Q_out = Q_ir_out + Q_conv + Q_evap + Q_resp + Q_cond
 Q_in - Q_out
 
-
-T_core_s = find_zero(heat_balance, (T_air - 40K, T_air + 100K), Bisection())
-T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
-
-heat_balance_out = heat_balance(T_core_s)
+# This is broken
+# (For it to work we either need an anonymous function 
+# or a functor struct - you can make a struct into a function!
+# then we have all the parameters attached to it.
+@test_broken T_core_s = find_zero(heat_balance, (T_air - 40K, T_air + 100K), Bisection())
+@test_broken T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
 
 # using structs to pass parameters
 

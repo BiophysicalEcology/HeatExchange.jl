@@ -1,27 +1,15 @@
-using Ectotherm
-using Test
-using Plots
-using UnitfulRecipes
-using Unitful: °, rad, °F, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
-#import Base: promote_rule, convert
+using HeatExchange
+using SafeTestsets
+using Aqua
 
-# abstract type Temperature end
+Aqua.test_unbound_args(HeatExchange)
+Aqua.test_stale_deps(HeatExchange)
+Aqua.test_undefined_exports(HeatExchange)
+Aqua.test_project_extras(HeatExchange)
+Aqua.test_deps_compat(HeatExchange)
+Aqua.test_project_toml_formatting(HeatExchange)
 
-# struct Celsius <: Temperature
-#     value::Float64
-# end
-
-# struct Kelvin <: Temperature
-#    value::Float64
-# end
-
-# promote_rule(::Type{Kelvin}, ::Type{Celsius})     = Kelvin
-
-# convert(::Type{Kelvin},  t::Celsius)     = Kelvin(t.value + 273.15)
-# convert(::Type{Celsius}, t::Kelvin)      = Celsius(t.value - 273.15)
-# promote(Kelvin(1), Celsius(1))
-# promote(Celsius(1), Kelvin(1))
-
-#include("biophysics.jl") end
-#include("geometry.jl") end
-#include("ectotherm.jl") end
+@safetestset "biophysics" begin include("biophysics.jl") end
+@safetestset "geometry" begin include("geometry.jl") end
+@safetestset "environment" begin include("environment.jl") end
+@safetestset "organism" begin include("geometry.jl") end

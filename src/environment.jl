@@ -1,5 +1,14 @@
+abstract type AbstractEnvironmentalParams end
 
-Base.@kwdef struct EnvironmentalParams{A,E,L,F}
+"""
+    EnvironmentalParams
+
+    EnvironmentalParams(α_sub, ϵ_sub, ϵ_sky, elev, fluid, fN2, fO2, fCO2)
+    EnvironmentalParams(; kw...)
+
+Environmental parameters for an organism model.
+"""
+Base.@kwdef struct EnvironmentalParams{A,E,L,F} <: AbstractEnvironmentalParams
     α_sub::A = Param(0.2, bounds=(0.0, 1.0))
     ϵ_sub::A = Param(1.0, bounds=(0.2, 1.0))
     ϵ_sky::A = Param(1.0, bounds=(0.2, 1.0))
@@ -10,8 +19,17 @@ Base.@kwdef struct EnvironmentalParams{A,E,L,F}
     fCO2::F = Param(0.0003)
 end
 
+abstract type AbstractEnvironmentalVars end
 
-Base.@kwdef struct EnvironmentalVars{T,R,V,P,Z,K,Q}
+"""
+    EnvironmentalVars <: AbstractEnvironmentalVars
+
+    EnvironmentalVars(T_air, T_sky, T_sub, rh, vel, P_atmos, zen, k_sub, Q_sol, Q_dir, Q_dif)
+    EnvironmentalVars(; kw...)
+
+Environmental variables for an organism model.
+"""
+Base.@kwdef struct EnvironmentalVars{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
     T_air::T = K(20.0°C)
     T_sky::T = K(-5.0°C)
     T_sub::T = K(30.0°C)
