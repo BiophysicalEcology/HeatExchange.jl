@@ -61,6 +61,7 @@ calc_area(body::AbstractBody) = calc_area(shape(body), body)
 """
     calc_silhouette_area(body::AbstractBody, θ)
 
+Calculates the silhouette (projected) area of a cylinder given a solar zenith angle, θ.
 Calculates the silhouette (projected) area of a cylinder.
 Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
 (1998). Environmental Biophysics. Springer.
