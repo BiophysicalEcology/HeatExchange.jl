@@ -241,7 +241,7 @@ calc_silhouette_area(shape::Ellipsoid, a, b, c, θ) = max(π * a * c, π * b * c
 """
     LeopardFrog <: Shape
 
-An frog-shaped organism. Based on the leopard frog (Tracy 1976 Ecol. Monog.).
+A frog-shaped organism. Based on the leopard frog (Tracy 1976 Ecol. Monog.).
 """
 struct LeopardFrog{M,D} <: Shape
     mass::M
