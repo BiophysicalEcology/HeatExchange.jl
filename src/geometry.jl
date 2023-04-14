@@ -8,7 +8,7 @@ abstract type Shape end
 """
     Insulation
 
-Abstract supertype for the shape of the organism being modelled.
+Abstract supertype for the insulation of the organism being modelled.
 """
 abstract type Insulation end
 
