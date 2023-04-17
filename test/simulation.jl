@@ -1,4 +1,4 @@
-using Microclim
+# using Microclim
 using Plots
 using Roots
 
@@ -31,10 +31,10 @@ shade = 0
 envgrid = load_grid(basepath, years, shade)
 t1 = MicroclimPoint(envgrid, CartesianIndex(65, 35))
 
-plot(t1.airtemperature)
-plot(t1.soiltemperature)
+# plot(t1.airtemperature)
+# plot(t1.soiltemperature)
 
-pred_tbs = Float32[]u"°C"
+pred_tbs = Vector{Float64}(undef,length(t1.radiation))u"°C"
 for i in eachindex(t1.radiation)
     # get the environmental parameters
     env_params = EnvironmentalParams()
@@ -62,26 +62,32 @@ for i in eachindex(t1.radiation)
     lizard = Model(Organism(geometric_traits, FunctionalTraits()))
 
     # get the variables for the organism
+    org_vars = OrganismalVars()
     if i == 1 
         org_vars = OrganismalVars()
     else
-        org_vars = OrganismalVars(heat_balance_out.T_core,
+        if T_core_s === nothing
+            org_vars = OrganismalVars()
+        else
+            org_vars = OrganismalVars(heat_balance_out.T_core,
                                   heat_balance_out.T_surf,
                                   heat_balance_out.T_lung,
                                   -707J/kg)
+        end
     end
     
+    # combine variables for both the environment and the organism
     variables = (organism = org_vars, environment = env_vars)
     
     T_air = env_vars.T_air
     try
-        T_core_s = find_zero(t -> heat_balance(t, lizard, env_params, variables), (T_air - 40K, T_air + 100K), Bisection())
+        global T_core_s = find_zero(t -> heat_balance(t, lizard, env_params, variables), (T_air - 40K, T_air + 100K), Bisection())
     catch e
+        global T_core_s = nothing
         continue
     end
-    T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
-    pred_tbs = push!(pred_tbs, T_core_C)
-    heat_balance_out = heat_balance(T_core_s, lizard, env_params, variables)
+    pred_tbs[i] = (Unitful.ustrip(T_core_s) - 273.15)°C
+    global heat_balance_out = heat_balance(T_core_s, lizard, env_params, variables)
 end
 
 plot(pred_tbs)
