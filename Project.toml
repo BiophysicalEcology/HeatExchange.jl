@@ -8,7 +8,7 @@ ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-ModelParameters = "0.3"
+ModelParameters = "0.3, 0.4"
 Unitful = "1"
 julia = "1"
 
