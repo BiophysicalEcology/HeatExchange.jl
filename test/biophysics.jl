@@ -1,6 +1,6 @@
 using HeatExchange
 using ModelParameters
-using Unitful
+using Unitful, UnitfulMoles
 using Unitful: °, rad, °C, K, Pa, J, kJ, W, ml, L, g, kg, cm, m, s, hr, d, mol, R
 using Roots
 using Test
@@ -83,8 +83,8 @@ Q_ir_in = ir_gain.Q_ir_in
 ir_loss = radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
 Q_ir_out = ir_loss.Q_ir_out
 Q_cond = conduction(A_cond, Le, T_surf, T_sub, k_sub)
-conv_out = convection(geometric_traits, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
-evap_out = evaporation(T_core, T_surf, resp_out.m_resp, ψ_org, p_wet, A_conv, conv_out.Hd, p_eyes, T_air, rh, elev, P_atmos)
+conv_out = convection(geometric_traits, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2, fCO2, fN2)
+evap_out = evaporation(T_core, T_surf, resp_out.m_resp, ψ_org, p_wet, A_conv, conv_out.Hd, p_eyes, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
 Q_conv = conv_out.Q_conv
 Q_evap = evap_out.Q_evap
 Q_resp = resp_out.Q_resp
@@ -110,13 +110,13 @@ shapeb = 3
 shapec = 2 / 3
 #shape_body = Cylinder(mass, ρ_body, shapeb)
 #geometric_traits = Body(shape_body, Naked())
-shape_body = Ellipsoid(mass, ρ_body, shapeb, shapec) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
+shape_body = Ellipsoid(mass, ρ_body, shapeb, shapec) # define body shape as a Cylinder struct of type 'Shape' and give it required values
 geometric_traits = Body(shape_body, Naked()) # construct a Body, which is naked - this constructor will apply the 'geometry' function to the inputs and return a struct that has the struct for the 'Shape' type, as well as the insulation and the geometry struct
 
 # construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
-lizard = Model(Organism(geometric_traits, FunctionalTraits()))
+lizard = Model(Organism(geometric_traits, MorphoPars(), PhysioPars()))
 # get the environmental parameters
-environmental_params = EnvironmentalParams()
+environmental_params = EnvironmentalPars()
 # get the variables for both the organism and environment
 variables = (organism=OrganismalVars(), environment=EnvironmentalVars())
 

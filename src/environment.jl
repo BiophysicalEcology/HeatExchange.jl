@@ -1,14 +1,14 @@
-abstract type AbstractEnvironmentalParams end
+abstract type AbstractEnvironmentalPars end
 
 """
-    EnvironmentalParams
+    EnvironmentalParamsMorphoPars
 
     EnvironmentalParams(α_sub, ϵ_sub, ϵ_sky, elev, fluid, fN2, fO2, fCO2)
     EnvironmentalParams(; kw...)
 
 Environmental parameters for an organism model.
 """
-Base.@kwdef struct EnvironmentalParams{A,E,L,F} <: AbstractEnvironmentalParams
+Base.@kwdef struct EnvironmentalPars{A,E,L,F} <: AbstractEnvironmentalPars
     α_sub::A = Param(0.2, bounds=(0.0, 1.0))
     ϵ_sub::A = Param(1.0, bounds=(0.2, 1.0))
     ϵ_sky::A = Param(1.0, bounds=(0.2, 1.0))

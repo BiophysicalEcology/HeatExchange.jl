@@ -1,6 +1,10 @@
 module HeatExchange
 
-using Unitful, ModelParameters
+function __init__()\
+    Unitful.register(HeatExchange)
+end
+
+using Unitful, UnitfulMoles, ModelParameters
 
 using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
 
@@ -10,9 +14,9 @@ export Body
 
 export Insulation, Naked, Fur
 
-export Organism, FunctionalTraits, OrganismalVars
+export Organism, MorphoPars, PhysioPars, OrganismalVars
 
-export EnvironmentalParams, EnvironmentalVars
+export EnvironmentalPars, EnvironmentalVars
 
 export calc_area, calc_silhouette_area
 
