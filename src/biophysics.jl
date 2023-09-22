@@ -1,3 +1,8 @@
+@compound H2O
+@compound O2
+@compound CO2
+@compound N2
+
 # Biophysics
 """
     vapour_pressure(T)
@@ -19,7 +24,7 @@ function vapour_pressure(T)
 end
 
 """
-    wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
+    wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos, fO2, fCO2, fN2)
     wet_air(T_drybulb; kw...)
 
 Calculates several properties of humid air as output variables below. The program
@@ -45,6 +50,9 @@ If T_dew is known then set T_wetublb = 0 and rh = 0.
 - `rh`: Relative humidity (%)
 - `T_dew`: Dew point temperature (K)
 - `P`: Barometric pressure (Pa)
+- `fO2`; fractional O2 concentration in atmosphere, -
+- `fCO2`; fractional CO2 concentration in atmosphere, -
+- `fN2`; fractional N2 concentration in atmosphere, -
 # - `P_vap`: Vapour pressure (Pa)
 # - `P_vap_sat`: Saturation vapour pressure (Pa)
 # - `ρ_vap`: Vapour density (kg m-3)
@@ -61,14 +69,17 @@ function wet_air(T_drybulb;
     T_wetbulb=T_drybulb, 
     rh=0, 
     T_dew=nothing, 
-    P_atmos=101325Pa
+    P_atmos=101325Pa,
+    fO2=0.2095,
+    fCO2=0.0004,
+    fN2=0.79
 )
-    return wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos)
+    return wet_air(T_drybulb, T_wetbulb, rh, T_dew, P_atmos, fO2, fCO2, fN2)
 end
-function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=101325Pa)
+function wet_air(T_drybulb, T_wetbulb=T_drybulb, rh=0, T_dew=nothing, P_atmos=101325Pa, fO2 = 0.2095, fCO2 = 0.0004, fN2 = 0.79)
     f_w = 1.0053 # (-) correction factor for the departure of the mixture of air and water vapour from ideal gas laws
-    M_w = 0.018016kg/mol # molar mass of water
-    M_a = 0.028965924869122257kg/mol # molar mass of air
+    M_w = (1molH₂O |> u"kg")/1u"mol" # molar mass of water
+    M_a = ((fO2*molO₂ + fCO2*molCO₂ + fN2*molN₂) |> u"kg")/1u"mol" # molar mass of air
     P_vap_sat = vapour_pressure(T_drybulb)
     if T_dew !== nothing
         P_vap = vapour_pressure(T_dew)
@@ -102,13 +113,13 @@ end
 
 """
     dry_air(T_drybulb; kw...)
-    dry_air(T_drybulb, P_atmos, elev)
+    dry_air(T_drybulb, P_atmos, elev, fO2, fCO2, fN2)
 
 """
-dry_air(T_drybulb; P_atmos=nothing, elev=0m) = dry_air(T_drybulb, P_atmos, elev)
-function dry_air(T_drybulb, P_atmos, elev)
+dry_air(T_drybulb; P_atmos=nothing, elev=0m, fO2 = 0.2095, fCO2 = 0.0004, fN2 = 0.79) = dry_air(T_drybulb, P_atmos, elev, fO2, fCO2, fN2)
+function dry_air(T_drybulb, P_atmos, elev, fO2, fCO2, fN2)
     σ = Unitful.uconvert(u"W/m^2/K^4",Unitful.σ) # Stefan-Boltzmann constant, W/m^2/K^4, extract σ when calling Unitful when units issue is fixed in Unitful
-    M_a = 0.028965924869122257kg/mol # molar mass of air
+    M_a = ((fO2*molO₂ + fCO2*molCO₂ + fN2*molN₂) |> u"kg")/1u"mol" # molar mass of air
     if isnothing(P_atmos)
         P_std = 101325Pa
         P_atmos = P_std * ((1 - (0.0065 * elev / 288m))^(1 / 0.190284))
@@ -246,11 +257,11 @@ end
     conduction(; kw...)
     conduction(A_cond, L, T_surf, T_sub, k_sub)
 """
-function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
+function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2, fCO2, fN2)
     G = Unitful.gn # acceleration due to gravity, m.s^2
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
-    dry_air_out = dry_air(T_air, P_atmos, elev)
+    dry_air_out = dry_air(T_air, P_atmos, elev, fO2, fCO2, fN2)
     dif_vpr = dry_air_out.dif_vpr
     # checking to see if the fluid is water, not air
     if fluid == 1
@@ -316,7 +327,7 @@ function conduction(;
     L=0.025m,
     T_surf=K(25°C),
     T_sub=K(10°C),
-    k_suub=0.1W/m/K
+    k_sub=0.1W/m/K
 )
     return conduction(A_cond, L, T_surf, T_sub, k_sub)
 end
@@ -421,24 +432,27 @@ function evaporation(;
     T_air=(20 + 273.15)K,
     rh=50,
     elev=0m,
-    P_atmos=101325Pa
+    P_atmos=101325Pa,
+    fO2 = 0.2095,
+    fCO2 = 0.0004,
+    fN2 = 0.79
 )
-    return evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T_air, rh, elev, P_atmos)
+    return evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
 end
-function evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T_air, rh, elev, P_atmos)
+function evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
     # this subroutine computes surface evaporation based on the mass transfer
     # coefficient, fraction of surface of the skin acting as a free water surface
     # and exposed to the air, and the vapor density gradient between the
     # surface and the air, each at their own temperature.
 
     # get vapour density at surface based on water potential of body
-    m_w = 0.018kg / mol #! molar mass of water, kg/mol
-    rh_surf = exp(ψ_org / (Unitful.R / m_w * T_surf)) * 100 #
-    wet_air_out = wet_air(T_surf, 0K, rh_surf, nothing, P_atmos)
+    M_w = (1molH₂O |> u"kg")/1u"mol" # molar mass of water
+    rh_surf = exp(ψ_org / (Unitful.R / M_w * T_surf)) * 100 #
+    wet_air_out = wet_air(T_surf, 0K, rh_surf, nothing, P_atmos, fO2, fCO2, fN2)
     ρ_vap_surf = wet_air_out.ρ_vap
 
     # get air vapour density
-    wet_air_out = wet_air(T_air, 0K, rh, nothing, P_atmos)
+    wet_air_out = wet_air(T_air, 0K, rh, nothing, P_atmos, fO2, fCO2, fN2)
     ρ_vap_air = wet_air_out.ρ_vap
 
     # water lost from eyes if present
@@ -453,7 +467,7 @@ function evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T
     m_evap = m_eyes + m_resp + m_cut
 
     # get latent heat of vapourisation and compute heat exchange due to evaporation
-    dry_air_out = dry_air(T_air, P_atmos, elev)
+    dry_air_out = dry_air(T_air, P_atmos, elev, fO2, fCO2, fN2)
     L_v = dry_air_out.L_v
     Q_evap = Unitful.uconvert(u"W", (m_eyes + m_cut) * L_v)
 
@@ -530,7 +544,7 @@ function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atm
     V_air = uconvert(u"m^3/s", (J_air_in * R * 273.15K / 101325Pa)) # air volume @ stp (m3/s)
     # computing the vapor pressure at saturation for the subsequent calculation of 
     # actual moles of water based on actual relative humidity
-    wet_air_out = wet_air(T_air, 273.15K, rh, nothing, P_atmos)
+    wet_air_out = wet_air(T_air, 273.15K, rh, nothing, P_atmos, fO2, fCO2, fN2)
     P_vap_sat = wet_air_out.P_vap_sat
     J_H2O_in = J_air_in * (P_vap_sat * (rh / 100)) / (P_atmos - P_vap_sat * (rh / 100))
     # moles at exit
@@ -542,7 +556,7 @@ function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atm
     J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
     # setting up call to wet_air using temperature of exhaled air at body temperature, assuming saturated air
     rh_exit = 100
-    wet_air_out = wet_air(T_x, 0K, rh_exit, nothing, P_atmos)
+    wet_air_out = wet_air(T_x, 0K, rh_exit, nothing, P_atmos, fO2, fCO2, fN2)
     P_vap_sat = wet_air_out.P_vap_sat
     J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
     # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 

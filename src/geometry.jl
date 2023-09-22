@@ -1,16 +1,42 @@
+abstract type AbstractFunctionalTraits end
+
+abstract type AbstractMorphologyTraits <: AbstractFunctionalTraits end
+
+abstract type AbstractPhysiologyTraits <: AbstractFunctionalTraits end
+
+abstract type AbstractBehaviorTraits <: AbstractFunctionalTraits end
+
+abstract type AbstractMorphoModel <: AbstractMorphologyTraits end
+        
+abstract type AbstractMorphoParameters <: AbstractMorphologyTraits end
+
+abstract type AbstractMorphoThresholds <: AbstractMorphologyTraits end
+
+abstract type AbstractPhysioModel <: AbstractPhysiologyTraits end
+        
+abstract type AbstractPhysioParameters <: AbstractPhysiologyTraits end
+        
+abstract type AbstractPhysioThresholds <: AbstractPhysiologyTraits end
+
+abstract type AbstractBehavModel <: AbstractBehaviorTraits end
+        
+abstract type AbstractBehavParameters <: AbstractBehaviorTraits end
+        
+abstract type AbstractBehavThresholds <: AbstractBehaviorTraits end
+
 """
     Shape
 
 Abstract supertype for the shape of the organism being modelled.
 """
-abstract type Shape end
+abstract type Shape <: AbstractMorphoModel end
 
 """
     Insulation
 
 Abstract supertype for the insulation of the organism being modelled.
 """
-abstract type Insulation end
+abstract type Insulation <: AbstractMorphoParameters end
 
 """
     Naked <: Insulation
@@ -39,7 +65,7 @@ end
 
 The geometry of an organism.
 """
-struct Geometry{V,C,L,A}
+struct Geometry{V,C,L,A} <: AbstractMorphoParameters
     volume::V
     characteristic_dimension::C
     lengths::L
@@ -51,7 +77,7 @@ end
 
 Abstract supertype for organism bodies.
 """
-abstract type AbstractBody end
+abstract type AbstractBody  <: AbstractMorphoParameters end
 
 shape(body::AbstractBody) = body.shape
 insulation(body::AbstractBody) = body.insulation
@@ -282,7 +308,6 @@ end
 function geometry(shape::DesertIguana, ::Naked)
     volume = shape.mass / shape.density
     length = volume^(1 / 3)
-    mass_g = Unitful.uconvert(u"g", shape.mass)
     area = calc_area(shape)
     return Geometry(volume, length, nothing, area)
 end

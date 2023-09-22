@@ -2,50 +2,50 @@
 # Heat balance
 
 """
-    heat_balance(T, organism::Union{Model,Organism}, params::AbstractEnvironmentalParams, vars::AbstractEnvironmentalVars)
+    heat_balance(T, organism::Union{Model,Organism}, pars::AbstractEnvironmentalPars, vars::AbstractEnvironmentalVars)
 
 Calculate heat balance for an organism at temperature T.
 """
 function heat_balance end
 
 # A method dispatching on a `Model`
-heat_balance(T_x, mod::Model, e_params, vars) = heat_balance(T_x, stripparams(mod), stripparams(e_params), vars)
+heat_balance(T_x, mod::Model, e_pars, vars) = heat_balance(T_x, stripparams(mod), stripparams(e_pars), vars)
 # A generic method that expands dispatch to include the insulation
 # this could be <:Ectotherm or <:Endotherm?
-heat_balance(T_x, o::Organism, e_pars, vars) = heat_balance(T_x, insulation(o), o, traits(o), e_pars, vars)
+heat_balance(T_x, o::Organism, e_pars, vars) = heat_balance(T_x, insulation(o), o, morphopars(o), physiopars(o), e_pars, vars)
 # A method for Naked organisms
 
-function heat_balance(T_x, insulation::Naked, o, pars, e_pars, vars)
+function heat_balance(T_x, insulation::Naked, o, morphopars, physiopars, e_pars, vars)
     o_vars = vars.organism # make small function to get this
     e_vars = vars.environment # make small function to get this
     
     # compute areas for exchange
     A_tot = o.body.geometry.area
-    A_conv = A_tot * (1 - pars.p_cond)
-    A_cond = A_tot * pars.p_cond
+    A_conv = A_tot * (1 - morphopars.p_cond)
+    A_cond = A_tot * morphopars.p_cond
     A_sil = calc_silhouette_area(o.body, e_vars.zen)
 
     # calculate heat fluxes
-    metab_out = metabolism(o.body.shape.mass, T_x, pars.M1, pars.M2, pars.M3)
+    metab_out = metabolism(o.body.shape.mass, T_x, physiopars.M1, physiopars.M2, physiopars.M3)
     Q_metab = metab_out.Q_metab
-    resp_out = respiration(T_x, Q_metab, pars.fO2_extract, pars.pant, pars.rq, e_vars.T_air, e_vars.rh, e_pars.elev, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
+    resp_out = respiration(T_x, Q_metab, physiopars.fO2_extract, physiopars.pant, physiopars.rq, e_vars.T_air, e_vars.rh, e_pars.elev, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
     Q_resp = resp_out.Q_resp
     Q_gen_net = Q_metab - Q_resp
     Q_gen_spec = Q_gen_net / o.body.geometry.volume
-    Tsurf_Tlung_out = get_Tsurf_Tlung(o.body, pars.k_body, Q_gen_spec, T_x)
+    Tsurf_Tlung_out = get_Tsurf_Tlung(o.body, morphopars.k_body, Q_gen_spec, T_x)
     T_surf = Tsurf_Tlung_out.T_surf
     T_lung = Tsurf_Tlung_out.T_lung
     
-    solar_out = solar(pars.α_org_dorsal, pars.α_org_ventral, A_sil, A_tot, A_cond, pars.F_sub, pars.F_sky, e_pars.α_sub, e_vars.Q_sol, e_vars.Q_dir, e_vars.Q_dif)
+    solar_out = solar(morphopars.α_org_dorsal, morphopars.α_org_ventral, A_sil, A_tot, A_cond, morphopars.F_sub, morphopars.F_sky, e_pars.α_sub, e_vars.Q_sol, e_vars.Q_dir, e_vars.Q_dif)
     Q_solar = solar_out.Q_solar
-    ir_gain = radin(A_tot, A_cond, pars.F_sky, pars.F_sub, pars.ϵ_org_dorsal, pars.ϵ_org_ventral, e_pars.ϵ_sub, e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_sub)
+    ir_gain = radin(A_tot, A_cond, morphopars.F_sky, morphopars.F_sub, morphopars.ϵ_org_dorsal, morphopars.ϵ_org_ventral, e_pars.ϵ_sub, e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_sub)
     Q_ir_in = ir_gain.Q_ir_in
-    ir_loss = radout(T_surf, A_tot, A_cond, pars.F_sky, pars.F_sub, pars.ϵ_org_dorsal, pars.ϵ_org_ventral)
+    ir_loss = radout(T_surf, A_tot, A_cond, morphopars.F_sky, morphopars.F_sub, morphopars.ϵ_org_dorsal, morphopars.ϵ_org_ventral)
     Q_ir_out = ir_loss.Q_ir_out
     Le = 0.025m
     Q_cond = conduction(A_cond, Le, T_surf, e_vars.T_sub, e_vars.k_sub)
-    conv_out = convection(o.body, A_conv, e_vars.T_air, T_surf, e_vars.vel, e_vars.P_atmos, e_pars.elev, e_pars.fluid)
-    evap_out = evaporation(T_x, T_surf, resp_out.m_resp, o_vars.ψ_org, pars.p_wet, A_conv, conv_out.Hd, pars.p_eyes, e_vars.T_air, e_vars.rh, e_pars.elev, e_vars.P_atmos)
+    conv_out = convection(o.body, A_conv, e_vars.T_air, T_surf, e_vars.vel, e_vars.P_atmos, e_pars.elev, e_pars.fluid, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
+    evap_out = evaporation(T_x, T_surf, resp_out.m_resp, o_vars.ψ_org, morphopars.p_wet, A_conv, conv_out.Hd, morphopars.p_eyes, e_vars.T_air, e_vars.rh, e_pars.elev, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
     Q_conv = conv_out.Q_conv # convective heat loss
     Q_evap = evap_out.Q_evap # evaporative heat loss
     
@@ -61,7 +61,7 @@ function heat_balance(T_x, insulation::Naked, o, pars, e_pars, vars)
     (;Q_bal, T_core=T_x, T_surf, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
 
 end
-function heat_balance(T_x, insulation::Fur, params, organism, vars) # A method for organisms with fur
+function heat_balance(T_x, insulation::Fur, pars, organism, vars) # A method for organisms with fur
     #....
 end
 

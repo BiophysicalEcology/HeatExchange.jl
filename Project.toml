@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [compat]
 ModelParameters = "0.3"
