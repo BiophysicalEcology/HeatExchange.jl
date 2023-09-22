@@ -1,10 +1,10 @@
 abstract type AbstractEnvironmentalPars end
 
 """
-    EnvironmentalParamsMorphoPars
+    EnvironmentalPars <: AbstractEnvironmentalPars
 
-    EnvironmentalParams(α_sub, ϵ_sub, ϵ_sky, elev, fluid, fN2, fO2, fCO2)
-    EnvironmentalParams(; kw...)
+    EnvironmentalPars(α_sub, ϵ_sub, ϵ_sky, elev, fluid, fN2, fO2, fCO2)
+    EnvironmentalPars(; kw...)
 
 Environmental parameters for an organism model.
 """
