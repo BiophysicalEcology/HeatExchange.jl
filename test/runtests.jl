@@ -13,3 +13,4 @@ Aqua.test_project_toml_formatting(HeatExchange)
 @safetestset "geometry" begin include("geometry.jl") end
 @safetestset "environment" begin include("environment.jl") end
 @safetestset "organism" begin include("geometry.jl") end
+@safetestset "simulation" begin include("simulation.jl") end

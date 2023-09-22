@@ -9,7 +9,7 @@ function simulation(o::Model, t::MicroclimPoint)
     
     for i in eachindex(t.radiation)
         # get the environmental parameters
-        env_params = EnvironmentalParams()
+        env_pars = EnvironmentalPars()
         # get the variables for the environment
         env_vars = EnvironmentalVars(t.airtemperature[i,1],
                                     t.skytemperature[i],
@@ -39,13 +39,13 @@ function simulation(o::Model, t::MicroclimPoint)
         
         T_air = env_vars.T_air
         try
-            T_core_s = find_zero(t -> heat_balance(t, o, env_params, variables), (T_air - 40K, T_air + 100K), Bisection())
+            T_core_s = find_zero(t -> heat_balance(t, o, env_pars, variables), (T_air - 40K, T_air + 100K), Bisection())
         catch e
             T_core_s = nothing
             continue
         end
         pred_tbs[i] = (Unitful.ustrip(T_core_s) - 273.15)°C
-        heat_balance_out = heat_balance(T_core_s, o, env_params, variables)
+        heat_balance_out = heat_balance(T_core_s, o, env_pars, variables)
     end
 
     return pred_tbs

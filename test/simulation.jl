@@ -1,10 +1,11 @@
 # using Microclim
+using HeatExchange
 using Plots
 using Roots
 
-using Unitful, 
-      NCDatasets, 
-      FieldMetadata, 
+using Unitful,
+      NCDatasets,
+      FieldMetadata,
       FieldDefaults,
       ModelParameters
 
@@ -17,11 +18,6 @@ include("/Users/usuario/Documents/GitHub/Microclim.jl/src/types.jl")
 include("/Users/usuario/Documents/GitHub/Microclim.jl/src/netcdf.jl")
 include("/Users/usuario/Documents/GitHub/Microclim.jl/src/files.jl")
 
-include("../src/geometry.jl")
-include("../src/organism.jl")
-include("../src/environment.jl")
-include("../src/biophysics.jl")
-include("../src/heat_balance.jl")
 include("../src/simulation.jl")
 
 # basepath = "c:/Spatial_Data/microclimOz"
@@ -37,17 +33,19 @@ t1 = MicroclimPoint(envgrid, CartesianIndex(65, 35))
 
 # define the geometry
 mass = 0.04kg
-ρ_body = 1000kg/m^3
+ρ_body = 1000kg / m^3
 shapeb = 3
 shapec = 2 / 3
-shape_body = Ellipsoid(mass, ρ_body, shapeb, shapec) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
-geometric_traits = Body(shape_body, Naked()) # construct a Body, which is naked - this constructor will apply the 'geometry' function to the inputs and return a struct that has the struct for the 'Shape' type, as well as the insulation and the geometry struct
+shape_body = Ellipsoid(mass, ρ_body, shapeb, shapec)
+geometric_traits = Body(shape_body, Naked())
 
-# construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
-lizard = Model(Organism(geometric_traits, FunctionalTraits()))
+# construct the Model 
+lizard = Model(Organism(geometric_traits, MorphoPars(), PhysioPars()))
 
 # @time simulation(lizard, t1)
 
 pred_tbs = simulation(lizard, t1)
-plot(pred_tbs)
+@test pred_tbs[1] == 13.420177854854956°C
+
+# plot(pred_tbs)
 
