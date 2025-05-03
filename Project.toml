@@ -5,7 +5,13 @@ version = "0.1.0"
 
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+FieldDefaults = "49426c49-986f-5969-8844-d5cc96441cfc"
+FieldMetadata = "bf96fef3-21d2-5d20-8afa-0e7d4c32a885"
+Microclim = "72103f99-bd8f-4131-b7f1-e6c5fecbcf40"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
+NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
