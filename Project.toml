@@ -11,6 +11,7 @@ UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 [compat]
 ModelParameters = "0.3"
 Unitful = "1"
+UnitfulMoles = "0.1"
 julia = "1"
 
 [extras]
