@@ -6,23 +6,23 @@ using Roots
 using Test
 
 # environment
-T_air = K(20°C)
-T_sky = K(-5°C)
-T_sub = K(30°C)
+T_air = K(20.0°C)
+T_sky = K(-5.0°C)
+T_sub = K(30.0°C)
 k_sub = 0.5W/m/K
-P_atmos = 101325Pa
-rh = 5
-elev = 0m
-vel = 1m/s
+P_atmos = 101325.0Pa
+rh = 5.0
+elev = 0.0m
+vel = 1.0m/s
 fluid = 0
-Z = 20°
-Q_sol = 1000W/m^2
+Z = 20.0°
+Q_sol = 1000.0W/m^2
 Q_dif = Q_sol * 0.1
 Q_norm = Q_sol / cos(Z) # use this in calculating Q_dir if want organism to be orienting towards beam
 Q_dir = Q_norm - Q_dif
 α_sub = 0.2
-ϵ_sub = 1
-ϵ_sky = 1
+ϵ_sub = 1.0
+ϵ_sky = 1.0
 fO2 = 0.2095
 fCO2 = 0.0003
 fN2 = 0.79
@@ -35,9 +35,9 @@ shapec = 2 / 3
 #shape_body = Cylinder(mass, ρ_body, shapeb) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
 shape_body = Ellipsoid(mass, ρ_body, shapeb, shapec) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
 geometric_traits = Body(shape_body, Naked()) # construct a Body, which is naked - this constructor will apply the 'geometry' function to the inputs and return a struct that has the struct for the 'Shape' type, as well as the insulation and the geometry struct
-p_eyes = 0 / 100
+p_eyes = 0. / 100.
 p_cond = 0.1
-p_cont = 0
+p_cont = 0.
 A_tot = geometric_traits.geometry.area
 A_cond = A_tot * p_cond
 A_conv = A_tot * (1 - p_cond)

@@ -2,9 +2,9 @@ using HeatExchange
 using Unitful
 using Test
 using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
-# using Plots
+using Plots
 
-density = 1000kg/m^3
+density = 1000.0kg/m^3
 
 trunkmass = 0.04kg
 trunkshapeb = 2
@@ -15,7 +15,7 @@ trunksilhouette = calc_silhouette_area(trunk, θ)
 
 zens = (0:90)°
 sils = calc_silhouette_area.(Ref(trunk), zens)
-# plot(zens, sils, xlabel = "zenith angle", ylabel = "silhouette area")
+plot(zens, sils, xlabel = "zenith angle", ylabel = "silhouette area")
 
 headmass = 0.5#kg
 headshapeb = 2
@@ -26,7 +26,7 @@ headsilhouette = calc_silhouette_area(head, θ)
 
 zens = (0:90)°
 sils = calc_silhouette_area.(Ref(head), zens)
-# plot(zens, sils, xlabel = "zenith angle", ylabel = "silhouette area")
+plot(zens, sils, xlabel = "zenith angle", ylabel = "silhouette area")
 
 # frog
 density = 1000kg/m^3

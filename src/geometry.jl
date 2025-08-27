@@ -1,28 +1,8 @@
-abstract type AbstractFunctionalTraits end
-
-abstract type AbstractMorphologyTraits <: AbstractFunctionalTraits end
-
-abstract type AbstractPhysiologyTraits <: AbstractFunctionalTraits end
-
-abstract type AbstractBehaviorTraits <: AbstractFunctionalTraits end
-
-abstract type AbstractMorphoModel <: AbstractMorphologyTraits end
+abstract type AbstractMorphoModel end
         
-abstract type AbstractMorphoParameters <: AbstractMorphologyTraits end
+abstract type AbstractMorphoParameters end
 
-abstract type AbstractMorphoThresholds <: AbstractMorphologyTraits end
-
-abstract type AbstractPhysioModel <: AbstractPhysiologyTraits end
-        
-abstract type AbstractPhysioParameters <: AbstractPhysiologyTraits end
-        
-abstract type AbstractPhysioThresholds <: AbstractPhysiologyTraits end
-
-abstract type AbstractBehavModel <: AbstractBehaviorTraits end
-        
-abstract type AbstractBehavParameters <: AbstractBehaviorTraits end
-        
-abstract type AbstractBehavThresholds <: AbstractBehaviorTraits end
+abstract type AbstractMorphoThresholds end
 
 """
     Shape
@@ -77,7 +57,7 @@ end
 
 Abstract supertype for organism bodies.
 """
-abstract type AbstractBody  <: AbstractMorphoParameters end
+abstract type AbstractBody <: AbstractMorphoParameters end
 
 shape(body::AbstractBody) = body.shape
 insulation(body::AbstractBody) = body.insulation

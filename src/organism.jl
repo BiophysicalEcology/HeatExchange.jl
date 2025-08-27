@@ -1,3 +1,9 @@
+abstract type AbstractPhysioModel end
+        
+abstract type AbstractPhysioParameters end
+        
+abstract type AbstractPhysioThresholds end
+
 # """
 #     AbstractFunctionalTraits 
 
