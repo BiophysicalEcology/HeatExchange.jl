@@ -16,7 +16,7 @@ export Insulation, Naked, Fur
 
 export Organism, MorphoPars, PhysioPars, OrganismalVars
 
-export EnvironmentalPars, EnvironmentalVars
+export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
 export calc_area, calc_silhouette_area
 

@@ -30,9 +30,9 @@ abstract type AbstractEnvironmentalVars end
 Environmental variables for an organism model.
 """
 Base.@kwdef struct EnvironmentalVars{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
-    T_air::T = K(20.0°C)
-    T_sky::T = K(-5.0°C)
-    T_sub::T = K(30.0°C)
+    T_air::T = (273.15+20.0)K
+    T_sky::T = (273.15-5.0)K
+    T_sub::T = (273.15+30.0)K
     rh::R = 5.0
     vel::V = 1.0m/s
     P_atmos::P = 101325.0Pa
@@ -41,4 +41,18 @@ Base.@kwdef struct EnvironmentalVars{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
     Q_sol::Q = 1000.0W/m^2
     Q_dir::Q = 964.177772475912W/m^2
     Q_dif::Q = 100.0W/m^2
+end
+
+Base.@kwdef struct EnvironmentalVarsVec{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
+    T_air::Vector{T} = (collect(15.0:5.0:35.0).+273.15).*1.0K
+    T_sky::Vector{T} = fill((273.15-5.0)K, length(T_air))
+    T_sub::Vector{T} = fill((273.15+30.0)K, length(T_air))
+    rh::Vector{R} = fill(5.0, length(T_air))
+    vel::Vector{V} = fill(1.0m/s, length(T_air))
+    P_atmos::Vector{P} = fill(101325.0Pa, length(T_air))
+    zen::Vector{Z} = fill(20.0°, length(T_air))
+    k_sub::Vector{K} = fill(0.5W/m/K, length(T_air))
+    Q_sol::Vector{Q} = fill(1000.0W/m^2, length(T_air))
+    Q_dir::Vector{Q} = fill(964.177772475912W/m^2, length(T_air))
+    Q_dif::Vector{Q} = fill(100.0W/m^2, length(T_air))
 end
