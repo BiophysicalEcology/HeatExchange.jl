@@ -77,9 +77,8 @@ RHs[RHs.>100] .= 100
 CLDs[CLDs.>100] .= 100
 
 # compute sky temperature for downwelling longwave
-Tskys = zeros(length(TAIRs))u"K"  # or whatever you have from your loop
-for i in 1:length(TAIRs)
-    Tskys[i] = Microclimate.get_longwave(
+Tskys = map(1:length(TAIRs)) do i
+    Microclimate.get_longwave(
         elev=elev,
         rh=RHs[i],
         tair=TAIRs[i],
@@ -92,28 +91,7 @@ for i in 1:length(TAIRs)
     ).Tsky
 end
 
-env_vec = EnvironmentalVarsVec(
-    #T_air = (collect(15.0:5.0:35.0) .+ 273.15) .* 1.0K,
-    #T_air = fill(293.15K, length(Q_sol)),
-    T_air = K.(TAIRs),
-    T_sky = Tskys,
-    T_sub = K.(TAIRs),
-    rh = RHs,
-    vel = WNs,
-    Q_sol = Q_sol,
-    Q_dir = Q_dir,
-    Q_dif = Q_dif,
-    zen = Zenith
-)
-
-
-n = length(env_vec.T_air)
-T_core_s = Vector{typeof(env_vec.T_air[1])}(undef, n)   # in Kelvin
-T_core_C = Vector{typeof(0.0°C)}(undef, n)
-heat_balance_out = Vector{Float64}(undef, n)  # or whatever type heat_balance returns
-
-for i in 1:n
-    # Construct a single-environment object for this iteration
+T_cs = map(1:length(env_vec.T_air)) do i
     env_i = EnvironmentalVars(
         T_air   = env_vec.T_air[i],
         T_sky   = env_vec.T_sky[i],
@@ -125,24 +103,12 @@ for i in 1:n
         k_sub   = env_vec.k_sub[i],
         Q_sol   = env_vec.Q_sol[i],
         Q_dir   = env_vec.Q_dir[i],
-        Q_dif   = env_vec.Q_dif[i]
+        Q_dif   = env_vec.Q_dif[i],
     )
-
-    # Variables tuple as before
     variables_i = (organism = OrganismalVars(), environment = env_i)
-
-    # Root-finding for this environment
     f(T_core) = heat_balance(T_core, lizard, environmental_params, variables_i)
-
-    T_core_s[i] = find_zero(f, (env_i.T_air - 40K, env_i.T_air + 100K), Bisection())
-
-    # Convert to °C
-    T_core_C[i] = (Unitful.ustrip(T_core_s[i]) - 273.15)°C
-
-    # Store heat_balance output if needed
-    #heat_balance_out[i] = f(T_core_s[i])
+    find_zero(f, (env_i.T_air - 40K, env_i.T_air + 100K), Bisection())
 end
-T_core_C
 
-plot(1:1:length(T_core_C), T_core_C)
+plot(1:1:length(T_core_C), °C.(T_cs))
 plot!(1:1:length(T_core_C), TAIRs)
