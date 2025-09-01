@@ -1,3 +1,4 @@
+using Roots
 
 # Heat balance
 
@@ -64,6 +65,14 @@ end
 function heat_balance(T_x, insulation::Fur, pars, organism, vars) # A method for organisms with fur
     #....
 end
+
+function get_Tb(mod::Model, e_pars, vars)
+    T_air = vars.environment.T_air
+    T_c = find_zero(t -> heat_balance(t, mod, e_pars, vars), (T_air - 40K, T_air + 100K), Bisection())
+    heat_balance(T_c, mod, e_pars, vars)
+end
+
+flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 
 #function heat_balance(T_x)
 

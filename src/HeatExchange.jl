@@ -22,7 +22,7 @@ export calc_area, calc_silhouette_area
 
 export geometry, shape, insulation
 
-export heat_balance
+export heat_balance, get_Tb, flip2vectors
 
 export metabolism, respiration, solar, radin, radout, evaporation, conduction, convection, vapour_pressure, 
     wet_air, dry_air, water_prop, get_nusselt_free, get_nusselt_forced, get_Tsurf_Tlung

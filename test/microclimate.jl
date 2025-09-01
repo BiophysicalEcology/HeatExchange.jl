@@ -19,14 +19,6 @@ geometric_traits = Body(shape_body, Naked()) # construct a Body, which is naked 
 lizard = Model(Organism(geometric_traits, MorphoPars(), PhysioPars()))
 # get the environmental parameters
 environmental_params = EnvironmentalPars()
-# get the variables for both the organism and environment
-variables = (organism=OrganismalVars(), environment=EnvironmentalVars())
-
-# define the method 'heat_balance' for passing to find_zero, which dispatches off 'lizard' 
-T_air = EnvironmentalVars().T_air
-T_core_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40K, T_air + 100K), Bisection())
-T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
-heat_balance_out = heat_balance(T_core_s, lizard, environmental_params, variables)
 
 # specify place and time
 lat = -30.0°
@@ -42,12 +34,15 @@ solrad_out = solrad(;
     lat,        # latitude (degrees)
     elev,
     )
+# extract results, skipping 25th values
+skip25 = setdiff(1:length(solrad_out.Zenith), 25:25:length(solrad_out.Zenith))
 solrad_out.Zenith[solrad_out.Zenith.>90u"°"] .= 90u"°"
-Q_sol = solrad_out.Global
-Zenith = solrad_out.Zenith
-Q_dir = solrad_out.Direct
-Q_dif = solrad_out.Scattered
+Q_sol = solrad_out.Global[skip25]
+Zenith = solrad_out.Zenith[skip25]
+Q_dir = solrad_out.Direct[skip25]
+Q_dif = solrad_out.Scattered[skip25]
 
+# define weather and soil moisture
 TIMINS = [0, 0, 1, 1] # time of minima for air temp, wind, humidity and cloud cover (h), air & wind mins relative to sunrise, humidity and cloud cover mins relative to solar noon
 TIMAXS = [1, 1, 0, 0] # time of maxima for air temp, wind, humidity and cloud cover (h), air temp & wind maxs relative to solar noon, humidity and cloud cover maxs relative to sunrise
 TMINN = [10.0, 8.0]u"°C" # minimum air temperatures (°C)
@@ -58,6 +53,9 @@ WNMINN = [0.1, 0.2]u"m/s" # min wind speed (m/s)
 WNMAXX = [1.0, 1.4]u"m/s" # max wind speed (m/s)
 CCMINN = [20.0, 23.0] # min cloud cover (%)
 CCMAXX = [90.0, 100.0] # max cloud cover (%)
+SoilMoist = [0.0, 0.0]
+minshade = 0.0
+maxshade = 90.0
 
 # interpolate air temperature to hourly
 TAIRs, WNs, RHs, CLDs = hourly_vars(
@@ -75,40 +73,105 @@ TAIRs, WNs, RHs, CLDs = hourly_vars(
 )
 RHs[RHs.>100] .= 100
 CLDs[CLDs.>100] .= 100
+# skip 25th values
+TAIRs = TAIRs[skip25]
+WNs = WNs[skip25]
+RHs = RHs[skip25]
+CLDs = CLDs[skip25]
 
-# compute sky temperature for downwelling longwave
-Tskys = map(1:length(TAIRs)) do i
-    Microclimate.get_longwave(
-        elev=elev,
-        rh=RHs[i],
-        tair=TAIRs[i],
-        tsurf=TAIRs[i],
-        slep=0.95,
-        sle=0.95,
-        cloud=CLDs[i],
-        viewf=1,
-        shade=0.0
-    ).Tsky
-end
+# compute soil and sky temperature in minshade environment
+micro_minshade = runmicro(;
+    lat,
+    elev,
+    days,
+    hours,
+    TMINN,
+    TMAXX,
+    RHMINN,
+    RHMAXX,
+    WNMINN,
+    WNMAXX,
+    CCMINN,
+    CCMAXX,
+    SoilMoist,
+    SHADES = fill(minshade, length(TAIRs)),
+)
 
-T_cs = map(1:length(env_vec.T_air)) do i
+T_soils_minshade =  micro_minshade.T_soils
+T_skys_minshades = micro_minshade.T_skys
+
+# compute soil and sky temperature in minshade environment
+micro_maxshade = runmicro(;
+    lat,
+    elev,
+    days,
+    hours,
+    TMINN,
+    TMAXX,
+    RHMINN,
+    RHMAXX,
+    WNMINN,
+    WNMAXX,
+    CCMINN,
+    CCMAXX,
+    SoilMoist,
+    SHADES = fill(maxshade, length(TAIRs)),
+)
+T_soils_maxshade =  micro_maxshade.T_soils
+T_skys_maxshades = micro_maxshade.T_skys
+
+env_minshade = EnvironmentalVarsVec(
+    T_air=K.(TAIRs),
+    T_sky=T_skys_minshades,
+    T_sub=T_skys_minshades[:, 1],
+    rh=RHs,
+    vel=WNs,
+    Q_sol=Q_sol .* (1.0-minshade/100.0),
+    Q_dir=Q_dir .* (1.0-minshade/100.0),
+    Q_dif=Q_dif .* (1.0-minshade/100.0),
+    zen=Zenith
+)
+
+env_maxshade = EnvironmentalVarsVec(
+    T_air=K.(TAIRs),
+    T_sky=T_skys_maxshades,
+    T_sub=T_skys_maxshades[:, 1],
+    rh=RHs,
+    vel=WNs,
+    Q_sol=Q_sol .* (1.0-maxshade/100.0),
+    Q_dir=Q_dir .* (1.0-maxshade/100.0),
+    Q_dif=Q_dif .* (1.0-maxshade/100.0),
+    zen=Zenith
+)
+
+environment = env_maxshade
+
+balances = map(1:n) do i
     env_i = EnvironmentalVars(
-        T_air   = env_vec.T_air[i],
-        T_sky   = env_vec.T_sky[i],
-        T_sub   = env_vec.T_sub[i],
-        rh      = env_vec.rh[i],
-        vel     = env_vec.vel[i],
-        P_atmos = env_vec.P_atmos[i],
-        zen     = env_vec.zen[i],
-        k_sub   = env_vec.k_sub[i],
-        Q_sol   = env_vec.Q_sol[i],
-        Q_dir   = env_vec.Q_dir[i],
-        Q_dif   = env_vec.Q_dif[i],
+        T_air   = environment.T_air[i],
+        T_sky   = environment.T_sky[i],
+        T_sub   = environment.T_sub[i],
+        rh      = environment.rh[i],
+        vel     = environment.vel[i],
+        P_atmos = environment.P_atmos[i],
+        zen     = environment.zen[i],
+        k_sub   = environment.k_sub[i],
+        Q_sol   = environment.Q_sol[i],
+        Q_dir   = environment.Q_dir[i],
+        Q_dif   = environment.Q_dif[i],
     )
     variables_i = (organism = OrganismalVars(), environment = env_i)
-    f(T_core) = heat_balance(T_core, lizard, environmental_params, variables_i)
-    find_zero(f, (env_i.T_air - 40K, env_i.T_air + 100K), Bisection())
+    get_Tb(lizard, environmental_params, variables_i)
 end
+balance_out = flip2vectors(balances); # pull out each output as a vector
+resp_out = flip2vectors(balance_out.resp_out); # pull out each output as a vector
+evap_out = flip2vectors(balance_out.evap_out); # pull out each output as a vector
+conv_out = flip2vectors(balance_out.conv_out); # pull out each output as a vector
 
-plot(1:1:length(T_core_C), °C.(T_cs))
-plot!(1:1:length(T_core_C), TAIRs)
+plot(1:1:n, °C.(balance_out.T_core), ylims=[0.0, 55.0])
+plot!(1:1:n, TAIRs)
+
+plot(1:1:n, u"mg/hr".(evap_out.m_cut))
+plot!(1:1:n, u"mg/hr".(evap_out.m_resp))
+plot!(1:1:n, u"mg/hr".(evap_out.m_eyes))
+plot!(1:1:n, u"mg/hr".(evap_out.m_evap))
