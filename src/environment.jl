@@ -9,7 +9,7 @@ abstract type AbstractEnvironmentalPars end
 Environmental parameters for an organism model.
 """
 Base.@kwdef struct EnvironmentalPars{A,E,L,F} <: AbstractEnvironmentalPars
-    α_sub::A = Param(0.2, bounds=(0.0, 1.0))
+    α_sub::A = Param(0.8, bounds=(0.0, 1.0))
     ϵ_sub::A = Param(1.0, bounds=(0.2, 1.0))
     ϵ_sky::A = Param(1.0, bounds=(0.2, 1.0))
     elev::E = Param(0.0, units=u"m")
