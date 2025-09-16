@@ -4,7 +4,7 @@ function __init__()\
     Unitful.register(HeatExchange)
 end
 
-using FluidProperties: wet_air, dry_air, vapour_pressure, get_λ_evap, waterprop
+using FluidProperties: wet_air, dry_air, vapour_pressure, get_λ_evap, waterprop, get_pressure
 
 using Unitful, UnitfulMoles, ModelParameters
 

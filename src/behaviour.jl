@@ -8,27 +8,56 @@ abstract type AbstractBehavParameters <: AbstractBehavior end
         
 abstract type AbstractBehavThresholds <: AbstractBehavior end
 
-abstract type Diurnal <: AbstractBehavModel end
-abstract type Nocturnal <: AbstractBehavModel end
-abstract type Crepuscular <: AbstractBehavModel end
-abstract type ShadeSeeker <: AbstractBehavModel end
-abstract type Burrower <: AbstractBehavModel end
-abstract type Climber <: AbstractBehavModel end
+#abstract type Diurnal <: AbstractBehavModel end
+#abstract type Nocturnal <: AbstractBehavModel end
+#abstract type Crepuscular <: AbstractBehavModel end
+#abstract type ShadeSeeker <: AbstractBehavModel end
+#abstract type Burrower <: AbstractBehavModel end
+#abstract type Climber <: AbstractBehavModel end
 
-struct NullBehavior <: AbstractBehavModel end
+# abstract type ActivityPeriod end
 
-initialise_state(::NullBehavior) = ()
+# struct Diurnal <: ActivityPeriod end
+# struct Norturnal <: ActivityPeriod end
+# struct Crepuscular <: ActivityPeriod end
 
-abstract type BodyTemperatureThresholds end
+# """
+#     ResponsiveActivity <: ActivityPeriod
 
-struct Thermoregulate{B<:BodyTemperatureThresholds} <: AbstractBehavParameters
-    T_F_min::T
-    T_F_max::T
-    T_B_min::T
-    T_RB_min::T
-    T_pref::T
-end
+#     ResponsiveActivity(isactive)
 
+# # Arguments
+
+# - `isactive` a `Function` or functor that recieves a `ModelParEnvironment`
+#     object with the current system state, and decides whether to be "active"
+#     or "innactive".
+# """
+# struct ResponsiveActivity{F} <: ActivityPeriod 
+#     isactive::F
+# end
+
+# struct NullBehavior <: AbstractBehavModel end
+
+# initialise_state(::NullBehavior) = ()
+
+# abstract type BodyTemperatureThresholds end
+
+# struct Thermoregulate{B<:BodyTemperatureThresholds} <: AbstractBehavParameters
+#     T_F_min::T
+#     T_F_max::T
+#     T_B_min::T
+#     T_RB_min::T
+#     T_pref::T
+# end
+
+
+# function photo_phase(phase::Diurnal, zenith_angle)
+#     Body(shape, insulation, geometry(shape, insulation))
+# end
+
+# function photo_phase()
+
+# end
 
 #' @param T_F_min = 24, Minimum foraging temperature, °C (also affects burrow depth selection)
 #' @param T_F_max = 34, Maximum foraging temperature, °C
