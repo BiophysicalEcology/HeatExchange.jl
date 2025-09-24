@@ -118,19 +118,19 @@ function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2,
     G = Unitful.gn # acceleration due to gravity, m.s^2
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
-    dry_air_out = dry_air(T_air, P_atmos, elev, fO2, fCO2, fN2)
-    dif_vpr = dry_air_out.dif_vpr
+    dry_air_out = dry_air_properties(T_air, P_atmos, elev, fO2, fCO2, fN2)
+    D_w = dry_air_out.D_w
     # checking to see if the fluid is water, not air
     if fluid == 1
         water_prop_out = water_prop(T_air)
         cp_fluid = water_prop_out.cp_fluid
         ρ_air = water_prop_out.ρ_water
-        k_fluid = water_prop_out.k_fluid
+        k_fluid = water_prop_out.k_H2O
         μ = water_prop_out.μ
     else
         cp_fluid = 1.0057E+3J/K/kg
         ρ_air = dry_air_out.ρ_air
-        k_fluid = dry_air_out.k_fluid
+        k_fluid = dry_air_out.k_air
         μ = dry_air_out.μ
     end
 
@@ -141,7 +141,7 @@ function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2,
         #  water; no meaning
         Sc = 1
     else
-        Sc = μ / (ρ_air * dif_vpr)
+        Sc = μ / (ρ_air * D_w)
     end
     δ_T = T_surf - T_air
     Gr = abs(((ρ_air^2) * β * G * (D^3) * δ_T) / (μ^2))
@@ -152,7 +152,7 @@ function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2,
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
     Sh_free = Nu_free * (Sc / Pr)^(1 / 3) # Sherwood number, free
     # calculating the mass transfer coefficient from the Sherwood number
-    Hd_free = Sh_free * dif_vpr / D # mass transfer coefficient, free
+    Hd_free = Sh_free * D_w / D # mass transfer coefficient, free
     Q_free = Hc_free * A_conv * (T_surf - T_air) # free convective heat loss at surface
 
     # forced convection
@@ -160,7 +160,7 @@ function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2,
     # forced convection for object
     Hc_forc = Nu * k_fluid / D # heat transfer coefficient, forced
     Sh_forc = Nu * (Sc / Pr)^(1 / 3) # Sherwood number, forced
-    Hd_forc = Sh_forc * dif_vpr / D # mass transfer coefficient
+    Hd_forc = Sh_forc * D_w / D # mass transfer coefficient
     Q_forc = Hd_forc * A_conv * (T_surf - T_air) # forced convective heat transfer
 
     # combined free and forced convection
@@ -169,7 +169,7 @@ function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2,
     Hc = Nu_comb * (k_fluid / D) # mixed convection heat transfer
     Q_conv = Hc * A_conv * (T_surf - T_air) # total convective heat loss
     Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
-    Hd = Sh * dif_vpr / D # mass transfer coefficient, combined
+    Hd = Sh * D_w / D # mass transfer coefficient, combined
 
     return (;Q_conv, Hc, Hd, Sh, Q_free, Q_forc, Hc_free, Hc_forc, Sh_free, Sh_forc, Hd_free, Hd_forc)
 end
@@ -305,11 +305,11 @@ function evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T
     # get vapour density at surface based on water potential of body
     M_w = (1molH₂O |> u"kg")/1u"mol" # molar mass of water
     rh_surf = exp(ψ_org / (Unitful.R / M_w * T_surf)) * 100 #
-    wet_air_out = wet_air(T_surf, 0K, rh_surf, nothing, P_atmos, fO2, fCO2, fN2)
+    wet_air_out = wet_air_properties(T_surf, rh=rh_surf, P_atmos=P_atmos, fO2=fO2, fCO2=fCO2, fN2=fN2)
     ρ_vap_surf = wet_air_out.ρ_vap
 
     # get air vapour density
-    wet_air_out = wet_air(T_air, 0K, rh, nothing, P_atmos, fO2, fCO2, fN2)
+    wet_air_out = wet_air_properties(T_air, rh=rh, P_atmos=P_atmos, fO2=fO2, fCO2=fCO2, fN2=fN2)
     ρ_vap_air = wet_air_out.ρ_vap
 
     # water lost from eyes if present
@@ -324,8 +324,7 @@ function evaporation(T_core, T_surf, m_resp, ψ_org, p_wet, A_tot, Hd, p_eyes, T
     m_evap = m_eyes + m_resp + m_cut
 
     # get latent heat of vapourisation and compute heat exchange due to evaporation
-    dry_air_out = dry_air(T_air, P_atmos, elev, fO2, fCO2, fN2)
-    L_v = dry_air_out.L_v
+    L_v = enthalpy_of_vaporisation(T_air)
     Q_evap = Unitful.uconvert(u"W", (m_eyes + m_cut) * L_v)
 
     #onvert from kg/s to g/s
@@ -401,7 +400,8 @@ function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atm
     V_air = uconvert(u"m^3/s", (J_air_in * R * 273.15K / 101325Pa)) # air volume @ stp (m3/s)
     # computing the vapor pressure at saturation for the subsequent calculation of 
     # actual moles of water based on actual relative humidity
-    wet_air_out = wet_air(T_air, 273.15K, rh, nothing, P_atmos, fO2, fCO2, fN2)
+    #wet_air_out = wet_air_properties(T_air, 273.15K, rh, nothing, P_atmos, fO2, fCO2, fN2, vapour_pressure_equation=GoffGratch())
+    wet_air_out = wet_air_properties(T_air, rh=rh, P_atmos=P_atmos, fO2=fO2, fCO2=fCO2, fN2=fN2)
     P_vap_sat = wet_air_out.P_vap_sat
     J_H2O_in = J_air_in * (P_vap_sat * (rh / 100)) / (P_atmos - P_vap_sat * (rh / 100))
     # moles at exit
@@ -411,9 +411,9 @@ function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atm
     # total moles of air at exit will be approximately the same as at entrance, since 
     # the moles of O2 removed = approx. the # moles of co2 added
     J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
-    # setting up call to wet_air using temperature of exhaled air at body temperature, assuming saturated air
+    # setting up call to wet_air_properties using temperature of exhaled air at body temperature, assuming saturated air
     rh_exit = 100
-    wet_air_out = wet_air(T_x, 0K, rh_exit, nothing, P_atmos, fO2, fCO2, fN2)
+    wet_air_out = wet_air_properties(T_x, rh=rh_exit, P_atmos=P_atmos, fO2=fO2, fCO2=fCO2, fN2=fN2)
     P_vap_sat = wet_air_out.P_vap_sat
     J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
     # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 
@@ -424,7 +424,8 @@ function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atm
     # grams/s lost by breathing = moles lost * gram molecular weight of water:
     m_resp = J_evap * 18g / mol
     # get latent heat of vapourisation and compute heat exchange due to respiration
-    L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_lung) - 273.15))J / kg # from dry_air
+    #L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_lung) - 273.15))J / kg # from wet_air_properties
+    L_v = enthalpy_of_vaporisation(T_lung)
     # heat loss by breathing (J/s)=(J/kg)*(kg/s)
     Q_resp = uconvert(u"W", L_v * m_resp)
 

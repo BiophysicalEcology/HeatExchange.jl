@@ -229,13 +229,13 @@ T_forage_max = u"K"(34.5u"°C")
 T_lethal_min = u"K"(0.1u"°C")
 shade = 0.0
 Δshade = 0.01
-min_depth = 2 # node (negative = climbing)
+min_depth = 2
 max_height = 2
 depth = 1
 height = 1
 climber = false
 burrower = false
-shadeseeker = true
+shadeseeker = false
 
 Tb = nothing
 balances = map(1:n) do i
