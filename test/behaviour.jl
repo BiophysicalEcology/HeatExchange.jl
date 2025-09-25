@@ -11,6 +11,7 @@ using CSV, DataFrames
 testdir = realpath(joinpath(dirname(pathof(HeatExchange)), "../test"))
 
 Tb_NMR = (DataFrame(CSV.File("$testdir/data/TC.csv")))[:, 2] .* u"°C"
+
 # define the geometry
 mass = 0.04kg
 ρ_body = 1000.0kg/m^3
@@ -57,8 +58,8 @@ initial_soil_moisture = [0.2, 0.2] # fractional
 
 n_hours = length(air_temperature_min) * 24
 
-minimum_shade = 0.0
-maximum_shade = 0.9
+minimum_shade = 1.0
+maximum_shade = 1.0
 
 # run microclimate model in minshade environment
 micro_min_shade = runmicro(;
@@ -79,7 +80,7 @@ micro_min_shade = runmicro(;
     maxima_times,
     initial_soil_moisture,
     albedos,
-    shades = fill(minimum_shade, n_hours),
+    shades = fill(minimum_shade*100, n_hours),
 );
 plot(1:1:n, u"°C".(micro_min_shade.soil_temperature[:, 1]))
 
@@ -102,7 +103,7 @@ micro_max_shade = runmicro(;
     maxima_times,
     initial_soil_moisture,
     albedos,
-    shades = fill(maximum_shade, n_hours),
+    shades = fill(maximum_shade*100, n_hours),
 );
 
 min_shade_habitat = EnvironmentalVarsVec(

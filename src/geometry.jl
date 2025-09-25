@@ -105,7 +105,7 @@ end
 
 function geometry(shape::Plate, ::Naked)
     volume = shape.mass / shape.density
-    length = volume^(1 / 3)
+    characteristic_dimension = volume^(1 / 3)
     a = (volume / (shape.b * shape.c))^(1 / 3)
     b = shape.b * a
     c = shape.c * a
@@ -113,12 +113,12 @@ function geometry(shape::Plate, ::Naked)
     length2 = b * 2
     length3 = c * 2
     area = calc_area(shape, a, b, c)
-    return Geometry(volume, length, (length1, length2, length3), area)
+    return Geometry(volume, characteristic_dimension, (length1, length2, length3), area)
 end
 # function geometry(shape::Plate, fur::Fur)
 #     # Something different with fur
 #     # ...
-#     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
+#     return Geometry(volume, characteristic_dimension, (length1, length2, length3), area, sil_area)
 # end
 
 function calc_area(shape::Plate, body)
@@ -142,17 +142,17 @@ end
 
 function geometry(shape::Cylinder, ::Naked)
     volume = shape.mass / shape.density
-    length = volume^(1 / 3)
+    characteristic_dimension = volume^(1 / 3)
     r = (volume / (shape.b * π * 2))^(1 / 3)
     length1 = shape.b * r * 2
     length2 = 2 * r
     area = calc_area(shape, r, length1)
-    return Geometry(volume, length, (length1, length2), area)
+    return Geometry(volume, characteristic_dimension, (length1, length2), area)
 end
 # function geometry(shape::Cylinder, fur::Fur)
 #     # Something different with fur
 #     # ...
-#     return Geometry(volume, length, (length1, length2, length3), area, sil_area)
+#     return Geometry(volume, characteristic_dimension, (length1, length2, length3), area, sil_area)
 # end
 
 function calc_area(shape::Cylinder, body::AbstractBody)
@@ -183,7 +183,7 @@ end
 
 function geometry(shape::Ellipsoid, ::Naked)
     volume = shape.mass / shape.density
-    length = volume^(1 / 3)
+    characteristic_dimension = volume^(1 / 3)
     a = ((3 / 4)* Unitful.ustrip(volume) / (π * shape.b * shape.c)) ^ (1 / 3)
     b = a * shape.b
     c = a * shape.c
@@ -191,12 +191,12 @@ function geometry(shape::Ellipsoid, ::Naked)
     length2 = b * 2m
     length3 = c * 2m
     area = calc_area(shape, a, b, c)m^2
-    return Geometry(volume, length, (length1, length2, length3), area)
+    return Geometry(volume, characteristic_dimension, (length1, length2, length3), area)
 end
 # function geometry(shape::Ellipsoid, fur::Fur)
 #     # Something different with fur
 #     # ...
-#     return Geometry(volume, length, (length1, length2, length3), area)
+#     return Geometry(volume, characteristic_dimension, (length1, length2, length3), area)
 # end
 
 function calc_area(shape::Ellipsoid, body::Body)
@@ -257,9 +257,9 @@ end
 
 function geometry(shape::LeopardFrog, ::Naked)
     volume = shape.mass / shape.density
-    length = volume^(1 / 3)
+    characteristic_dimension = volume^(1 / 3)
     area = calc_area(shape, body)
-    return Geometry(volume, length, nothing, area)
+    return Geometry(volume, characteristic_dimension, nothing, area)
 end
 
 calc_area(shape::LeopardFrog, body) = calc_area(shape)
@@ -287,12 +287,12 @@ end
 
 function geometry(shape::DesertIguana, ::Naked)
     volume = shape.mass / shape.density
-    length = volume^(1 / 3)
+    characteristic_dimension = volume^(1 / 3)
     area = calc_area(shape)
-    return Geometry(volume, length, nothing, area)
+    return Geometry(volume, characteristic_dimension, nothing, area)
 end
 
-function calc_area(shape::DesertIguana, body)
+function calc_area(shape::DesertIguana)
     mass_g = Unitful.uconvert(u"g", shape.mass)
     return Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2")
 end

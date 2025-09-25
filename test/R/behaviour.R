@@ -55,8 +55,8 @@ solonly <- 0 # Only run SOLRAD to get solar radiation? 1=yes, 0=no
 lamb <- 0 # Return wavelength-specific solar radiation output?
 IUV <- 0 # Use gamma function for scattered solar radiation? (computationally intensive)
 ndmax <- 3 # iterations of first day to get a steady periodic
-minshade <- 0 # minimum available shade (%)
-maxshade <- 90 # maximum available shade (%)
+minshade <- 99 # minimum available shade (%)
+maxshade <- 100 # maximum available shade (%)
 PCTWET <- 0 # percentage of surface area acting as a free water surface (%)
 
 DEP <- c(0, 2.5, 5, 10, 15, 20, 30, 50, 100, 200) # Soil nodes (cm) - keep spacing close near the surface, last value is where it is assumed that the soil temperature is at the annual mean air temperature
@@ -249,7 +249,7 @@ T_F_max = 34.5
 T_pref = 34.5
 CT_min = 0.1
 CT_max = T_F_max
-pct_cond = 0
+pct_cond = 10
 live = 0
 shape = 2
 shape_b = 3
@@ -284,3 +284,4 @@ ecto <- ectotherm(Ww_g = Ww_g,
 environ <- as.data.frame(ecto$environ)
 
 plot(environ$TC, type = 'l', ylim = c(0, 55))
+write.csv(environ$TC, '../data/TC.csv')

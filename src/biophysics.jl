@@ -122,13 +122,13 @@ function convection(body, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid, fO2,
     D_w = dry_air_out.D_w
     # checking to see if the fluid is water, not air
     if fluid == 1
-        water_prop_out = water_prop(T_air)
+        water_prop_out = water_properties(T_air)
         cp_fluid = water_prop_out.cp_fluid
         ρ_air = water_prop_out.ρ_water
         k_fluid = water_prop_out.k_H2O
         μ = water_prop_out.μ
     else
-        cp_fluid = 1.0057E+3J/K/kg
+        cp_fluid = 1.0057e+3J/K/kg
         ρ_air = dry_air_out.ρ_air
         k_fluid = dry_air_out.k_air
         μ = dry_air_out.μ
