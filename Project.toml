@@ -11,6 +11,10 @@ Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
+[sources]
+FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
+Microclimate = {rev = "main", url = "https://github.com/BiophysicalEcology/Microclimate.jl"}
+
 [compat]
 Aqua = "0.8"
 FluidProperties = "0.1.0"
