@@ -17,132 +17,134 @@ geometric_traits = Body(shape_body, Naked()) # construct a Body, which is naked 
 
 # construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
 lizard = Model(Organism(geometric_traits, MorphoPars(), PhysioPars()))
-# get the environmental parameters
-environmental_params = EnvironmentalPars()
-# get the variables for both the organism and environment
-variables = (organism=OrganismalVars(), environment=EnvironmentalVars())
-
-# define the method 'heat_balance' for passing to find_zero, which dispatches off 'lizard' 
-T_air = EnvironmentalVars().T_air
-T_core_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40K, T_air + 100K), Bisection())
-T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
-heat_balance_out = heat_balance(T_core_s, lizard, environmental_params, variables)
 
 # specify place and time
-lat = -30.0°
-lon = 140.0°
-elev = 10.0m
+latitude = -30.0°
+longitude = 140.0°
+elevation = 10.0m
 days = [15, 45]*1.0
 hours = collect(0.:1:24.)
+heights = [1.0,]u"cm"
+α_sub = 0.8
 
-# compute solar radiation
-solrad_out = solrad(;
-    days,       # days of year
-    hours,      # hours of day
-    lat,        # latitude (degrees)
-    elev,
-    )
-solrad_out.Zenith[solrad_out.Zenith.>90u"°"] .= 90u"°"
-Q_sol = solrad_out.Global
-Zenith = solrad_out.Zenith
-Q_dir = solrad_out.Direct
-Q_dif = solrad_out.Scattered
-
-TIMINS = [0, 0, 1, 1] # time of minima for air temp, wind, humidity and cloud cover (h), air & wind mins relative to sunrise, humidity and cloud cover mins relative to solar noon
-TIMAXS = [1, 1, 0, 0] # time of maxima for air temp, wind, humidity and cloud cover (h), air temp & wind maxs relative to solar noon, humidity and cloud cover maxs relative to sunrise
-TMINN = [10.0, 8.0]u"°C" # minimum air temperatures (°C)
-TMAXX = [30.0, 25]u"°C" # maximum air temperatures (°C)
-RHMINN = [20.0, 30.0] # min relative humidity (%)
-RHMAXX = [80.0, 90.0] # max relative humidity (%)
-WNMINN = [0.1, 0.2]u"m/s" # min wind speed (m/s)
-WNMAXX = [1.0, 1.4]u"m/s" # max wind speed (m/s)
-CCMINN = [20.0, 23.0] # min cloud cover (%)
-CCMAXX = [90.0, 100.0] # max cloud cover (%)
-
-# interpolate air temperature to hourly
-TAIRs, WNs, RHs, CLDs = hourly_vars(
-    TMINN,
-    TMAXX,
-    WNMINN,
-    WNMAXX,
-    RHMINN,
-    RHMAXX,
-    CCMINN,
-    CCMAXX,
-    solrad_out,
-    TIMINS,
-    TIMAXS
-)
-RHs[RHs.>100] .= 100
-CLDs[CLDs.>100] .= 100
-
-# compute sky temperature for downwelling longwave
-Tskys = zeros(length(TAIRs))u"K"  # or whatever you have from your loop
-for i in 1:length(TAIRs)
-    Tskys[i] = Microclimate.get_longwave(
-        elev=elev,
-        rh=RHs[i],
-        tair=TAIRs[i],
-        tsurf=TAIRs[i],
-        slep=0.95,
-        sle=0.95,
-        cloud=CLDs[i],
-        viewf=1,
-        shade=0.0
-    ).Tsky
-end
-
-env_vec = EnvironmentalVarsVec(
-    #T_air = (collect(15.0:5.0:35.0) .+ 273.15) .* 1.0K,
-    #T_air = fill(293.15K, length(Q_sol)),
-    T_air = K.(TAIRs),
-    T_sky = Tskys,
-    T_sub = K.(TAIRs),
-    rh = RHs,
-    vel = WNs,
-    Q_sol = Q_sol,
-    Q_dir = Q_dir,
-    Q_dif = Q_dif,
-    zen = Zenith
+# set the environmental parameters
+environmental_params = EnvironmentalPars(
+    elev = elev,
+    α_sub = Param(α_sub, bounds=(0.0, 1.0)),
 )
 
+# define daily weather and soil moisture
+minima_times = [0, 0, 1, 1] # time of minima for air temp, wind, humidity and cloud cover (h), air & wind mins relative to sunrise, humidity and cloud cover mins relative to solar noon
+maxima_times = [1, 1, 0, 0] # time of maxima for air temp, wind, humidity and cloud cover (h), air temp & wind maxs relative to solar noon, humidity and cloud cover maxs relative to sunrise
+air_temperature_min = [10.0, 8.0]u"°C" # minimum air temperatures (°C)
+air_temperature_max = [30.0, 25]u"°C" # maximum air temperatures (°C)
+humidity_min = [20.0, 30.0] # min relative humidity (%)
+humidity_max = [80.0, 90.0] # max relative humidity (%)
+wind_min = [0.1, 0.2]u"m/s" # min wind speed (m/s)
+wind_max = [1.0, 1.4]u"m/s" # max wind speed (m/s)
+cloud_min = [20.0, 23.0] # min cloud cover (%)
+cloud_max = [90.0, 100.0] # max cloud cover (%)
+initial_soil_moisture = [0.2, 0.2] # fractional
+min_shade = 0.0
+max_shade = 90.0
 
-n = length(env_vec.T_air)
-T_core_s = Vector{typeof(env_vec.T_air[1])}(undef, n)   # in Kelvin
-T_core_C = Vector{typeof(0.0°C)}(undef, n)
-heat_balance_out = Vector{Float64}(undef, n)  # or whatever type heat_balance returns
+# run microclimate model in minshade environment
+micro_minshade = runmicro(;
+    latitude,
+    elevation,
+    heights,
+    days,
+    hours,
+    minima_times,
+    maxima_times,
+    air_temperature_min,
+    air_temperature_max,
+    humidity_min,
+    humidity_max,
+    wind_min,
+    wind_max,
+    cloud_min,
+    cloud_max,
+    initial_soil_moisture,
+    shades = fill(min_shade, length(days)),
+)
 
-for i in 1:n
-    # Construct a single-environment object for this iteration
+# run microclimate model in maxshade environment
+micro_maxshade = runmicro(;
+    latitude,
+    elevation,
+    heights,
+    days,
+    hours,
+    minima_times,
+    maxima_times,
+    air_temperature_min,
+    air_temperature_max,
+    humidity_min,
+    humidity_max,
+    wind_min,
+    wind_max,
+    cloud_min,
+    cloud_max,
+    initial_soil_moisture,
+    shades = fill(max_shade, length(days)),
+)
+
+env_minshade = EnvironmentalVarsVec(
+    T_air = K.(micro_minshade.air_temperature[:, 2]), # second column is first node above surface
+    T_sky = micro_minshade.sky_temperature,
+    T_sub = micro_minshade.soil_temperature[:, 1], # surface temperature
+    rh = micro_minshade.relative_humidity[:, 2], # second column is first node above surface
+    vel = micro_minshade.wind_speed[:, 2], # second column is first node above surface
+    Q_sol = micro_minshade.global_solar .* (1.0 - min_shade / 100.0),
+    Q_dir = micro_minshade.direct_solar .* (1.0 - min_shade / 100.0),
+    Q_dif = micro_minshade.diffuse_solar .* (1.0 - min_shade / 100.0),
+    zen = micro_minshade.zenith_angle
+)
+
+env_maxshade = EnvironmentalVarsVec(
+    T_air = K.(micro_minshade.air_temperature[:, 2]), # second column is first node above surface
+    T_sky = micro_maxshade.sky_temperature,
+    T_sub = micro_maxshade.soil_temperature[:, 1], # surface temperature
+    rh = micro_maxshade.relative_humidity[:, 2], # second column is first node above surface
+    vel = micro_maxshade.wind_speed[:, 2], # second column is first node above surface
+    Q_sol = micro_maxshade.global_solar .* (1.0 - max_shade / 100.0),
+    Q_dir = micro_maxshade.direct_solar .* (1.0 - max_shade / 100.0),
+    Q_dif = micro_maxshade.diffuse_solar .* (1.0 - max_shade / 100.0),
+    zen = micro_maxshade.zenith_angle
+)
+
+# set shade
+environment = env_minshade
+
+# compute body temperature
+n = length(days) * (length(hours) - 1)
+balances = map(1:n) do i
     env_i = EnvironmentalVars(
-        T_air   = env_vec.T_air[i],
-        T_sky   = env_vec.T_sky[i],
-        T_sub   = env_vec.T_sub[i],
-        rh      = env_vec.rh[i],
-        vel     = env_vec.vel[i],
-        P_atmos = env_vec.P_atmos[i],
-        zen     = env_vec.zen[i],
-        k_sub   = env_vec.k_sub[i],
-        Q_sol   = env_vec.Q_sol[i],
-        Q_dir   = env_vec.Q_dir[i],
-        Q_dif   = env_vec.Q_dif[i]
+        T_air   = environment.T_air[i],
+        T_sky   = environment.T_sky[i],
+        T_sub   = environment.T_sub[i],
+        rh      = environment.rh[i],
+        vel     = environment.vel[i],
+        P_atmos = environment.P_atmos[i],
+        zen     = environment.zen[i],
+        k_sub   = environment.k_sub[i],
+        Q_sol   = environment.Q_sol[i],
+        Q_dir   = environment.Q_dir[i],
+        Q_dif   = environment.Q_dif[i],
     )
-
-    # Variables tuple as before
     variables_i = (organism = OrganismalVars(), environment = env_i)
-
-    # Root-finding for this environment
-    f(T_core) = heat_balance(T_core, lizard, environmental_params, variables_i)
-
-    T_core_s[i] = find_zero(f, (env_i.T_air - 40K, env_i.T_air + 100K), Bisection())
-
-    # Convert to °C
-    T_core_C[i] = (Unitful.ustrip(T_core_s[i]) - 273.15)°C
-
-    # Store heat_balance output if needed
-    #heat_balance_out[i] = f(T_core_s[i])
+    get_Tb(lizard, environmental_params, variables_i)
 end
-T_core_C
+balance_out = flip2vectors(balances); # pull out each output as a vector
+resp_out = flip2vectors(balance_out.resp_out); # pull out each output as a vector
+evap_out = flip2vectors(balance_out.evap_out); # pull out each output as a vector
+conv_out = flip2vectors(balance_out.conv_out); # pull out each output as a vector
 
-plot(1:1:length(T_core_C), T_core_C)
-plot!(1:1:length(T_core_C), TAIRs)
+plot(1:1:n, °C.(balance_out.T_core), ylims=[0.0, 55.0])
+plot!(1:1:n, environment.T_air)
+
+plot(1:1:n, u"mg/hr".(evap_out.m_cut))
+plot!(1:1:n, u"mg/hr".(evap_out.m_resp))
+plot!(1:1:n, u"mg/hr".(evap_out.m_eyes))
+plot!(1:1:n, u"mg/hr".(evap_out.m_evap))

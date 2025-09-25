@@ -9,7 +9,7 @@ abstract type AbstractEnvironmentalPars end
 Environmental parameters for an organism model.
 """
 Base.@kwdef struct EnvironmentalPars{A,E,L,F} <: AbstractEnvironmentalPars
-    α_sub::A = Param(0.2, bounds=(0.0, 1.0))
+    α_sub::A = Param(0.8, bounds=(0.0, 1.0))
     ϵ_sub::A = Param(1.0, bounds=(0.2, 1.0))
     ϵ_sky::A = Param(1.0, bounds=(0.2, 1.0))
     elev::E = Param(0.0, units=u"m")
@@ -44,15 +44,15 @@ Base.@kwdef struct EnvironmentalVars{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
 end
 
 Base.@kwdef struct EnvironmentalVarsVec{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
-    T_air::Vector{T} = (collect(15.0:5.0:35.0).+273.15).*1.0K
-    T_sky::Vector{T} = fill((273.15-5.0)K, length(T_air))
-    T_sub::Vector{T} = fill((273.15+30.0)K, length(T_air))
-    rh::Vector{R} = fill(5.0, length(T_air))
-    vel::Vector{V} = fill(1.0m/s, length(T_air))
-    P_atmos::Vector{P} = fill(101325.0Pa, length(T_air))
-    zen::Vector{Z} = fill(20.0°, length(T_air))
-    k_sub::Vector{K} = fill(0.5W/m/K, length(T_air))
-    Q_sol::Vector{Q} = fill(1000.0W/m^2, length(T_air))
-    Q_dir::Vector{Q} = fill(964.177772475912W/m^2, length(T_air))
-    Q_dif::Vector{Q} = fill(100.0W/m^2, length(T_air))
+    T_air::Matrix{T}# = hcat(vcat((collect(15.0:5.0:35.0).+273.15).*1.0K))
+    T_sky::Vector{T}# = fill((273.15-5.0)K, length(T_air))
+    T_sub::Matrix{T}# = hcat(vcat(fill((273.15+30.0)K, length(T_air))))
+    rh::Matrix{R}# = hcat(vcat(fill(5.0, length(T_air))))
+    vel::Matrix{V}# = hcat(vcat(fill(1.0m/s, length(T_air))))
+    P_atmos::Vector{P}# = fill(101325.0Pa, length(T_air))
+    zen::Vector{Z}# = fill(20.0°, length(T_air))
+    k_sub::Matrix{K}# = hcat(vcat(fill(0.5W/m/K, length(T_air))))
+    Q_sol::Vector{Q}# = fill(1000.0W/m^2, length(T_air))
+    Q_dir::Vector{Q}# = fill(964.177772475912W/m^2, length(T_air))
+    Q_dif::Vector{Q}# = fill(100.0W/m^2, length(T_air))
 end
