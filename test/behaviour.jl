@@ -6,7 +6,11 @@ using Unitful: °, rad, °C, K, Pa, J, kJ, W, ml, L, g, kg, cm, m, s, hr, d, mol
 using Roots
 using Test
 using Plots
+using CSV, DataFrames
 
+testdir = realpath(joinpath(dirname(pathof(HeatExchange)), "../test"))
+
+Tb_NMR = (DataFrame(CSV.File("$testdir/data/TC.csv")))[:, 2] .* u"°C"
 # define the geometry
 mass = 0.04kg
 ρ_body = 1000.0kg/m^3
@@ -30,6 +34,7 @@ days = [15, 45]*1.0
 hours = collect(0.:1:24.)
 heights = [0.01]u"m"
 α_sub = 0.8
+albedos = [0.2, 0.2]
 
 # set the environmental parameters
 environmental_params = EnvironmentalPars(
@@ -73,8 +78,10 @@ micro_min_shade = runmicro(;
     minima_times,
     maxima_times,
     initial_soil_moisture,
+    albedos,
     shades = fill(minimum_shade, n_hours),
 );
+plot(1:1:n, u"°C".(micro_min_shade.soil_temperature[:, 1]))
 
 # run microclimate model in minshade environment
 micro_max_shade = runmicro(;
@@ -94,6 +101,7 @@ micro_max_shade = runmicro(;
     minima_times,
     maxima_times,
     initial_soil_moisture,
+    albedos,
     shades = fill(maximum_shade, n_hours),
 );
 
@@ -127,8 +135,8 @@ max_shade_habitat = EnvironmentalVarsVec(
 
 # compute body temperature
 shade = 0.0
-depth = 4 # node (negative = climbing)
-height = 1
+depth = 1
+height = 2
 n = n_hours
 deep_rh = 99.
 deep_vel = 0.01u"m/s"
@@ -180,7 +188,6 @@ conv_out = flip2vectors(balance_out.conv_out); # pull out each output as a vecto
 
 plot(1:1:n, °C.(balance_out.T_core), ylims=[-10.0, 55.0])
 plot!(1:1:n, micro_min_shade.air_temperature[:, 2])
-#plot!(1:1:n, environment.T_air)
 plot!(1:1:n, micro_min_shade.soil_temperature[:, 1])
 plot!(1:1:n, °C.(micro_min_shade.sky_temperature[:, 1]))
 
@@ -258,7 +265,7 @@ balances = map(1:n) do i
     end
     if climber
     while Tb > T_forage_max && (shade >= maximum_shade || !shadeseeker) && height < max_height
-        shade = minimum_shade # )reset to minimum shade burrow
+        shade = minimum_shade # reset to minimum shade burrow
         height = height + 1
         env_i = set_environment(; i, shade, depth, height, min_shade_habitat, max_shade_habitat)
         variables_i = (organism=OrganismalVars(), environment=env_i)
@@ -291,4 +298,8 @@ balances = map(1:n) do i
 end
 balance_out = flip2vectors(balances); # pull out each output as a vector
 
-plot(1:1:n, °C.(balance_out.T_core), ylims=[-10.0, 55.0])
+plot(1:1:n, °C.(balance_out.T_core), ylims=[0, 55.0])
+plot!(1:1:n, Tb_NMR;
+        xlabel="time", ylabel="body temperature", lw=2,
+        linestyle=:dash, linecolor="grey"
+    )
