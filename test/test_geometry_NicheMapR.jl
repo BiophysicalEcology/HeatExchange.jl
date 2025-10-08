@@ -80,11 +80,14 @@ density = (iguana_in_NMR.ANDENS)u"kg/m^3"
 mass = (iguana_in_NMR.AMASS)u"kg"
 shape = DesertIguana(mass, density)
 iguana_out = Body(shape, Naked())
-
+iguana_silhouette_normal = calc_silhouette_area(shape; orientation = "normal")
+iguana_silhouette_parallel = calc_silhouette_area(shape; orientation = "parallel")
 @testset "iguana shape comparisons" begin
     @test iguana_out.geometry.area ≈ (iguana_out_NMR.AREA)u"m^2" atol=1e-6u"m^2"
     @test iguana_out.geometry.characteristic_dimension ≈ (iguana_out_NMR.VOL ^ (1/3))u"m" atol=1e-6u"m"
     @test iguana_out.geometry.volume ≈ (iguana_out_NMR.VOL)u"m^3" atol=1e-6u"m^3"
+    @test iguana_silhouette_parallel ≈ (iguana_out_NMR.ASILP)u"m^2" atol=1e-6u"m^2"
+    @test iguana_silhouette_normal ≈ (iguana_out_NMR.ASILN)u"m^2" atol=1e-6u"m^2"
 end
 
 # leopard frog test
@@ -97,9 +100,12 @@ density = (frog_in_NMR.ANDENS)u"kg/m^3"
 mass = (frog_in_NMR.AMASS)u"kg"
 shape = LeopardFrog(mass, density)
 frog_out = Body(shape, Naked())
-
+frog_silhouette_normal = calc_silhouette_area(shape, 0)
+frog_silhouette_parallel = calc_silhouette_area(shape, 90)
 @testset "frog shape comparisons" begin
     @test frog_out.geometry.area ≈ (frog_out_NMR.AREA)u"m^2" atol=1e-6u"m^2"
     @test frog_out.geometry.characteristic_dimension ≈ (frog_out_NMR.VOL ^ (1/3))u"m" atol=1e-6u"m"
     @test frog_out.geometry.volume ≈ (frog_out_NMR.VOL)u"m^3" atol=1e-6u"m^3"
+    @test frog_silhouette_parallel ≈ (frog_out_NMR.ASILP)u"m^2" atol=1e-6u"m^2"
+    @test frog_silhouette_normal ≈ (frog_out_NMR.ASILN)u"m^2" atol=1e-6u"m^2"
 end

@@ -296,3 +296,14 @@ function calc_area(shape::DesertIguana)
     mass_g = Unitful.uconvert(u"g", shape.mass)
     return Unitful.uconvert(u"m^2", (10.4713 * Unitful.ustrip(mass_g) ^ 0.688)u"cm^2")
 end
+
+function calc_silhouette_area(shape::DesertIguana; orientation = "normal")
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    if orientation == "normal"
+        area = Unitful.uconvert(u"m^2", (3.798 * Unitful.ustrip(mass_g) ^ 0.683)u"cm^2")
+    end
+    if orientation == "parallel"
+        area = Unitful.uconvert(u"m^2", (0.694 * Unitful.ustrip(mass_g) ^ 0.743)u"cm^2")
+    end
+    return area
+end

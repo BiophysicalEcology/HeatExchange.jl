@@ -109,8 +109,8 @@ abstract type AbstractOrganismalVars end
 Variables for an [`AbstractOrganism`](@ref) model.
 """
 Base.@kwdef mutable struct OrganismalVars{T,P} <: AbstractOrganismalVars
-    T_core::T = K(20°C)
-    T_surf::T = K(20°C)
-    T_lung::T = K(20°C)
-    ψ_org::P = -707J/kg
+    T_core::T = K(20.0°C)
+    T_surf::T = K(20.0°C)
+    T_lung::T = K(20.0°C)
+    ψ_org::P = -707.0J/kg
 end
