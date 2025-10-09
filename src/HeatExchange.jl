@@ -28,7 +28,7 @@ export heat_balance, get_Tb, flip2vectors
 
 export metabolism, respiration, solar, radin, radout, evaporation, conduction, convection, get_nusselt_free, get_nusselt_forced, get_Tsurf_Tlung
 
-export insulation_thermal_conductivity, insulation_properties
+export ellipsoid_endotherm, insulation_thermal_conductivity, insulation_properties
 
 include("geometry.jl")
 include("environment.jl")
