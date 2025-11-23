@@ -4,18 +4,19 @@ authors = ["Michael Kearney, Urtzi Enriquez Urzelai and Rafael Schouten"]
 version = "0.1.0"
 
 [deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 FluidProperties = "d16f1b92-71d3-42f3-aafa-43e5bb0efda8"
-Microclimate = "fa5d2a79-de00-40ba-a9f4-ff140fbe07ba"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [compat]
-CSV = "0.10.15"
-DataFrames = "1.8.0"
+CSV = "0.10"
+DataFrames = "1"
+DataStructures = "0.18, 0.19"
 FluidProperties = "0.1.0"
-Microclimate = "0.1.0"
 ModelParameters = "0.4"
 Roots = "2.2.7"
 Unitful = "1"

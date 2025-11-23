@@ -2,7 +2,6 @@ using HeatExchange
 using Microclimate
 using ModelParameters
 using Unitful, UnitfulMoles
-using Unitful: °, rad, °C, K, Pa, J, kJ, W, ml, L, g, kg, cm, m, s, hr, d, mol, R
 using Roots
 using Test
 using Plots
@@ -25,12 +24,12 @@ elevation = 10.0m
 days = [15, 45]*1.0
 hours = collect(0.:1:24.)
 heights = [1.0,]u"cm"
-α_sub = 0.8
+α_substrate = 0.8
 
 # set the environmental parameters
 environmental_params = EnvironmentalPars(
-    elev = elev,
-    α_sub = Param(α_sub, bounds=(0.0, 1.0)),
+    elevation = elevation,
+    α_substrate = Param(α_substrate, bounds=(0.0, 1.0)),
 )
 
 # define daily weather and soil moisture
@@ -93,25 +92,25 @@ micro_maxshade = runmicro(;
 env_minshade = EnvironmentalVarsVec(
     T_air = K.(micro_minshade.air_temperature[:, 2]), # second column is first node above surface
     T_sky = micro_minshade.sky_temperature,
-    T_sub = micro_minshade.soil_temperature[:, 1], # surface temperature
+    T_substrate = micro_minshade.soil_temperature[:, 1], # surface temperature
     rh = micro_minshade.relative_humidity[:, 2], # second column is first node above surface
-    vel = micro_minshade.wind_speed[:, 2], # second column is first node above surface
-    Q_sol = micro_minshade.global_solar .* (1.0 - min_shade / 100.0),
-    Q_dir = micro_minshade.direct_solar .* (1.0 - min_shade / 100.0),
-    Q_dif = micro_minshade.diffuse_solar .* (1.0 - min_shade / 100.0),
-    zen = micro_minshade.zenith_angle
+    wind_speed = micro_minshade.wind_speed[:, 2], # second column is first node above surface
+    Q_solar = micro_minshade.global_solar .* (1.0 - min_shade / 100.0),
+    Q_direct = micro_minshade.direct_solar .* (1.0 - min_shade / 100.0),
+    Q_diffuse = micro_minshade.diffuse_solar .* (1.0 - min_shade / 100.0),
+    zenith_angle = micro_minshade.zenith_angle
 )
 
 env_maxshade = EnvironmentalVarsVec(
     T_air = K.(micro_minshade.air_temperature[:, 2]), # second column is first node above surface
     T_sky = micro_maxshade.sky_temperature,
-    T_sub = micro_maxshade.soil_temperature[:, 1], # surface temperature
+    T_substrate = micro_maxshade.soil_temperature[:, 1], # surface temperature
     rh = micro_maxshade.relative_humidity[:, 2], # second column is first node above surface
-    vel = micro_maxshade.wind_speed[:, 2], # second column is first node above surface
-    Q_sol = micro_maxshade.global_solar .* (1.0 - max_shade / 100.0),
-    Q_dir = micro_maxshade.direct_solar .* (1.0 - max_shade / 100.0),
-    Q_dif = micro_maxshade.diffuse_solar .* (1.0 - max_shade / 100.0),
-    zen = micro_maxshade.zenith_angle
+    wind_speed = micro_maxshade.wind_speed[:, 2], # second column is first node above surface
+    Q_solar = micro_maxshade.global_solar .* (1.0 - max_shade / 100.0),
+    Q_direct = micro_maxshade.direct_solar .* (1.0 - max_shade / 100.0),
+    Q_diffuse = micro_maxshade.diffuse_solar .* (1.0 - max_shade / 100.0),
+    zenith_angle = micro_maxshade.zenith_angle
 )
 
 # set shade
@@ -121,17 +120,17 @@ environment = env_minshade
 n = length(days) * (length(hours) - 1)
 balances = map(1:n) do i
     env_i = EnvironmentalVars(
-        T_air   = environment.T_air[i],
-        T_sky   = environment.T_sky[i],
-        T_sub   = environment.T_sub[i],
-        rh      = environment.rh[i],
-        vel     = environment.vel[i],
+        T_air = environment.T_air[i],
+        T_sky = environment.T_sky[i],
+        T_substrate = environment.T_substrate[i],
+        rh = environment.rh[i],
+        wind_speed = environment.wind_speed[i],
         P_atmos = environment.P_atmos[i],
-        zen     = environment.zen[i],
-        k_sub   = environment.k_sub[i],
-        Q_sol   = environment.Q_sol[i],
-        Q_dir   = environment.Q_dir[i],
-        Q_dif   = environment.Q_dif[i],
+        zenith_angle = environment.zenith_angle[i],
+        k_substrate = environment.k_substrate[i],
+        Q_solar = environment.Q_solar[i],
+        Q_direct = environment.Q_direct[i],
+        Q_diffuse = environment.Q_diffuse[i],
     )
     variables_i = (organism = OrganismalVars(), environment = env_i)
     get_Tb(lizard, environmental_params, variables_i)

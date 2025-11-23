@@ -21,32 +21,33 @@ function heat_balance(T_x, insulation::Naked, o, morphopars, physiopars, e_pars,
     e_vars = vars.environment # make small function to get this
     
     # compute areas for exchange
-    A_tot = o.body.geometry.area
-    A_conv = A_tot * (1 - morphopars.p_cond)
-    A_cond = A_tot * morphopars.p_cond
-    A_sil = calc_silhouette_area(o.body, e_vars.zen)
+    A_total = o.body.geometry.area.total
+    A_convection = A_total * (1 - morphopars.p_conduction)
+    A_conduction = A_total * morphopars.p_conduction
+    #A_sil = calc_silhouette_area(o.body, e_vars.zenith_angle)
+    A_sil = calc_silhouette_area(o.body.shape).normal # TODO make this work for zenith angle vs. normal/parallel
 
     # calculate heat fluxes
-    metab_out = metabolism(o.body.shape.mass, T_x, physiopars.M1, physiopars.M2, physiopars.M3)
+    metab_out = metabolism(o.body.shape.mass, T_x, physiopars.M1, physiopars.M2, physiopars.M3, physiopars.M4)
     Q_metab = metab_out.Q_metab
-    resp_out = respiration(T_x, Q_metab, physiopars.fO2_extract, physiopars.pant, physiopars.rq, e_vars.T_air, e_vars.rh, e_pars.elev, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
+    resp_out = respiration(T_x, Q_metab, physiopars.fO2_extract, physiopars.pant, physiopars.rq, e_vars.T_air, e_vars.rh, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
     Q_resp = resp_out.Q_resp
     Q_gen_net = Q_metab - Q_resp
     Q_gen_spec = Q_gen_net / o.body.geometry.volume
     Tsurf_Tlung_out = get_Tsurf_Tlung(o.body, morphopars.k_body, Q_gen_spec, T_x)
-    T_surf = Tsurf_Tlung_out.T_surf
+    T_surface = Tsurf_Tlung_out.T_surface
     T_lung = Tsurf_Tlung_out.T_lung
     
-    solar_out = solar(morphopars.α_org_dorsal, morphopars.α_org_ventral, A_sil, A_tot, A_cond, morphopars.F_sub, morphopars.F_sky, e_pars.α_sub, e_vars.Q_sol, e_vars.Q_dir, e_vars.Q_dif)
+    solar_out = solar(morphopars.α_body_dorsal, morphopars.α_body_ventral, A_sil, A_total, A_conduction, morphopars.F_substrate, morphopars.F_sky, e_pars.α_substrate, e_pars.shade, e_vars.solar_radiation, e_vars.direct_radiation, e_vars.diffuse_radiation)
     Q_solar = solar_out.Q_solar
-    ir_gain = radin(A_tot, A_cond, morphopars.F_sky, morphopars.F_sub, morphopars.ϵ_org_dorsal, morphopars.ϵ_org_ventral, e_pars.ϵ_sub, e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_sub)
+    ir_gain = radin(A_total, A_conduction, morphopars.F_sky, morphopars.F_substrate, morphopars.ϵ_body_dorsal, morphopars.ϵ_body_ventral, e_pars.ϵ_substrate, e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_substrate)
     Q_ir_in = ir_gain.Q_ir_in
-    ir_loss = radout(T_surf, A_tot, A_cond, morphopars.F_sky, morphopars.F_sub, morphopars.ϵ_org_dorsal, morphopars.ϵ_org_ventral)
+    ir_loss = radout(T_surface, A_total, A_conduction, morphopars.F_sky, morphopars.F_substrate, morphopars.ϵ_body_dorsal, morphopars.ϵ_body_ventral)
     Q_ir_out = ir_loss.Q_ir_out
     Le = 0.025m
-    Q_cond = conduction(A_cond, Le, T_surf, e_vars.T_sub, e_vars.k_sub)
-    conv_out = convection(o.body, A_conv, e_vars.T_air, T_surf, e_vars.vel, e_vars.P_atmos, e_pars.elev, e_pars.fluid, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
-    evap_out = evaporation(T_x, T_surf, resp_out.m_resp, o_vars.ψ_org, morphopars.p_wet, A_conv, conv_out.Hd, morphopars.p_eyes, e_vars.T_air, e_vars.rh, e_pars.elev, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
+    Q_cond = conduction(A_conduction, Le, T_surface, e_vars.T_substrate, e_vars.k_substrate)
+    conv_out = convection(o.body, A_convection, e_vars.T_air, T_surface, e_vars.wind_speed, e_vars.P_atmos, e_pars.fluid, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
+    evap_out = evaporation(T_surface, resp_out.m_resp, o_vars.ψ_org, morphopars.skin_wetness, A_convection, conv_out.hd, morphopars.p_eyes, e_vars.T_air, e_vars.rh, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
     Q_conv = conv_out.Q_conv # convective heat loss
     Q_evap = evap_out.Q_evap # evaporative heat loss
     
@@ -56,10 +57,10 @@ function heat_balance(T_x, insulation::Naked, o, morphopars, physiopars, e_pars,
     #Q_in - Q_out # this must balance
     Q_bal = Q_in - Q_out # this must balance
 
-    enbal = [Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal]
+    enbal = (; Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal)
     #enbal = [Q_solar = Q_solar, Q_ir_in = Q_ir_in, Q_metab = Q_metab, Q_resp = Q_resp, Q_evap = Q_evap, Q_ir_out = Q_ir_out, Q_conv = Q_conv, Q_cond = Q_cond, Q_bal = Q_bal]
-    masbal = [metab_out.V_O2, evap_out.m_resp, evap_out.m_cut, evap_out.m_eyes]
-    (;Q_bal, T_core=T_x, T_surf, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
+    masbal = (; V_O2 = metab_out.V_O2, m_resp = evap_out.m_resp, m_cut = evap_out.m_cut, m_eye = evap_out.m_eyes)
+    (;Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
 
 end
 function heat_balance(T_x, insulation::Fur, pars, organism, vars) # A method for organisms with fur
@@ -77,29 +78,29 @@ flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 #function heat_balance(T_x)
 
 #    # compute areas for exchange
-#    A_conv = A_tot * (1 - p_cond)
-#    A_sil = calc_silhouette_area(geometric_traits, Z)
+#    A_convection = A_total * (1 - p_conduction)
+#    A_sil = calc_silhouette_area(geometric_traits, zenith_angle)
 
 #    # calculate heat fluxes
 #    metab_out = metabolism(geometric_traits.shape.mass, T_x, M1, M2, M3)
 #    Q_metab = metab_out.Q_metab
-#    resp_out = respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elev, P_atmos, fO2, fCO2, fN2)
+#    resp_out = respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2)
 #    Q_resp = resp_out.Q_resp
 #    Q_gen_net = Q_metab - Q_resp
 #    Q_gen_spec = Q_gen_net / geometric_traits.geometry.volume
 #    Tsurf_Tlung_out = get_Tsurf_Tlung(geometric_traits, k_body, Q_gen_spec, T_x)
-#    T_surf = Tsurf_Tlung_out.T_surf
+#    T_surface = Tsurf_Tlung_out.T_surface
 #    T_lung = Tsurf_Tlung_out.T_lung
-#    #Q_norm = Q_dir / cos(Z)
-#    solar_out = solar(α_org_dorsal, α_org_ventral, A_sil, A_tot, A_cond, F_sub, F_sky, α_sub, Q_sol, Q_dir, Q_dif)
+#    #Q_norm = Q_dir / cos(zenith_angle)
+#    solar_out = solar(α_body_dorsal, α_body_ventral, A_sil, A_total, A_conduction, F_substrate, F_sky, α_substrate, Q_sol, Q_dir, Q_dif)
 #    Q_solar = solar_out.Q_solar
-#    ir_gain = radin(A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral, ϵ_sub, ϵ_sky, T_sky, T_sub)
+#    ir_gain = radin(A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral, ϵ_substrate, ϵ_sky, T_sky, T_substrate)
 #    Q_ir_in = ir_gain.Q_ir_in
-#    ir_loss = radout(T_surf, A_tot, A_cond, F_sky, F_sub, ϵ_org_dorsal, ϵ_org_ventral)
+#    ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral)
 #    Q_ir_out = ir_loss.Q_ir_out
-#    Q_cond = conduction(A_cond, Le, T_surf, T_sub, k_sub)
-#    conv_out = convection(geometric_traits, A_conv, T_air, T_surf, vel, P_atmos, elev, fluid)
-#    evap_out = evaporation(T_x, T_surf, resp_out.m_resp, ψ_org, p_wet, A_conv, conv_out.Hd, p_eyes, T_air, rh, elev, P_atmos)
+#    Q_cond = conduction(A_conduction, Le, T_surface, T_substrate, k_substrate)
+#    conv_out = convection(geometric_traits, A_convection, T_air, T_surface, wind_speed, P_atmos, fluid)
+#    evap_out = evaporation(T_surface, resp_out.m_resp, ψ_org, skin_wetness, A_convection, conv_out.hd, p_eyes, T_air, rh, P_atmos)
 #    Q_conv = conv_out.Q_conv
 #    Q_evap = evap_out.Q_evap
 
@@ -112,5 +113,7 @@ flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 #    enbal = [Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal]
 #    #enbal = [Q_solar = Q_solar, Q_ir_in = Q_ir_in, Q_metab = Q_metab, Q_resp = Q_resp, Q_evap = Q_evap, Q_ir_out = Q_ir_out, Q_conv = Q_conv, Q_cond = Q_cond, Q_bal = Q_bal]
 #    masbal = [metab_out.V_O2, evap_out.m_resp, evap_out.m_cut, evap_out.m_eyes]
-#    (;Q_bal, T_core=T_x, T_surf, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
+#    (;Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
 #end
+
+
