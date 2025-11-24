@@ -1,6 +1,6 @@
 # Biophysics
 
-function get_nusselt_free(shape::Union{Cylinder, DesertIguana, LeopardFrog}, Gr, Pr)
+function nusselt_free(shape::Union{Cylinder, DesertIguana, LeopardFrog}, Gr, Pr)
     #  free convection for a cylinder
     #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
     Ra = Gr * Pr
@@ -29,12 +29,12 @@ function get_nusselt_free(shape::Union{Cylinder, DesertIguana, LeopardFrog}, Gr,
     end
     return Nu_free
 end
-function get_nusselt_free(shape::Plate, Gr, Pr)
+function nusselt_free(shape::Plate, Gr, Pr)
    Ra = Gr * Pr
    Nu_free = 0.55 * Ra ^ 0.25
    return Nu_free
 end
-function get_nusselt_free(shape::Ellipsoid, Gr, Pr)
+function nusselt_free(shape::Ellipsoid, Gr, Pr)
     #  sphere free convection
     #  from p.413 Bird et all (1960) Transport Phenomena
     Ra = (Gr ^ (1 /4)) * (Pr ^ (1 / 3))
@@ -45,7 +45,7 @@ function get_nusselt_free(shape::Ellipsoid, Gr, Pr)
     return Nu_free
 end
 
-function get_nusselt_forced(shape::Cylinder, Re)
+function nusselt_forced(shape::Cylinder, Re)
     #  forced convection of a cylinder
     #  adjusting Nu - Re correlation for Re number (p. 260 McAdams, 1954)
     if Re < 4
@@ -69,11 +69,11 @@ function get_nusselt_forced(shape::Cylinder, Re)
     end
     return Nu
 end
-function get_nusselt_forced(shape::Plate, Re)
+function nusselt_forced(shape::Plate, Re)
     # forced convection of a plate
     0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
 end
-function get_nusselt_forced(shape::Union{Ellipsoid, Sphere, DesertIguana, LeopardFrog}, Re)
+function nusselt_forced(shape::Union{Ellipsoid, Sphere, DesertIguana, LeopardFrog}, Re)
     #  forced convection of a sphere
     0.35 * Re ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end
@@ -109,7 +109,7 @@ function convection(body, A_convection, T_air, T_surface, wind_speed, P_atmos, f
     δ_T = T_surface - T_air
     Gr = abs(((ρ_air^2) * β * G * (D^3) * δ_T) / (μ^2))
     Re = ρ_air * wind_speed * D / μ
-    Nu_free = get_nusselt_free(body.shape, Gr, Pr)
+    Nu_free = nusselt_free(body.shape, Gr, Pr)
     hc_free = (Nu_free * k_fluid) / D # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
@@ -119,7 +119,7 @@ function convection(body, A_convection, T_air, T_surface, wind_speed, P_atmos, f
     Q_free = hc_free * A_convection * (T_surface - T_air) # free convective heat loss at surface
 
     # forced convection
-    Nu = get_nusselt_forced(body.shape, Re)
+    Nu = nusselt_forced(body.shape, Re)
     # forced convection for object
     hc_forc = Nu * k_fluid / D # heat transfer coefficient, forced
     Sh_forc = Nu * (Sc / Pr)^(1 / 3) # Sherwood number, forced
@@ -239,16 +239,15 @@ end
 
 """
     evaporation(; kw...)
-    evaporation(T_core, T_surface, m_resp, ψ_org, skin_wetness, A_total, hd, p_eyes, T_air, rh, elevation, P_atmos)
+    evaporation(T_core, T_surface, ψ_org, skin_wetness, A_total, hd, eye_fraction, T_air, rh, elevation, P_atmos)
 """
 function evaporation(;
     T_surface,
-    m_resp,
     ψ_org,
     skin_wetness,
     A_total,
     hd,
-    p_eyes,
+    eye_fraction,
     T_air,
     rh,
     P_atmos,
@@ -256,9 +255,9 @@ function evaporation(;
     fCO2,
     fN2,
 )
-    return evaporation(T_surface, m_resp, ψ_org, skin_wetness, A_total, hd, p_eyes, T_air, rh, P_atmos, fO2, fCO2, fN2)
+    return evaporation(T_surface, ψ_org, skin_wetness, A_total, hd, eye_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
 end
-function evaporation(T_surface, m_resp, ψ_org, skin_wetness, A_total, hd, p_eyes, T_air, rh, P_atmos, fO2, fCO2, fN2)
+function evaporation(T_surface, ψ_org, skin_wetness, A_total, hd, eye_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
     # this subroutine computes surface evaporation based on the mass transfer
     # coefficient, fraction of surface of the skin acting as a free water surface
     # and exposed to the air, and the vapor density gradient between the
@@ -275,15 +274,12 @@ function evaporation(T_surface, m_resp, ψ_org, skin_wetness, A_total, hd, p_eye
     ρ_vap_air = wet_air_out.ρ_vap
 
     # water lost from eyes if present
-    m_eyes = hd * p_eyes * A_total * (ρ_vap_surf - ρ_vap_air)
+    m_eyes = hd * eye_fraction * A_total * (ρ_vap_surf - ρ_vap_air)
     if m_eyes > 0.0u"kg/s"
-        m_cut = (A_total * skin_wetness - A_total * skin_wetness * p_eyes) * hd * (ρ_vap_surf - ρ_vap_air)
+        m_cut = (A_total * skin_wetness - A_total * skin_wetness * eye_fraction) * hd * (ρ_vap_surf - ρ_vap_air)
     else
         m_cut = A_total * skin_wetness * hd * (ρ_vap_surf - ρ_vap_air)
     end
-
-    # total water lost
-    m_evap = m_eyes + m_resp + m_cut
 
     # get latent heat of vapourisation and compute heat exchange due to evaporation
     L_v = enthalpy_of_vaporisation(T_air)
@@ -291,11 +287,9 @@ function evaporation(T_surface, m_resp, ψ_org, skin_wetness, A_total, hd, p_eye
 
     #onvert from kg/s to g/s
     m_eyes = uconvert(u"g/s", m_eyes)
-    m_resp = uconvert(u"g/s", m_resp)
     m_cut = uconvert(u"g/s", m_cut)
-    m_evap = uconvert(u"g/s", m_evap)
 
-    return (; Q_evap, m_evap, m_resp, m_cut, m_eyes)
+    return (; Q_evap, m_cut, m_eyes)
 end
 
 """
@@ -389,7 +383,7 @@ function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, P_atmos, fO
     # heat loss by breathing (J/s)=(J/kg)*(kg/s)
     Q_resp = uconvert(u"W", L_v * m_resp)
 
-    return (;Q_resp, m_resp, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out)
+    return (; Q_resp, m_resp, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out)
 end
 
 metabolism(; mass, T_core, M1=0.013, M2=0.8, M3=0.038, M4=0.0) = metabolism(mass, T_core, M1, M2, M3, M4)
@@ -412,8 +406,8 @@ function metabolism(mass, T_core, M1, M2, M3, M4)
     return (; Q_metab, V_O2)
 end
 
-get_Tsurf_Tlung(body::AbstractBody, k_body, Q_gen_spec, T_core) = get_Tsurf_Tlung(shape(body), body, k_body, Q_gen_spec, T_core)
-function get_Tsurf_Tlung(shape::Cylinder, body, k_body, Q_gen_spec, T_core)
+Tsurf_and_Tlung(body::AbstractBody, k_body, Q_gen_spec, T_core) = Tsurf_and_Tlung(shape(body), body, k_body, Q_gen_spec, T_core)
+function Tsurf_and_Tlung(shape::Cylinder, body, k_body, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.lengths[2]
     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
@@ -421,7 +415,7 @@ function get_Tsurf_Tlung(shape::Cylinder, body, k_body, Q_gen_spec, T_core)
 
     return (; T_surface, T_lung)  
 end
-function get_Tsurf_Tlung(shape::DesertIguana, body, k_body, Q_gen_spec, T_core)
+function Tsurf_and_Tlung(shape::DesertIguana, body, k_body, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.lengths[1]
     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
@@ -429,7 +423,7 @@ function get_Tsurf_Tlung(shape::DesertIguana, body, k_body, Q_gen_spec, T_core)
 
     return (; T_surface, T_lung)  
 end
-function get_Tsurf_Tlung(shape::LeopardFrog, body, k_body, Q_gen_spec, T_core)
+function Tsurf_and_Tlung(shape::LeopardFrog, body, k_body, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.lengths[1]
     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
@@ -437,7 +431,7 @@ function get_Tsurf_Tlung(shape::LeopardFrog, body, k_body, Q_gen_spec, T_core)
 
     return (; T_surface, T_lung)  
 end
-function get_Tsurf_Tlung(shape::Ellipsoid, body, k_body, Q_gen_spec, T_core)
+function Tsurf_and_Tlung(shape::Ellipsoid, body, k_body, Q_gen_spec, T_core)
     a = body.geometry.lengths[1] ^ 2
     b = body.geometry.lengths[2] ^ 2
     c = body.geometry.lengths[3] ^ 2
@@ -447,20 +441,20 @@ function get_Tsurf_Tlung(shape::Ellipsoid, body, k_body, Q_gen_spec, T_core)
 
     return (; T_surface, T_lung)  
 end
-#= function get_Tsurf_Tlung(shape::Sphere, body, k_body, Q_gen_spec, T_core)
+#= function Tsurf_and_Tlung(shape::Sphere, body, k_body, Q_gen_spec, T_core)
     R_flesh = body.geometry.lengths[2]
     T_surface = T_core - (Q_gen_spec * R_flesh ^ 2) / (6 * k_body)
     T_lung = (Q_gen_spec * R_flesh ^ 2) / (12 * k_body) + T_surface
     (T_surface = T_surface, T_lung = T_lung) 
 end =#
-# function get_Tsurf_Tlung(shape::DesertIguana, R_flesh, k_body, Q_gen_spec, T_core)
+# function Tsurf_and_Tlung(shape::DesertIguana, R_flesh, k_body, Q_gen_spec, T_core)
 #     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
 #     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
 #     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surface 
 
 #     return (; T_surface, T_lung)  
 # end
-# function get_Tsurf_Tlung(shape::LeopardFrog, R_flesh, k_body, Q_gen_spec, T_core)
+# function Tsurf_and_Tlung(shape::LeopardFrog, R_flesh, k_body, Q_gen_spec, T_core)
 #     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
 #     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_body)
 #     T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_body) + T_surface 
@@ -468,169 +462,164 @@ end =#
 #     return (; T_surface, T_lung) 
 # end
 
-###############################################################################
-#                          endotherm model code                               #
-###############################################################################
+radiant_temperature(body::AbstractBody, insulation, Q_evap_skin, T_core, T_skin, T_conduction, T_insulation, CD, longwave_depth_fraction, RRAD, i_ins) = radiant_temperature(shape(body), body, insulation, Q_evap_skin, T_core, T_skin, T_conduction, T_insulation, CD, longwave_depth_fraction, RRAD, i_ins)
+function radiant_temperature(shape::Cylinder, body, insulation, Q_evap_skin, T_core, T_skin, T_conduction, T_insulation, CD, longwave_depth_fraction, RRAD, i_ins)
 
-"""
-    ellipsoid(; posture, mass, density, core_temperature,
-               fur_depth, fur_conductivity, oxygen_extraction_efficiency, stress_factor,
-               air_temperature, wind_speed, relative_humidity, Q10,
-               minimum_metabolic_rate=missing, P_atmos, metabolic_factor=1)
+    k_compressed = insulation.insulation_conductivity_compressed
+    r_skin = body.geometry.
+    compression_fraction =
+        (conduction_fraction * 2 * π * k_compressed * fibre_length) /
+        log(r_compressed / r_skin)
 
-Ellipsoid endotherm model.
+    T_ins_compressed = conduction_fraction > 0 ?
+        (compression_fraction * T_skin + CD * T_conduction) / (CD + compression_fraction) :
+        0.0
 
-Implements the model from Porter & Kearney (2009) *PNAS* 106:19666–19672,  
-with rough water loss estimates. Valid for conditions without solar radiation and  
-where air, ground, and sky temperatures are equal.
+    cd1 = (k_compressed / log(r_compressed / r_skin)) * conduction_fraction +
+          (k_insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
 
-# Arguments
-- `posture`: Ratio of long to short axis of a prolate ellipsoid.
-- `mass`: Body mass (mass).
-- `density`: Body density (mass/volume).
-- `core_temperature`: Core temperature.
-- `fur_depth`: Fur depth (length).
-- `fur_conductivity`: Fur conductivity (energy/time/length/temperature).
-- `oxygen_extraction_efficiency`: Oxygen extraction efficiency (fraction).
-- `stress_factor`: Fraction of basal metabolism at which evaporative water loss begins.
-- `air_temperature`: Air temperature.
-- `wind_speed`: Wind speed (length/time).
-- `relative_humidity`: Relative humidity (%).
-- `P_atmos`: Atmospheric_pressue (pressure).
-- `Q10`: Temperature dependence factor for metabolism.
-- `minimum_metabolic_rate`: Optional user-specified minimum metabolic rate (energy/time).
-- `f_O2`: Fractional oxygen in the atmosphere (-).
-- `metabolic_multiplier`: Scaling factor for the mouse–elephant basal rate.
+    cd2 = (k_compressed / log(r_compressed / r_skin)) * conduction_fraction
+    cd3 = (k_insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
 
-# Returns
-A `NamedTuple` with:
-- `skin_temperature`, `upper_critical_air_temperature`, `lower_critical_air_temperature`,
-- `Q_gen`, `Q_gen_final`, `Q_respiration`, `Q_evap`,
-- `O2_consumption_rate`, `respiratory_water_loss_rate`, `total_water_loss_rate`,
-- `basal_metabolic_rate_fraction`, `fractional_mass_loss`.
+    dv1 = 1 +
+        ((2 * π * fibre_length * r_flesh^2 * cd1) / (4 * k_flesh * volume)) +
+        ((2 * π * fibre_length * r_flesh^2 * cd1) / (2 * k_fat * volume)) *
+        log(r_skin / r_flesh)
 
-# References
-Porter, W. P., & Kearney, M. R. (2009). *Size, shape, and the thermal niche of endotherms*.  
-PNAS, 106(46), 19666–19672.
-"""
-function ellipsoid_endotherm(; 
-    posture,
-    mass,
-    density,
-    core_temperature,
-    fur_depth,
-    fur_conductivity,
-    oxygen_extraction_efficiency,
-    stress_factor,
-    air_temperature,
-    wind_speed,
-    relative_humidity,
-    P_atmos,
-    Q10,
-    minimum_metabolic_rate=missing,
-    metabolic_multiplier=1,
-    lethal_desiccation,
-    f_O2,
-    )
-    
-    # refinition of variables and parameters to match Porter & Kearney 2009 formulae
-    T_f = u"K"(air_temperature) # fluid temperature
-    T_c = u"K"(core_temperature) # core body temperature
-    k_fur = fur_conductivity
-    v = wind_speed
-    Q_gen_min = minimum_metabolic_rate
+    dv2 = Q_evap_skin * ((r_flesh^2 * cd1) / (4 * k_flesh * volume)) +
+          Q_evap_skin * ((r_flesh^2 * cd1) / (2 * k_fat * volume)) *
+          log(r_skin / r_flesh)
 
-    # avoid divide-by-zero
-    posture = posture == 1 ? 1.01 : posture
+    dv3 = ((2 * π * fibre_length) / dv1) *
+        (T_core * cd1 - dv2 - T_ins_compressed * cd2 - T_insulation * cd3) *
+        r_flesh^2 / (2 * volume)
 
-    # estimate basal metabolism if not provided
-    if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
-        mouse_elephant = (10^(-1.462 + 0.675 * log10(ustrip(u"g", mass))) * metabolic_multiplier)u"W" # TODO make a set of allometric models of metabolic rate
-        Q_gen_min = mouse_elephant * Q10^((ustrip(u"°C", core_temperature) - 37) / 10)
-    end
+    dv4 = longwave_depth_fraction < 1 ?
+        cd2 + (k_insulation / log(r_insulation / RRAD)) * (1 - conduction_fraction) :
+        1.0
 
-    # constants
-    a_coef = 0.6
-    b_coef = 0.5
-    c_p_air = 1005.8u"J/kg/K"
-
-    # body geometry
-    V = mass / density # volume
-    b = ((3 * V) / (4 * π * posture))^(1/3)
-    c = b
-    a = b * posture
-
-    k_b = (0.5 + (6.14 * ustrip(u"m", b)) + 0.439)u"W/m/K" # thermal conductivity of body
-    numerator = a^2 * b^2 * c^2
-    denominator = a^2 * b^2 + a^2 * c^2 + b^2 * c^2
-    S2 = numerator / denominator # Eq. 5
-    R_b = S2 / (2 * k_b * V) # resistance of body
-
-    a_o = b * posture + fur_depth
-    b_o = b + fur_depth
-    c_o = c + fur_depth
-
-    e_o = sqrt(a_o^2 - c_o^2) / a_o
-    A_o = 2 * π * b_o^2 + 2 * π * ((a_o * b_o) / e_o) * asin(e_o) # outer area of ellipsoid # TODO use general function
-    R_ins = (b_o - b) / (k_fur * A_o) # insulation radius
-
-    # air properties
-    (; μ, k_air, ρ_air)  = dry_air_properties(T_f, P_atmos)
-
-    V = (4 / 3) * π * a * b * c # recompute volume
-    L_c = V^(1/3) # characteristic dimension
-    e = sqrt(a^2 - c^2) / a # eccentricity
-    A = 2 * π * b^2 + 2 * π * ((a * b) / e) * asin(e) # area of skin
-
-    Re = ρ_air * v * L_c / μ # Reynold's number
-    Pr = (μ * c_p_air) / k_air # Prandtl number
-
-    q′′′_numerator = 2 * A * k_b * k_air * (2 + a_coef * (Re^b_coef) * Pr^(1/3)) * (T_c - T_f)
-    q′′′_denominator = 2 * k_b * L_c * V + A * S2 * k_air * (2 + a_coef * Re^b_coef * Pr^(1/3))
-    q′′′ = q′′′_numerator / q′′′_denominator
-    T_s = T_c - (q′′′ * S2) / (2 * k_b) # skin temperature, Eq. 6
-
-    Gr = abs((ρ_air^2) * (1 / T_f) * Unitful.gn * (L_c^3) * (T_s - T_f) / μ^2) # Grashof number
-    Nu_free = 2 + 0.6 * (Gr^0.25) * (Pr^(1/3))
-    Nu_forced = 0.37 * Re^0.6
-    Nu_total = (Nu_free^3 + Nu_forced^3)^(1/3) #  Eq. 24
-    h_cv = Nu_total * k_air / L_c # Eq. 25
-    R_cv = 1 / (h_cv * A_o)
-    R_rad = u"K/W"(1 / (4 * A_o * 0.95 * Unitful.σ * T_f^3)) # Eq. 39
-    R_total = R_b + R_ins + (R_cv * R_rad) / (R_cv + R_rad)
-
-    upper_critical_air_temperature = T_c - (Q_gen_min * stress_factor * R_total)
-    lower_critical_air_temperature = T_c - Q_gen_min * R_total
-
-    Q_gen_required = (T_c - T_f) / R_total
-    Q_gen_final = max(Q_gen_required, Q_gen_min)
-
-    O2_consumption_rate = Q_gen_final / 20.1u"J/mL" # TODO make general function to convert metabolic rate to O2
-    ρ_vap_c = wet_air_properties(T_c, 1.0, P_atmos).ρ_vap
-    ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).ρ_vap
-
-    respiratory_water_loss_rate = (O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) * (ρ_vap_c - ρ_vap_f)
-    latent_heat = enthalpy_of_vaporisation(T_f)
-    Q_respiration = u"W"(respiratory_water_loss_rate * latent_heat)
-
-    basal_metabolic_rate_fraction = Q_gen_final / Q_gen_min
-
-    Q_evap = max(Q_respiration, (-Q_gen_final) + Q_gen_min)
-    total_water_loss_rate = max((u"J/hr"(Q_evap) / latent_heat), 0.0u"kg/hr")
-    fractional_mass_loss = total_water_loss_rate / mass
-
-    return (;
-        skin_temperature = u"°C"(T_s),
-        upper_critical_air_temperature = u"°C"(upper_critical_air_temperature),
-        lower_critical_air_temperature = u"°C"(lower_critical_air_temperature),
-        Q_gen_required,
-        Q_gen_final,
-        Q_respiration,
-        Q_evap,
-        O2_consumption_rate = u"mL/hr"(O2_consumption_rate),
-        respiratory_water_loss_rate = u"g/hr"(respiratory_water_loss_rate),
-        total_water_loss_rate = u"g/hr"(total_water_loss_rate),
-        basal_metabolic_rate_fraction,
-        fractional_mass_loss,
-    )
+    return longwave_depth_fraction < 1 ?
+        dv3 / dv4 +
+        (T_ins_compressed * cd2) / dv4 +
+        (T_insulation *
+            ((k_insulation / log(r_insulation / RRAD)) *
+            (1 - conduction_fraction))) / dv4 :
+        T_insulation
 end
+
+function radiant_temperature(
+    ::Sphere,
+    conduction_fraction, k_compressed,
+    r_compressed, r_skin, k_insulation, r_insulation,
+    r_flesh, k_flesh, k_fat, volume,
+    Q_evap_skin, 
+    T_core, T_skin, T_conduction, T_insulation,
+    CD, longwave_depth_fraction, RRAD
+)
+
+    compression_fraction =
+        (conduction_fraction * 4 * π * k_compressed * r_compressed * r_skin) /
+        (r_compressed - r_skin)
+
+    T_ins_compressed = conduction_fraction > 0 ?
+        (compression_fraction * T_skin + CD * T_conduction) / (CD + compression_fraction) :
+        0.0
+
+    cd1 = ((k_compressed * r_compressed) / (r_compressed - r_skin)) * conduction_fraction +
+          ((k_insulation * r_insulation) / (r_insulation - r_skin)) * (1 - conduction_fraction)
+
+    cd2 = ((k_compressed * r_compressed) / (r_compressed - r_skin)) * conduction_fraction
+    cd3 = ((k_insulation * r_insulation) / (r_insulation - r_skin)) * (1 - conduction_fraction)
+
+    dv1 = 1 +
+        ((4 * π * r_skin * r_flesh^2 * cd1) / (6 * k_flesh * volume)) +
+        ((4 * π * r_skin * r_flesh^3 * cd1) / (3 * k_fat * volume)) *
+            ((r_skin - r_flesh) / (r_flesh * r_skin))
+
+    dv2 = Q_evap_skin * ((r_flesh^2 * cd1) / (6 * k_flesh * volume)) +
+          Q_evap_skin * ((r_flesh^3 * cd1) / (3 * k_fat * volume)) *
+          ((r_skin - r_flesh) / (r_flesh * r_skin))
+
+    dv3 =
+        ((4 * π * r_skin) / dv1) *
+        (T_core * cd1 - dv2 - T_ins_compressed * cd2 - T_insulation * cd3) *
+        r_flesh^3 / (3 * volume * RRAD)
+
+    dv4 = longwave_depth_fraction < 1 ?
+        cd2 + ((k_insulation * r_insulation) / (r_insulation - RRAD)) * (1 - conduction_fraction) :
+        1.0
+
+    return longwave_depth_fraction < 1 ?
+        dv3 / dv4 +
+        (T_ins_compressed * cd2) / dv4 +
+        (T_insulation *
+            ((k_insulation * r_insulation) / (r_insulation - RRAD) *
+            (1 - conduction_fraction))) / dv4 :
+        T_insulation
+end
+
+function radiant_temperature(
+    ::Ellipsoid,
+    conduction_fraction, k_compressed,
+    ASEMAJ, BSEMIN, CSEMIN, FATTHK, SUBQFAT, ZL,
+    BLCMP, r_flesh, k_flesh, k_fat, volume,
+    Q_evap_skin, 
+    T_core, T_skin, T_conduction, T_insulation,
+    CD, longwave_depth_fraction
+)
+
+    FLSHASEMAJ = ASEMAJ - FATTHK
+    FLSHBSEMIN = BSEMIN - FATTHK
+    FLSHCSEMIN = CSEMIN - FATTHK
+
+    ASQG = (Int(SUBQFAT) == 1 && FATTHK > 0) ? FLSHASEMAJ^2 : ASEMAJ^2
+    BSQG = (Int(SUBQFAT) == 1 && FATTHK > 0) ? FLSHBSEMIN^2 : BSEMIN^2
+    CSQG = (Int(SUBQFAT) == 1 && FATTHK > 0) ? FLSHCSEMIN^2 : CSEMIN^2
+
+    SSQG = (ASQG * BSQG * CSQG) / (ASQG * BSQG + ASQG * CSQG + BSQG * CSQG)
+
+    BG = (Int(SUBQFAT) == 1 && FATTHK > 0) ? FLSHBSEMIN : BSEMIN
+    BS = BSEMIN
+    BL = BSEMIN + ZL
+    BR = BS + longwave_depth_fraction * ZL
+
+    compression_fraction =
+        (conduction_fraction * 3 * k_compressed * volume * BLCMP * BS) /
+        ((sqrt(3 * SSQG))^3 * (BLCMP - BS))
+
+    T_ins_compressed = conduction_fraction > 0 ?
+        (compression_fraction * T_skin + CD * T_conduction) / (CD + compression_fraction) :
+        0.0
+
+    cd1 = ((k_compressed * BLCMP) / (BLCMP - BS)) * conduction_fraction +
+          ((k_insulation * BL) / (BL - BS)) * (1 - conduction_fraction)
+
+    cd2 = ((k_compressed * BLCMP) / (BLCMP - BS)) * conduction_fraction
+    cd3 = ((k_insulation * BL) / (BL - BS)) * (1 - conduction_fraction)
+
+    dv1 = 1 +
+        (3 * BS * SSQG * cd1) / (2 * k_flesh * (sqrt(3 * SSQG)^3)) +
+        (BS * cd1) / k_fat * ((BS - BG) / (BS * BG))
+
+    dv2 = Q_evap_skin *
+        ((SSQG * cd1) / (2 * k_flesh * volume)) +
+        Q_evap_skin *
+        ((sqrt(3 * SSQG)^3 * cd1) / (3 * k_fat * volume)) *
+        ((BS - BG) / (BS * BG))
+
+    dv3 = (BS / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2 - T_insulation * cd3) / BR
+
+    dv4 = longwave_depth_fraction < 1 ?
+        cd2 + ((k_insulation * BL) / (BL - BR)) * (1 - conduction_fraction) :
+        1.0
+
+    return longwave_depth_fraction < 1 ?
+        dv3 / dv4 +
+        (T_ins_compressed * cd2) / dv4 +
+        (T_insulation *
+            ((k_insulation * BL) / (BL - BR) *
+            (1 - conduction_fraction))) / dv4 :
+        T_insulation
+end
+
+

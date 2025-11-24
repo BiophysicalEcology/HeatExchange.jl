@@ -14,21 +14,23 @@ export Shape, Cylinder, Sphere, Ellipsoid, Plate, LeopardFrog, DesertIguana
 
 export bird_skin_area, bird_plumage_area, mammal_skin_area, mammal_fur_area
 
-export Body
+export Body, get_total_area, get_skin_area, get_convection_area, get_r_skin, get_r_insulation, get_r_flesh
 
 export Insulation, CompositeInsulation, Naked, Fur, Fat
 
 export Organism, MorphoPars, PhysioPars, OrganismalVars
 
-export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
+export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec, InsulationPars
 
-export calc_area, calc_silhouette_area
+export surface_area, silhouette_area
 
 export geometry, shape, insulation, geometry_with_layers
 
 export heat_balance, get_Tb, flip2vectors
 
-export metabolism, respiration, solar, radin, radout, evaporation, conduction, convection, get_nusselt_free, get_nusselt_forced, get_Tsurf_Tlung
+export metabolism, respiration, solar, radin, radout, evaporation, conduction, convection
+
+export nusselt_free, nusselt_forced, Tsurf_and_Tlung, radiant_temperature
 
 export ellipsoid_endotherm
 

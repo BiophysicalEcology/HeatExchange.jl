@@ -88,15 +88,12 @@ end
 
 
 """
-    insulation_properties(insulation_temperature, fibre_diameter_dorsal, fibre_diameter_ventral, fibre_length_dorsal, fibre_length_ventral, insulation_depth_dorsal, insulation_depth_ventral,
-           fibre_density_dorsal, fibre_density_ventral, insulation_reflectance_dorsal, insulation_reflectance_ventral, insulation_depth_compressed, ventral_fraction, fibre_conductivity)
+    insulation_properties(insulation)
 
-Compute parameters for **heat conduction** and **infrared radiation** through insulation (fur or plumage).
-
-This function reproduces the logic of the original FORTRAN subroutine `IRPROP`
-but uses Julia naming conventions and idioms.
+Compute parameters for heat conduction and infrared radiation through insulation (fur or plumage).
 
 # Arguments
+`insulation`, an InsulationPars struct containing
 - `insulation_temperature` : insulation temperature (°C)
 - `fibre_diameter_dorsal`, `fibre_diameter_ventral` : fibre diameters (m) for dorsal and ventral insulation
 - `fibre_length_dorsal`, `fibre_length_ventral` : fibre lengths (m) for dorsal and ventral insulation
@@ -108,34 +105,31 @@ but uses Julia naming conventions and idioms.
 - `fibre_conductivity` : Thermal conductivity of fibre fibre (W m⁻¹ K⁻¹)
 
 # Returns
-A 26-fibre vector with:
-1–3. `effective_conductivity` (avg, dorsal, ventral)  
-4–6. `absorption_coefficient` (avg, dorsal, ventral)  
-7–9. `optical_thickness_factor` (avg, dorsal, ventral)  
-10–12. `fibre_diameter` (avg, dorsal, ventral)  
-13–15. `fibre_length` (avg, dorsal, ventral)  
-16–18. `fibre_density` (avg, dorsal, ventral)  
-19–21. `insulation_depths` (avg, dorsal, ventral)  
-22–24. `insulation_reflectance` (avg, dorsal, ventral)
-25. `insulation_test` : Bare-skin test parameter  
-26. `insulation_conductivity_compressed` : Compressed ventral insulation conductivity  
+`effective_conductivity` (avg, dorsal, ventral)  
+`absorption_coefficient` (avg, dorsal, ventral)  
+`optical_thickness_factor` (avg, dorsal, ventral)  
+`fibre_diameter` (avg, dorsal, ventral)  
+`fibre_length` (avg, dorsal, ventral)  
+`fibre_density` (avg, dorsal, ventral)  
+`insulation_depths` (avg, dorsal, ventral)  
+`insulation_reflectance` (avg, dorsal, ventral)
+`insulation_test` : Bare-skin test parameter  
+`insulation_conductivity_compressed` 
 """
-function insulation_properties(; 
-    insulation_temperature::Quantity, 
-    fibre_diameter_dorsal::Quantity, 
-    fibre_diameter_ventral::Quantity, 
-    fibre_length_dorsal::Quantity, 
-    fibre_length_ventral::Quantity, 
-    insulation_depth_dorsal::Quantity, 
-    insulation_depth_ventral::Quantity,
-    fibre_density_dorsal::Quantity, 
-    fibre_density_ventral::Quantity, 
-    insulation_reflectance_dorsal, 
-    insulation_reflectance_ventral, 
-    insulation_depth_compressed::Quantity, 
-    ventral_fraction, 
-    fibre_conductivity::Quantity,
-    )
+function insulation_properties(; insulation, insulation_temperature, ventral_fraction)
+
+    (; fibre_diameter_dorsal,
+    fibre_diameter_ventral, 
+    fibre_length_dorsal, 
+    fibre_length_ventral,
+    insulation_depth_dorsal,
+    insulation_depth_ventral,
+    fibre_density_dorsal,
+    fibre_density_ventral,
+    insulation_reflectance_dorsal,
+    insulation_reflectance_ventral,
+    insulation_depth_compressed,
+    fibre_conductivity) = insulation 
 
     # Physical constants
     air_conductivity = dry_air_properties(insulation_temperature).k_air
@@ -205,8 +199,7 @@ function insulation_properties(;
         end
     end
 
-    # Return 26-fibre result vector
     return (; effective_conductivities, absorption_coefficients, optical_thickness_factors,
-                fibre_diameters, fibre_length, fibre_densities, insulation_depths, insulation_reflectance,
+                fibre_diameters, fibre_lengths, fibre_densities, insulation_depths, insulation_reflectance,
                 insulation_test, insulation_conductivity_compressed)
 end

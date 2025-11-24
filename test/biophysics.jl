@@ -61,8 +61,8 @@ mass = u"kg"((ecto_input.Ww_g)u"g")
 shapeb = ecto_input.shape_b
 shapec = ecto_input.shape_c
 #shape_body = Cylinder(mass, ρ_body, shapeb) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
-p_eyes = ecto_input.pct_eyes / 100
-p_conduction = ecto_input.pct_cond / 100
+eye_fraction = ecto_input.pct_eyes / 100
+conduction_fraction = ecto_input.pct_cond / 100
 
 F_sky = ecto_input.fatosk
 F_substrate = ecto_input.fatosb
@@ -71,6 +71,7 @@ F_substrate = ecto_input.fatosb
 ϵ_body_dorsal = ecto_input.epsilon
 ϵ_body_ventral = ecto_input.epsilon
 Le = 0.025u"m"
+ventral_fraction = 0.5
 
 # organism physiology
 k_body = (ecto_input.k_flesh)u"W/m/K"
@@ -88,10 +89,10 @@ pant = 1.0
 #shape_body = Ellipsoid(mass, ρ_body, shapeb, shapec) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
 shape_body = DesertIguana(mass, ρ_body) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
 geometric_traits = Body(shape_body, Naked()) # construct a Body, which is naked - this constructor will apply the 'geometry' function to the inputs and return a struct that has the struct for the 'Shape' type, as well as the insulation and the geometry struct
-A_total = geometric_traits.geometry.area.total
-A_conduction = A_total * p_conduction
-A_convection = A_total * (1 - p_conduction)
-A_sil_normal, A_sil_parallel = calc_silhouette_area(shape_body)
+A_total = geometric_traits.geometry.areas.total
+A_conduction = A_total * conduction_fraction
+A_convection = A_total * (1 - conduction_fraction)
+A_sil_normal, A_sil_parallel = silhouette_area(shape_body)
 A_sil = (A_sil_normal + A_sil_parallel) / 2
 A_up = A_total / 2
 A_down = A_total / 2
@@ -142,13 +143,10 @@ Q_gen_net = Q_metab - Q_resp
 Q_gen_spec = Q_gen_net / geometric_traits.geometry.volume
 
 # compute skin and lung temperature
-Tsurf_Tlung_out = get_Tsurf_Tlung(geometric_traits, k_body, Q_gen_spec, T_core)
+T_surface, T_lung = Tsurf_and_Tlung(geometric_traits, k_body, Q_gen_spec, T_core)
 
 # test lung temperature
-@test Tsurf_Tlung_out.T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-8
-
-T_surface = Tsurf_Tlung_out.T_surface
-T_lung = Tsurf_Tlung_out.T_lung
+@test T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-8
 
 # solar radiation
 diffuse_radiation = solar_radiation * ecto_input.PDIF
@@ -171,7 +169,7 @@ conv_out = convection(geometric_traits, A_convection, T_air, T_surface, wind_spe
 Q_conv = conv_out.Q_conv
 
 # evaporation
-evap_out = evaporation(T_surface, resp_out.m_resp, ψ_org, skin_wetness, A_convection, conv_out.hd, p_eyes, T_air, rh, P_atmos, fO2, fCO2, fN2)
+evap_out = evaporation(T_surface, ψ_org, skin_wetness, A_convection, conv_out.hd, eye_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
 Q_evap = evap_out.Q_evap
 
 
@@ -196,29 +194,30 @@ Q_in - Q_out
 # using structs to pass parameters
 
 morpho_pars = MorphoPars(
-    α_body_dorsal,
-    α_body_ventral,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
-    F_sky,
-    F_substrate,
-    k_body,
-    p_eyes,
-    skin_wetness,
-    p_conduction,
+    Param(α_body_dorsal),
+    Param(α_body_ventral),
+    Param(ϵ_body_dorsal),
+    Param(ϵ_body_ventral),
+    Param(F_sky),
+    Param(F_substrate),
+    Param(eye_fraction),
+    Param(skin_wetness),
+    Param(conduction_fraction),
+    Param(ventral_fraction),
 )
 physio_pars = PhysioPars(
-    fO2_extract,
-    rq,
-    M1,
-    M2,
-    M3,
-    M4,
-    pant,
+    Param(fO2_extract),
+    Param(rq),
+    Param(M1),
+    Param(M2),
+    Param(M3),
+    Param(M4),
+    Param(pant),
+    Param(k_body),
 )
-
 # construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
 lizard = Model(Organism(geometric_traits, morpho_pars, physio_pars))
+
 # get the environmental parameters
 environmental_params = EnvironmentalPars(
     α_substrate,
@@ -280,7 +279,6 @@ heat_balance_out = heat_balance(T_core_s, lizard, environmental_params, variable
 @test heat_balance_out.enbal.Q_resp ≈ (ecto_output.QRESP)u"W" rtol=1e-3 # TODO make better?
 
 @test heat_balance_out.masbal.V_O2 ≈ (ecto_output.O2_ml)u"ml/hr" rtol=1e-3 # TODO make better?
-@test heat_balance_out.masbal.m_resp ≈ (ecto_output.H2OResp_g / 3600)u"g/s" rtol=1e-3 # TODO make better?
 @test heat_balance_out.masbal.m_cut ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-3 # TODO make better?
 @test heat_balance_out.masbal.m_eye ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-3 # TODO make better?
 
@@ -295,7 +293,6 @@ heat_balance_out = heat_balance(T_core_s, lizard, environmental_params, variable
 @test heat_balance_out.resp_out.Q_resp ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test heat_balance_out.resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
-@test heat_balance_out.evap_out.m_resp ≈ (ecto_output.WRESP)u"g/s" rtol=1e-3 # TODO check if this can be better
 @test heat_balance_out.evap_out.m_cut ≈ (ecto_output.WCUT)u"g/s" rtol=1e-4 # TODO check if this can be better
 @test heat_balance_out.evap_out.m_eyes ≈ (ecto_output.WEYES)u"g/s" rtol=1e-4 # TODO check if this can be better
 @test heat_balance_out.evap_out.Q_evap ≈ (ecto_output.QEVAP)u"W" rtol=1e-6 # TODO check if this can be better

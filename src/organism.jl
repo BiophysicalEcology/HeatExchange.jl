@@ -5,21 +5,42 @@ abstract type AbstractPhysioParameters end
 abstract type AbstractPhysioThresholds end
 
 """
-    MorphoPars <: AbstractParameterTrait
+    MorphoPars <: AbstractMorphoParameters
 
 A collection of morphological parameter functional traits for an organism.
 """
-Base.@kwdef struct MorphoPars{F,K} <: AbstractMorphoParameters
+Base.@kwdef struct MorphoPars{F} <: AbstractMorphoParameters
     α_body_dorsal::F = Param(0.85, bounds=(0.0, 1.0))
     α_body_ventral::F = Param(0.85, bounds=(0.0, 1.0))
     ϵ_body_dorsal::F = Param(0.95, bounds=(0.0, 1.0))
     ϵ_body_ventral::F = Param(0.95, bounds=(0.0, 1.0))
-    F_sky::F = Param(1.0, bounds=(0.0, 0.5))
-    F_substrate::F = Param(1.0, bounds=(0.0, 0.5))
-    k_body::K = Param(0.5, units=u"W/m/K")
-    p_eyes::F = Param(0.0, bounds=(0.0, 1))
-    skin_wetness::F = Param(0.001, bounds=(0.0, 1.0))
-    p_conduction::F = Param(0.0, bounds=(0.0, 1.0))
+    F_sky::F = Param(0.5, bounds=(0.0, 1.0))
+    F_substrate::F = Param(0.5, bounds=(0.0, 1.0))
+    eye_fraction::F = Param(0.0, bounds=(0.0, 1.0))
+    skin_wetness::F = Param(0.0, bounds=(0.0, 1.0))
+    conduction_fraction::F = Param(0.0, bounds=(0.0, 1.0))
+    ventral_fraction::F = Param(0.5, bounds=(0.0, 1.0))
+end
+
+"""
+    InsulationPars <: AbstractMorphoParameters
+
+A collection of insulation parameter functional traits for an organism.
+"""
+Base.@kwdef struct InsulationPars{FDD,FDV,FLD,FLV,IDD,IDV,FRD,FRV,IRD,IRV,IDC,FC,LDF} <: AbstractMorphoParameters
+    fibre_diameter_dorsal::FDD
+    fibre_diameter_ventral::FDV
+    fibre_length_dorsal::FLD
+    fibre_length_ventral::FLV
+    insulation_depth_dorsal::IDD
+    insulation_depth_ventral::IDV
+    fibre_density_dorsal::FRD 
+    fibre_density_ventral::FRV 
+    insulation_reflectance_dorsal::IRD
+    insulation_reflectance_ventral::IRV
+    insulation_depth_compressed::IDC
+    fibre_conductivity::FC
+    longwave_depth_fraction::LDF
 end
 
 """
@@ -27,14 +48,15 @@ end
 
 A collection of physiological parameter functional traits for an organism.
 """
-Base.@kwdef struct PhysioPars{F,M,B} <: AbstractPhysioParameters
-    fO2_extract::F = Param(0.20, bounds=(0.0, 1))
-    rq::F = Param(0.8)
+Base.@kwdef struct PhysioPars{F,M,B,K} <: AbstractPhysioParameters
+    fO2_extract::F = Param(0.20, bounds=(0.0, 1.0))
+    rq::F = Param(0.8, bounds=(0.0, 1.0))
     M1::M = Param(0.013)
     M2::M = Param(0.8)
     M3::M = Param(0.038)
-    M4::M = Param(0)
-    pant::B = Param(1.0, bounds=(1.0, 20.0))
+    M4::M = Param(0.0)
+    pant::B = Param(1.0)
+    k_body::K = Param(0.9, units="W/m/K")
 end
 
 """
