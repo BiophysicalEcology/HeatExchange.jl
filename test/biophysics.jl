@@ -89,7 +89,7 @@ pant = 1.0
 #shape_body = Ellipsoid(mass, ρ_body, shapeb, shapec) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
 shape_body = DesertIguana(mass, ρ_body) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
 geometric_traits = Body(shape_body, Naked()) # construct a Body, which is naked - this constructor will apply the 'geometry' function to the inputs and return a struct that has the struct for the 'Shape' type, as well as the insulation and the geometry struct
-A_total = geometric_traits.geometry.areas.total
+A_total = get_total_area(geometric_traits) #geometric_traits.geometry.area.total
 A_conduction = A_total * conduction_fraction
 A_convection = A_total * (1 - conduction_fraction)
 A_sil_normal, A_sil_parallel = silhouette_area(shape_body)
@@ -105,7 +105,7 @@ A_eff = A_convection * skin_wetness
 @test A_sil_parallel ≈ (ecto_output.ASILP)u"m^2" rtol=1e-9
 @test A_eff ≈ (ecto_output.AEFF)u"m^2" rtol=1e-9
 @test geometric_traits.geometry.characteristic_dimension ≈ (ecto_output.AL)u"m" rtol=1e-9
-@test geometric_traits.geometry.lengths[1] ≈ (ecto_output.R1)u"m" rtol=1e-9
+@test geometric_traits.geometry.length[1] ≈ (ecto_output.R1)u"m" rtol=1e-9
 @test geometric_traits.geometry.volume ≈ (ecto_output.VOL)u"m^3" rtol=1e-9
 
 # organism state

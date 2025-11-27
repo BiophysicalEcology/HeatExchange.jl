@@ -4,17 +4,18 @@ function __init__()\
     Unitful.register(HeatExchange)
 end
 
+using FluidProperties
 using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, enthalpy_of_vaporisation, water_properties, atmospheric_pressure
 
 using Unitful, UnitfulMoles, ModelParameters
 
-using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
+#using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
 
 export Shape, Cylinder, Sphere, Ellipsoid, Plate, LeopardFrog, DesertIguana
 
 export bird_skin_area, bird_plumage_area, mammal_skin_area, mammal_fur_area
 
-export Body, get_total_area, get_skin_area, get_convection_area, get_r_skin, get_r_insulation, get_r_flesh
+export Body, get_total_area, get_skin_area, get_evaporation_area, get_r_skin, get_r_insulation, get_r_flesh
 
 export Insulation, CompositeInsulation, Naked, Fur, Fat
 
@@ -30,9 +31,11 @@ export heat_balance, get_Tb, flip2vectors
 
 export metabolism, respiration, solar, radin, radout, evaporation, conduction, convection
 
-export nusselt_free, nusselt_forced, Tsurf_and_Tlung, radiant_temperature
+export nusselt_free, nusselt_forced, Tsurf_and_Tlung
 
-export ellipsoid_endotherm
+export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature, mean_skin_temperature
+
+export ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
 
 export insulation_thermal_conductivity, insulation_properties
 
@@ -44,9 +47,9 @@ include("biophysics.jl")
 include("ectotherm.jl")
 include("endotherm.jl")
 
-@compound H2O
-@compound O2
-@compound CO2
-@compound N2
+# @compound H2O
+# @compound O2
+# @compound CO2
+# @compound N2
 
 end

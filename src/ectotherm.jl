@@ -21,7 +21,7 @@ function heat_balance(T_x, insulation::Naked, o, morphopars, physiopars, e_pars,
     e_vars = vars.environment # make small function to get this
     
     # compute areas for exchange
-    A_total = o.body.geometry.area.total
+    A_total = get_total_area(o.body) #o.body.geometry.area.total
     A_convection = A_total * (1 - morphopars.conduction_fraction)
     A_conduction = A_total * morphopars.conduction_fraction
     #A_sil = silhouette_area(o.body, e_vars.zenith_angle)

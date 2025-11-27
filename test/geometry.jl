@@ -23,56 +23,56 @@ body = Body(shape, Naked())
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fur)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fat)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 # cylinder
@@ -81,56 +81,56 @@ body = Body(shape, Naked())
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fur)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fat)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 # sphere
@@ -139,56 +139,56 @@ body = Body(shape, Naked())
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fur)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fat)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 # ellipsoid
@@ -197,56 +197,56 @@ body = Body(shape, Naked())
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fur)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, fat)
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 # leopard frog
@@ -255,14 +255,14 @@ body = Body(shape, Naked())
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 # desert iguana
@@ -271,14 +271,14 @@ body = Body(shape, Naked())
 
 get_total_area(body)
 get_skin_area(body)
-get_convection_area(body)
+get_evaporation_area(body)
 
 get_r_skin(body)
 get_r_insulation(body)
 get_r_flesh(body)
 
-body.geometry.areas
-body.geometry.lengths
+body.geometry.area
+body.geometry.length
 body.geometry.volume
 
 # trunkmass = 0.04u"kg"
@@ -311,13 +311,13 @@ body.geometry.volume
 # frog = Body(frogshape, Naked()) # construct a Body, which is naked - this constructor will apply the 'geometry' function to the inputs and return a struct that has the struct for the 'Shape' type, as well as the insulation and the geometry struct
 
 # mass_range = (1:100)u"g"
-# areas = []
+# area = []
 # for m in mass_range
 #     imass = Unitful.uconvert(u"kg", m)
-#     push!(areas, geometry(LeopardFrog(imass, density), Naked()).area)
+#     push!(area, geometry(LeopardFrog(imass, density), Naked()).area)
 # end
 
-# # plot(mass_range, Unitful.uconvert.(u"cm^2",areas), xaxis=:log, yaxis=:log)
+# # plot(mass_range, Unitful.uconvert.(u"cm^2",area), xaxis=:log, yaxis=:log)
 # # xlims!(1e+0, 1e+2)
 # # ylims!(1e+0, 1e+2)
 
