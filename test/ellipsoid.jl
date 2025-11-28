@@ -1,0 +1,18 @@
+ellipsoid_endotherm(; 
+    posture=4.5, 
+    mass=0.5u"kg", 
+    density=1000.0u"kg/m^3", 
+    core_temperature=37u"°C",
+    fur_depth=5u"mm", 
+    fur_conductivity=0.04u"W/m/K", 
+    oxygen_extraction_efficiency=0.2, 
+    stress_factor=0.6,
+    air_temperature=20.0u"°C", 
+    wind_speed=1.0u"m/s", 
+    relative_humidity=0.5, 
+    P_atmos = 101325.0u"Pa", 
+    Q10=3,
+    minimum_metabolic_rate=missing, 
+    metabolic_multiplier=1, 
+    lethal_desiccation=0.15, 
+    f_O2=0.2094)

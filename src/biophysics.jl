@@ -367,9 +367,7 @@ function respiration(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, P_atmos, fO
     # total moles of air at exit will be approximately the same as at entrance, since 
     # the moles of O2 removed = approx. the # moles of co2 added
     J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
-    # setting up call to wet_air_properties using temperature of exhaled air at body temperature, assuming saturated air
-    rh_exit = 1.0
-    #wet_air_out = wet_air_properties(T_x, rh_exit, P_atmos; fO2, fCO2, fN2)
+    # assuming saturated air at exit
     P_vap_sat = vapour_pressure(T_x)
     J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
     # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 

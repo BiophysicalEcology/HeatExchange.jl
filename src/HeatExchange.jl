@@ -5,11 +5,10 @@ function __init__()\
 end
 
 using FluidProperties
-using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, enthalpy_of_vaporisation, water_properties, atmospheric_pressure
+using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, 
+    enthalpy_of_vaporisation, water_properties, atmospheric_pressure
 
-using Unitful, UnitfulMoles, ModelParameters
-
-#using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
+using Unitful, UnitfulMoles, ModelParameters, Roots
 
 export Shape, Cylinder, Sphere, Ellipsoid, Plate, LeopardFrog, DesertIguana
 
@@ -33,11 +32,13 @@ export metabolism, respiration, solar, radin, radout, evaporation, conduction, c
 
 export nusselt_free, nusselt_forced, Tsurf_and_Tlung
 
-export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature, mean_skin_temperature
+export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
 export ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
 
-export insulation_thermal_conductivity, insulation_properties
+export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
+
+export simulsol, respiration_endotherm, mean_skin_temperature
 
 include("geometry.jl")
 include("insulation.jl")
