@@ -479,7 +479,7 @@ end
 
 # package up inputs
 #fur_vars = (; side)#(/LEN,ZFUR,FURTHRMK,KEFF,BETARA,FURTST,insulation_depth,LHAR(S+1),DHAR(S+1),RHOAR(S+1),REFLFR(S+1),KHAIR,REAL(S,8)/)
-geom_vars = (; side, diameter, r_insulation, r_radiation, r_compressed, cd, conduction_fraction, longwave_depth_fraction, convection_enhancement)#(/SHAPE,SUBQFAT,area_evaporation,volume,diameter,area_evaporation,CONVSK,r_insulation,r_flesh,r_skin,longwave_depth_fraction,r_radiation,ASEMAJ,BSEMIN,CSEMIN,cd,conduction_fraction,r_compressed,r_insulation_compressed,k_compressed,CONV_ENHANCE/)
+geom_vars = (; side, cd, conduction_fraction, longwave_depth_fraction, convection_enhancement)#(/SHAPE,SUBQFAT,area_evaporation,volume,diameter,area_evaporation,CONVSK,r_insulation,r_flesh,r_skin,longwave_depth_fraction,r_radiation,ASEMAJ,BSEMIN,CSEMIN,cd,conduction_fraction,r_compressed,r_insulation_compressed,k_compressed,CONV_ENHANCE/)
 env_vars = (; fluid_type, T_air, T_substrate, T_bush, T_vegetation, T_lower, T_sky, T_conduction, rh, wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2)#(/FLTYPE,T_air,TS,T_bush,T_vegetation,T_lower,T_sky,T_conduction,RH,VEL,BP,ELEV,F_sky,F_bush,FAVEG,F_ground,Q_solar,GRAV/)
 traits = (; T_core, k_flesh = flesh_conductivity, k_fat = fat_conductivity, ϵ_body, skin_wetness, insulation_wetness, bare_skin_fraction, eye_fraction, insulation_conductivity)#(/T_core,k_flesh,k_fat,EMISAN,FATTHK,FLYHR,FURWET,PCTBAREVAP,PCTEYES/)
     
@@ -504,16 +504,22 @@ function simulsol(tolerance_simusol, geometry_out, insulation_pars, insulation_o
     # qgennet = 0.0u"W"
     success = true
 
-        if insulation_test > 0
-            (; T_insulation, T_skin_mean, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground, Q_evap_insulation, success, ntry) = solve_with_insulation!(T_skin, T_insulation, 
-            geometry_out, insulation_pars, insulation_out, geom_vars, env_vars, traits, 
-            tolerance_simusol)
-        return 
+    T_skin = T_core - 3u"K" # skin temperature (°C)
+T_insulation = T_air # fur/air interface temperature (°C)
+    if insulation_test > 0.0u"m"
+        (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin, 
+        Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, 
+        Q_rad_ground, Q_evap_insulation, success, ntry) = solve_with_insulation!(T_skin, T_insulation, 
+        geometry_out, insulation_pars, insulation_out, geom_vars, env_vars, traits, 
+        tolerance_simusol)
+        return
     else
-        (; T_insulation, T_skin_mean, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground, Q_evap_insulation, success, ntry) = solve_without_insulation!(T_skin, T_insulation, 
+        (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin, 
+        Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, 
+        Q_rad_ground, Q_evap_insulation, success, ntry) = solve_without_insulation!(T_skin, T_insulation, 
             geometry_out, insulation_pars, insulation_out, geom_vars, env_vars, traits, 
             tolerance_simusol)
-        return 
+        return
     end
 
 

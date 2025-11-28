@@ -164,11 +164,11 @@ end
 
 function geometry(shape::Plate, ::Naked)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     length = (volume / (shape.b * shape.c))^(1 / 3)
     width = shape.b * length
     height = shape.c * length
     total = surface_area(shape, length, width, height)
+    characteristic_dimension = width * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; length, width, height), (; total))
 end
 
@@ -184,7 +184,6 @@ get_r_flesh(shape::Plate, insulation::Naked, body) = body.geometry.length.width 
 
 function geometry(shape::Plate, fur::Fur)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     length = (volume / (shape.b * shape.c))^(1 / 3)
     width = shape.b * length
     height = shape.c * length
@@ -196,6 +195,7 @@ function geometry(shape::Plate, fur::Fur)
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
     convection = skin - area_hair
     fat = 0.0u"m"
+    characteristic_dimension = width_fur * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; length, width, height, length_fur, width_fur, height_fur, fat), (; total, skin, convection))
 end
 
@@ -212,7 +212,6 @@ get_r_flesh(shape::Plate, insulation::Fur, body) = body.geometry.length.width / 
 function geometry(shape::Plate, fat::Fat)
     fat_mass = shape.mass * fat.fraction
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     fat_volume = fat_mass / fat.density
     flesh_volume = volume - fat_volume
     r_flesh = (flesh_volume / (shape.b * shape.c))^(1 / 3) / 2
@@ -221,6 +220,7 @@ function geometry(shape::Plate, fat::Fat)
     height = shape.c * length
     fat = length - r_flesh
     total = surface_area(shape, length, width, height)
+    characteristic_dimension = width * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; length, width, height, fat), (; total))
 end
 
@@ -237,7 +237,6 @@ get_r_flesh(shape::Plate, insulation::Fat, body) = body.geometry.length.width / 
 function geometry(shape::Plate, fur::Fur, fat::Fat)
     fat_mass = shape.mass * fat.fraction
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     fat_volume = fat_mass / fat.density
     flesh_volume = volume - fat_volume
     r_flesh = (flesh_volume / (shape.b * shape.c))^(1 / 3) / 2
@@ -252,6 +251,7 @@ function geometry(shape::Plate, fur::Fur, fat::Fat)
     skin = surface_area(shape, length, width, height)
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
     convection = skin - area_hair
+    characteristic_dimension = width_fur * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; length, width, height, length_fur, width_fur, height_fur, fat), (; total, skin, convection))
 end
 
@@ -286,10 +286,10 @@ end
 
 function geometry(shape::Cylinder, ::Naked)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     radius = (volume / (shape.b * π * 2))^(1 / 3)
     length = shape.b * radius * 2
     total = surface_area(shape, radius, length)
+    characteristic_dimension = radius * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; length, radius), (; total))
 end
 
@@ -305,7 +305,6 @@ get_r_flesh(shape::Cylinder, insulation::Naked, body) = body.geometry.length.rad
 
 function geometry(shape::Cylinder, fur::Fur)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     radius_skin = (volume / (shape.b * π * 2))^(1 / 3)
     radius_fur = radius_skin + fur.thickness
     length_skin = shape.b * radius_skin * 2
@@ -314,6 +313,7 @@ function geometry(shape::Cylinder, fur::Fur)
     skin = surface_area(shape, radius_skin, length_skin)
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
     convection = skin - area_hair
+    characteristic_dimension = radius_fur * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; radius_skin, radius_fur, length_skin, length_fur), (; total, skin, convection))
 end
 
@@ -332,12 +332,12 @@ function geometry(shape::Cylinder, fat::Fat)
     fat_volume = fat_mass / fat.density
     volume = shape.mass / shape.density
     flesh_volume = volume - fat_volume
-    characteristic_dimension = volume^(1 / 3)
     radius = (volume / (shape.b * π * 2))^(1 / 3)
     length = shape.b * radius * 2
     radius_flesh = (flesh_volume / (π * length))^(1 / 2)
     fat = radius - radius_flesh
     total = surface_area(shape, radius, length)
+    characteristic_dimension = radius * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; radius, length, fat), (; total))
 end
 
@@ -356,7 +356,6 @@ function geometry(shape::Cylinder, fur::Fur, fat::Fat)
     fat_volume = fat_mass / fat.density
     volume = shape.mass / shape.density
     flesh_volume = volume - fat_volume
-    characteristic_dimension = volume^(1 / 3)
     radius_skin = (volume / (shape.b * π * 2))^(1 / 3)
     radius_fur = radius_skin + fur.thickness
     length_skin = shape.b * radius_skin * 2
@@ -366,7 +365,8 @@ function geometry(shape::Cylinder, fur::Fur, fat::Fat)
     total = surface_area(shape, radius_fur, length_fur)
     skin = surface_area(shape, radius_skin, length_skin)
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
-    convection = skin - area_hair    
+    convection = skin - area_hair
+    characteristic_dimension = radius_fur * 2 #volume^(1 / 3) 
     return Geometry(volume, characteristic_dimension, (; radius_skin, radius_fur, length_skin, length_fur, fat), (; total, skin, convection))
 end
 
@@ -421,9 +421,9 @@ end
 
 function geometry(shape::Sphere, ::Naked)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     radius = ((3 / 4) * volume / π) ^ (1 / 3)
     total = surface_area(shape, radius)
+    characteristic_dimension = radius * 2 #volume^(1 / 3)
     return Geometry(volume, characteristic_dimension, (; radius), (; total))
 end
 
@@ -439,13 +439,13 @@ get_r_flesh(shape::Sphere, insulation::Naked, body) = body.geometry.length.radiu
 
 function geometry(shape::Sphere, fur::Fur)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     radius_skin = ((3 / 4)* volume / π) ^ (1 / 3)
     radius_fur = radius_skin + fur.thickness
     total = surface_area(shape, radius_fur)u"m^2"
     skin = surface_area(shape, radius_skin)u"m^2"
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
     convection = skin - area_hair
+    characteristic_dimension = radius_fur * 2 #volume^(1 / 3)
     return Geometry(volume, characteristic_dimension, (; radius_skin, radius_fur), (; total, skin, convection))
 end
 
@@ -464,11 +464,11 @@ function geometry(shape::Sphere, fat::Fat)
     fat_mass = shape.mass * fat.fraction
     fat_volume = fat_mass / fat.density
     flesh_volume = volume - fat_volume
-    characteristic_dimension = volume^(1 / 3)
     radius = ((3 / 4) * volume / π) ^ (1 / 3)
     radius_flesh = ((3 * flesh_volume) / (4 * π)) ^ (1 / 3)
     fat = radius - radius_flesh
     total = surface_area(shape, radius)
+    characteristic_dimension = radius * 2 #volume^(1 / 3)
     return Geometry(volume, characteristic_dimension, (; radius, fat), (; total))
 end
 
@@ -487,7 +487,6 @@ function geometry(shape::Sphere, fur::Fur, fat::Fat)
     fat_mass = shape.mass * fat.fraction
     fat_volume = fat_mass / fat.density
     flesh_volume = volume - fat_volume    
-    characteristic_dimension = volume^(1 / 3)
     radius_skin = ((3 / 4) * volume / π) ^ (1 / 3)
     radius_fur = radius_skin + fur.thickness
     radius_flesh = ((3 * flesh_volume) / (4 * π)) ^ (1 / 3)
@@ -496,6 +495,7 @@ function geometry(shape::Sphere, fur::Fur, fat::Fat)
     skin = surface_area(shape, radius_skin)u"m^2"
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
     convection = skin - area_hair
+    characteristic_dimension = radius_fur * 2 #volume^(1 / 3)
     return Geometry(volume, characteristic_dimension, (; radius_skin, radius_fur, fat), (; total, skin, convection))
 end
 
@@ -540,12 +540,12 @@ end
 
 function geometry(shape::Ellipsoid, ::Naked)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     b_semi_minor = ((3 / 4) * volume / (π * shape.b)) ^ (1 / 3)
     c_semi_minor = b_semi_minor
     a_semi_major = b_semi_minor * shape.b
     e = ((ustrip(u"m", a_semi_major) ^ 2 - ustrip(u"m", c_semi_minor) ^ 2) ^ (1 / 2)) / ustrip(u"m", a_semi_major)
     total = surface_area(shape, ustrip(u"m", a_semi_major), ustrip(u"m", b_semi_minor), ustrip(u"m", b_semi_minor), e)
+    characteristic_dimension = b_semi_minor * 2 #volume^(1 / 3)   
     return Geometry(volume, characteristic_dimension, (; a_semi_major, b_semi_minor, c_semi_minor), (; total))
 end
 
@@ -561,7 +561,6 @@ get_r_flesh(shape::Ellipsoid, insulation::Naked, body::AbstractBody) = body.geom
 
 function geometry(shape::Ellipsoid, fur::Fur)
     volume = shape.mass / shape.density
-    characteristic_dimension = volume^(1 / 3)
     b_semi_minor = ((3 / 4) * volume / (π * shape.b)) ^ (1 / 3)
     c_semi_minor = b_semi_minor
     a_semi_major = b_semi_minor * shape.b
@@ -575,6 +574,7 @@ function geometry(shape::Ellipsoid, fur::Fur)
     skin = surface_area(shape, ustrip(u"m", a_semi_major), ustrip(u"m", b_semi_minor), ustrip(u"m", c_semi_minor), e)
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
     convection = skin - area_hair 
+    characteristic_dimension = b_semi_minor_fur * 2 #volume^(1 / 3)
     return Geometry(volume, characteristic_dimension, (; a_semi_major, b_semi_minor, c_semi_minor, a_semi_major_fur, b_semi_minor_fur, c_semi_minor_fur), (; total, skin, convection))
 end
 
@@ -653,6 +653,7 @@ function geometry(shape::Ellipsoid, fat::Fat)
     c_semi_minor = c_flesh + fat
     e = ((a_semi_major ^ 2 - c_semi_minor ^ 2) ^ (1 / 2)) / a_semi_major
     total = surface_area(shape, ustrip(u"m", a_semi_major), ustrip(u"m", b_semi_minor), ustrip(u"m", c_semi_minor), e)
+    characteristic_dimension = b_semi_minor * 2 #volume^(1 / 3)
     return Geometry(volume, characteristic_dimension, (; a_semi_major, b_semi_minor, c_semi_minor, fat), (; total))
 end
 
@@ -679,7 +680,6 @@ function geometry(shape::Ellipsoid, fur::Fur, fat::Fat)
         ustrip(u"m^3", fat_volume), 
         shape.b, 
         ustrip(u"m", b_flesh))
-    characteristic_dimension = volume^(1 / 3)
     a_semi_major = a_flesh + fat
     b_semi_minor = b_flesh + fat
     c_semi_minor = c_flesh + fat
@@ -693,6 +693,7 @@ function geometry(shape::Ellipsoid, fur::Fur, fat::Fat)
     skin = surface_area(shape, ustrip(u"m", a_semi_major), ustrip(u"m", b_semi_minor), ustrip(u"m", c_semi_minor), e)
     area_hair = calc_area_hair(fur.fibre_diameter, fur.fibre_density, skin)
     convection = skin - area_hair 
+    characteristic_dimension = b_semi_minor_fur * 2 #volume^(1 / 3)
     return Geometry(volume, characteristic_dimension, (; a_semi_major, b_semi_minor, c_semi_minor, a_semi_major_fur, b_semi_minor_fur, c_semi_minor_fur, fat), (; total, skin, convection))
 end
 
