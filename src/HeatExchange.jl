@@ -18,7 +18,7 @@ export Body, get_total_area, get_skin_area, get_evaporation_area, get_r_skin, ge
 
 export Insulation, CompositeInsulation, Naked, Fur, Fat
 
-export Organism, BodyPars, InsulationPars, IntegumentPars, PhysioPars, ThermoregulationPars, OrganismalVars
+export Organism, EndoModelPars, BodyPars, InsulationPars, IntegumentPars, PhysioPars, ThermoregulationPars, OrganismalVars
 
 export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
@@ -34,13 +34,13 @@ export Tsurf_and_Tlung, respiration_ectotherm
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
-export ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
+export endotherm, ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
 export simulsol, respiration_endotherm, mean_skin_temperature
 
-export metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
+export metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, MetabolicRateEquation
 
 include("organism.jl")
 include("traits.jl")
@@ -48,8 +48,8 @@ include("insulation.jl")
 include("geometry.jl")
 include("environment.jl")
 include("biophysics.jl")
+include("metabolism.jl")
 include("ectotherm.jl")
 include("endotherm.jl")
-include("metabolism.jl")
 
 end

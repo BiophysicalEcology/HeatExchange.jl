@@ -1,22 +1,22 @@
 using Roots
 
-# Heat balance
+# ectotherm heat balance
 
 """
-    heat_balance(T, organism::Union{Model,Organism}, pars::AbstractEnvironmentalPars, vars::AbstractEnvironmentalVars)
+    ectotherm(T, organism::Union{Model,Organism}, pars::AbstractEnvironmentalPars, vars::AbstractEnvironmentalVars)
 
 Calculate heat balance for an organism at temperature T.
 """
-function heat_balance end
+function ectotherm end
 
 # A method dispatching on a `Model`
-heat_balance(T_x, mod::Model, e_pars, vars) = heat_balance(T_x, stripparams(mod), stripparams(e_pars), vars)
+ectotherm(T_x, mod::Model, e_pars, vars) = ectotherm(T_x, stripparams(mod), stripparams(e_pars), vars)
 # A generic method that expands dispatch to include the insulation
 # this could be <:Ectotherm or <:Endotherm?
-heat_balance(T_x, o::Organism, e_pars, vars) = heat_balance(T_x, insulation(o), o, integumentpars(o), physiopars(o), thermoregpars(o), e_pars, vars)
+ectotherm(T_x, o::Organism, e_pars, vars) = ectotherm(T_x, insulation(o), o, integumentpars(o), physiopars(o), thermoregpars(o), e_pars, vars)
 # A method for Naked organisms
 
-function heat_balance(T_x, insulation::Naked, o, integumentpars, physiopars, thermoregpars, e_pars, vars)
+function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars, thermoregpars, e_pars, vars)
     o_vars = vars.organism # make small function to get this
     e_vars = vars.environment # make small function to get this
     
@@ -69,19 +69,19 @@ function heat_balance(T_x, insulation::Naked, o, integumentpars, physiopars, the
     (;Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
 
 end
-function heat_balance(T_x, insulation::Fur, pars, organism, vars) # A method for organisms with fur
+function ectotherm(T_x, insulation::Fur, pars, organism, vars) # A method for organisms with fur
     #....
 end
 
 function get_Tb(mod::Model, e_pars, vars)
     T_air = vars.environment.T_air
-    T_c = find_zero(t -> heat_balance(t, mod, e_pars, vars), (T_air - 40K, T_air + 100K), Bisection())
-    heat_balance(T_c, mod, e_pars, vars)
+    T_c = find_zero(t -> ectotherm(t, mod, e_pars, vars), (T_air - 40K, T_air + 100K), Bisection())
+    ectotherm(T_c, mod, e_pars, vars)
 end
 
 flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 
-#function heat_balance(T_x)
+#function ectotherm(T_x)
 
 #    # compute areas for exchange
 #    A_convection = A_total * (1 - conduction_fraction)

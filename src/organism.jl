@@ -16,6 +16,8 @@ abstract type AbstractBehavParameters end
         
 abstract type AbstractBehavThresholds end
 
+abstract type AbstractModelParameters end
+
 """
     Shape
 
@@ -160,11 +162,14 @@ abstract type AbstractOrganismalVars end
 """
     OrganismalVars <: AbstractOrganismalVars
 
+    - `ψ_org` — Body water potential (determines humidity at skin surface 
+    and liquid water exchange) (J/kg).
 Variables for an [`AbstractOrganism`](@ref) model.
 """
-Base.@kwdef mutable struct OrganismalVars{T,P} <: AbstractOrganismalVars
-    T_core::T
-    T_surf::T
-    T_lung::T
+Base.@kwdef mutable struct OrganismalVars{TC,TS,TI,TL,P} <: AbstractOrganismalVars
+    T_core::TC
+    T_skin::TS
+    T_insulation::TI
+    T_lung::TL
     ψ_org::P
 end

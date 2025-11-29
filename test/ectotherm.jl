@@ -189,7 +189,7 @@ Q_in - Q_out
 # (For it to work we either need an anonymous function 
 # or a functor struct - you can make a struct into a function!
 # then we have all the parameters attached to it.
-#@test_broken T_core_s = find_zero(heat_balance, (T_air - 40K, T_air + 100K), Bisection())
+#@test_broken T_core_s = find_zero(ectotherm, (T_air - 40K, T_air + 100K), Bisection())
 #@test_broken T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
 
 # using structs to pass parameters
@@ -263,16 +263,16 @@ environment=EnvironmentalVars(
 )
 variables = (organism = organism, environment = environment)
 
-# define the method 'heat_balance' for passing to find_zero, which dispatches off 'lizard' 
+# define the method 'ectotherm' for passing to find_zero, which dispatches off 'lizard' 
 T_air = environment.T_air
-heat_balance(T_air, lizard, environmental_params, variables)
-T_core_s = find_zero(t -> heat_balance(t, lizard, environmental_params, variables), (T_air - 40u"K", T_air + 100u"K"), Bisection())
+ectotherm(T_air, lizard, environmental_params, variables)
+T_core_s = find_zero(t -> ectotherm(t, lizard, environmental_params, variables), (T_air - 40u"K", T_air + 100u"K"), Bisection())
 T_core_C = (Unitful.ustrip(T_core_s) - 273.15)u"°C"
 
 # test core temperature calculation
 @test T_core_C ≈ (ecto_output.TC)u"°C" rtol=1e-4
 
-heat_balance_out = heat_balance(T_core_s, lizard, environmental_params, variables)
+heat_balance_out = ectotherm(T_core_s, lizard, environmental_params, variables)
 
 @test heat_balance_out.T_core ≈ (ecto_output.TC + 273.15)u"K" rtol=1e-5
 @test heat_balance_out.T_surface ≈ (ecto_output.TSKIN + 273.15)u"K" rtol=1e-5

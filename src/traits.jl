@@ -125,7 +125,7 @@ typical small-mammal pelage properties.
   allowing asymmetric fur properties.
 """
 Base.@kwdef struct InsulationPars{ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,MID,
-    MIV,FRD,FRV,IRD,IRV,IDC,FC,LDF} <: AbstractMorphoParameters
+    MIV,FRD,FRV,IRD,IRV,IDC,FC,LDF,INW} <: AbstractMorphoParameters
     insulation_conductivity_dorsal::ICD     = nothing
     insulation_conductivity_ventral::ICV    = nothing
     fibre_diameter_dorsal::FDD              = Param(30.0u"μm")
@@ -143,6 +143,7 @@ Base.@kwdef struct InsulationPars{ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,MID,
     insulation_depth_compressed::IDC        = Param(2.0u"mm")
     fibre_conductivity::FC                  = Param(0.209u"W/m/K")
     longwave_depth_fraction::LDF            = Param(1, bounds=(0.0, 1.0))
+    insulation_wetness::INW                 = Param(1, bounds=(0.0, 1.0))
 end
 
 """
@@ -161,13 +162,11 @@ respiratory, and thermal tissue properties of an organism.
 - `rq::F` — Respiratory quotient relating CO₂ produced to O₂ consumed (0–1).
 - `Δ_breath::B` — Temperature offset between ambient air and exhaled air.
 - `rh_exit::F` — Relative humidity of exhaled air (fraction 0–1).
-- `ψ_org::B` — Body water potential (determines humidity at skin surface 
-    and liquid water exchange) (J/kg).
 
 All parameters may be given using `Param(...)` wrappers for bounds,
 units, or documentation, and support Unitful values.
 """
-Base.@kwdef struct PhysioPars{QM,QT,KF,KA,FO,RQ,DB,RE,WP} <: AbstractPhysioParameters
+Base.@kwdef struct PhysioPars{QM,QT,KF,KA,FO,RQ,DB,RE} <: AbstractPhysioParameters
     Q_minimum::QM =              Param(0.0u"W")
     q10::QT =                    Param(2.0)
     k_flesh::KF =                Param(0.9u"W/m/K")
@@ -176,7 +175,6 @@ Base.@kwdef struct PhysioPars{QM,QT,KF,KA,FO,RQ,DB,RE,WP} <: AbstractPhysioParam
     rq::RQ =                     Param(0.8, bounds=(0.0, 1.2))
     Δ_breath::DB =               Param(0.0u"K")
     rh_exit::RE =                Param(1.0, bounds=(0.0, 1.0))
-    ψ_org::WP =                  Param(0.0u"J/kg", bounds=(-Inf, 0.0))
 end
 
 """
