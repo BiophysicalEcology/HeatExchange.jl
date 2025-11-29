@@ -40,15 +40,15 @@ function heat_balance(T_x, insulation::Naked, o, integumentpars, physiopars, the
     T_lung = Tsurf_Tlung_out.T_lung
     
     solar_out = solar(integumentpars.α_body_dorsal, integumentpars.α_body_ventral, A_sil, 
-        A_total, A_conduction, integumentpars.F_substrate, integumentpars.F_sky, 
+        A_total, A_conduction, integumentpars.F_ground, integumentpars.F_sky, 
         e_pars.α_substrate, e_pars.shade, e_vars.solar_radiation, e_vars.direct_radiation, 
         e_vars.diffuse_radiation)
     Q_solar = solar_out.Q_solar
-    ir_gain = radin(A_total, A_conduction, integumentpars.F_sky, integumentpars.F_substrate, 
-        integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral, e_pars.ϵ_substrate, 
-        e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_substrate)
+    ir_gain = radin(A_total, A_conduction, integumentpars.F_sky, integumentpars.F_ground, 
+        integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral, e_pars.ϵ_ground, 
+        e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_ground)
     Q_ir_in = ir_gain.Q_ir_in
-    ir_loss = radout(T_surface, A_total, A_conduction, integumentpars.F_sky, integumentpars.F_substrate, 
+    ir_loss = radout(T_surface, A_total, A_conduction, integumentpars.F_sky, integumentpars.F_ground, 
         integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral)
     Q_ir_out = ir_loss.Q_ir_out
     Le = 0.025u"m"
@@ -98,11 +98,11 @@ flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 #    T_surface = Tsurf_Tlung_out.T_surface
 #    T_lung = Tsurf_Tlung_out.T_lung
 #    #Q_norm = Q_dir / cos(zenith_angle)
-#    solar_out = solar(α_body_dorsal, α_body_ventral, A_sil, A_total, A_conduction, F_substrate, F_sky, α_substrate, Q_sol, Q_dir, Q_dif)
+#    solar_out = solar(α_body_dorsal, α_body_ventral, A_sil, A_total, A_conduction, F_ground, F_sky, α_substrate, Q_sol, Q_dir, Q_dif)
 #    Q_solar = solar_out.Q_solar
-#    ir_gain = radin(A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral, ϵ_substrate, ϵ_sky, T_sky, T_substrate)
+#    ir_gain = radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
 #    Q_ir_in = ir_gain.Q_ir_in
-#    ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral)
+#    ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 #    Q_ir_out = ir_loss.Q_ir_out
 #    Q_cond = conduction(A_conduction, Le, T_surface, T_substrate, k_substrate)
 #    conv_out = convection(geometric_pars, A_convection, T_air, T_surface, wind_speed, P_atmos, fluid)

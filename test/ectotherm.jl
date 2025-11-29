@@ -39,6 +39,7 @@ ecto_output = (; zip(names, ecto_output_vec)...)
 T_air = u"K"((ecto_input.TA)u"°C")
 T_sky = u"K"((ecto_input.TSKY)u"°C")
 T_substrate = u"K"((ecto_input.TSUBST)u"°C")
+T_ground = T_substrate
 k_substrate = (ecto_input.K_sub)u"W/m/K"
 P_atmos = (ecto_input.pres)u"Pa"
 rh = (ecto_input.RH/100)
@@ -47,7 +48,7 @@ wind_speed = (ecto_input.VEL)u"m/s"
 fluid = ecto_input.fluid
 zenith_angle = (ecto_input.Z)u"°"
 solar_radiation = (ecto_input.QSOLR)u"W/m^2"
-α_substrate = ecto_input.alpha_sub
+α_ground = ecto_input.alpha_sub
 shade = ecto_input.SHADE
 ϵ_substrate = ecto_input.epsilon_sub
 ϵ_sky = ecto_input.epsilon_sky
@@ -65,7 +66,7 @@ eye_fraction = ecto_input.pct_eyes / 100
 conduction_fraction = ecto_input.pct_cond / 100
 
 F_sky = ecto_input.fatosk
-F_substrate = ecto_input.fatosb
+F_ground = ecto_input.fatosb
 α_body_dorsal = ecto_input.alpha
 α_body_ventral = ecto_input.alpha
 ϵ_body_dorsal = ecto_input.epsilon
@@ -152,13 +153,13 @@ T_surface, T_lung = Tsurf_and_Tlung(geometric_pars, k_flesh, Q_gen_spec, T_core)
 diffuse_radiation = solar_radiation * ecto_input.PDIF
 normal_radiation = solar_radiation * (1 - ecto_input.PDIF) / cos(zenith_angle)  # use this in calculating Q_dir if want organism to be orienting towards beam
 direct_radiation = normal_radiation - diffuse_radiation
-solar_out = solar(α_body_dorsal, α_body_ventral, A_sil_normal, A_total, A_conduction, F_substrate, F_sky, α_substrate, shade, solar_radiation, normal_radiation, diffuse_radiation)
+solar_out = solar(α_body_dorsal, α_body_ventral, A_sil_normal, A_total, A_conduction, F_ground, F_sky, α_ground, shade, solar_radiation, normal_radiation, diffuse_radiation)
 Q_solar = solar_out.Q_solar
 
 # longwave radiation
-ir_gain = radin(A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral, ϵ_substrate, ϵ_sky, T_sky, T_substrate)
+ir_gain = radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_substrate, ϵ_sky, T_sky, T_substrate)
 Q_ir_in = ir_gain.Q_ir_in
-ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral)
+ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 Q_ir_out = ir_loss.Q_ir_out
 
 # conduction
@@ -205,7 +206,7 @@ integument_pars = IntegumentPars(;
     ϵ_body_dorsal,
     ϵ_body_ventral,
     F_sky,
-    F_substrate,
+    F_ground,
     eye_fraction,
     skin_wetness,
     conduction_fraction,
@@ -227,7 +228,7 @@ lizard = Model(Organism(geometric_pars, integument_pars, physio_pars, thermoreg_
 
 # get the environmental parameters
 environmental_params = EnvironmentalPars(
-    α_substrate,
+    α_ground,
     shade,
     ϵ_substrate,
     ϵ_sky,
@@ -249,6 +250,7 @@ organism=OrganismalVars(
 environment=EnvironmentalVars(
     T_air,
     T_sky,
+    T_ground,
     T_substrate,
     rh,
     wind_speed,

@@ -17,7 +17,7 @@ conduction(A_conduction, L, T_surface, T_substrate, k_sub) = A_conduction * (k_s
 
 """
     solar(; kw...)
-    solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_substrate, F_sky, α_substrate, Q_solar, Q_direct, Q_diffuse)
+    solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, Q_solar, Q_direct, Q_diffuse)
 
 Calculate solar energy balance.
 """
@@ -27,27 +27,27 @@ function solar(;
     A_silhouette,
     A_total,
     A_conduction,
-    F_substrate,
+    F_ground,
     F_sky,
-    α_substrate,
+    α_ground,
     shade,
     Q_solar,
     Q_direct,
     Q_diffuse,
 )
-    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_substrate, F_sky, α_substrate, shade, Q_solar, Q_direct, Q_diffuse)
+    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, Q_solar, Q_direct, Q_diffuse)
 end
-function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_substrate, F_sky, α_substrate, shade, Q_solar, Q_direct, Q_diffuse)
+function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, Q_solar, Q_direct, Q_diffuse)
     Q_direct = α_body_dorsal * A_silhouette * Q_direct * (1 - shade)
     Q_solar_sky = α_body_dorsal * F_sky * A_total * Q_diffuse * (1 - shade)
-    Q_solar_substrate = α_body_ventral * F_substrate * (A_total - A_conduction) * (1 - α_substrate) * Q_solar * (1 - shade)
+    Q_solar_substrate = α_body_ventral * F_ground * (A_total - A_conduction) * (1 - α_ground) * Q_solar * (1 - shade)
     Q_solar = (Q_direct + Q_solar_substrate + Q_solar_sky)
     return (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate)
 end
 
 """
     radout(; kw...)
-    radout(T_surface, A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral)
+    radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 
 Calculate incoming radiation.
 """
@@ -55,27 +55,27 @@ function radin(;
     A_total,
     A_conduction,
     F_sky,
-    F_substrate,
+    F_ground,
     ϵ_body_dorsal,
     ϵ_body_ventral,
-    ϵ_substrate,
+    ϵ_ground,
     ϵ_sky,
     T_sky,
-    T_substrate,
+    T_ground,
 )
-    return radin(A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral, ϵ_substrate, ϵ_sky, T_sky, T_substrate)
+    return radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
 end
-function radin(A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral, ϵ_substrate, ϵ_sky, T_sky, T_substrate)
+function radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     Q_ir_sky = ϵ_body_dorsal * F_sky * A_total * ϵ_sky * σ * T_sky^4
-    Q_ir_sub = ϵ_body_ventral * F_substrate * (A_total - A_conduction) * ϵ_substrate * σ * T_substrate^4
+    Q_ir_sub = ϵ_body_ventral * F_ground * (A_total - A_conduction) * ϵ_ground * σ * T_ground^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
     return (; Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
 
 """
     radout(; kw...)
-    radout(T_surface, A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral)
+    radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 
 Calculate outgoing radiation.
 """
@@ -84,17 +84,17 @@ function radout(;
     A_total,
     A_conduction,
     F_sky,
-    F_substrate,
+    F_ground,
     ϵ_body_dorsal,
     ϵ_body_ventral,
 )
-    radout(T_surface, A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral)
+    radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 end
-function radout(T_surface, A_total, A_conduction, F_sky, F_substrate, ϵ_body_dorsal, ϵ_body_ventral)
+function radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
     # computes longwave radiation lost
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     Q_ir_to_sky = A_total * F_sky * ϵ_body_dorsal * σ * T_surface^4
-    Q_ir_to_sub = (A_total - A_conduction) * F_substrate * ϵ_body_ventral * σ * T_surface^4
+    Q_ir_to_sub = (A_total - A_conduction) * F_ground * ϵ_body_ventral * σ * T_surface^4
     Q_ir_out = Q_ir_to_sky + Q_ir_to_sub
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end

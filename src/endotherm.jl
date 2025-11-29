@@ -1,7 +1,7 @@
 """
     ellipsoid(; posture, mass, density, core_temperature,
-               fur_depth, fur_conductivity, oxygen_extraction_efficiency, stress_factor,
-               air_temperature, wind_speed, relative_humidity, Q10,
+               insulation_depth, k_insulation, oxygen_extraction_efficiency, stress_factor,
+               air_temperature, wind_speed, relative_humidity, q10,
                minimum_metabolic_rate=missing, P_atmos, metabolic_factor=1)
 
 Ellipsoid endotherm model.
@@ -15,15 +15,15 @@ where air, ground, and sky temperatures are equal.
 - `mass`: Body mass (mass).
 - `density`: Body density (mass/volume).
 - `core_temperature`: Core temperature.
-- `fur_depth`: Fur depth (length).
-- `fur_conductivity`: Fur conductivity (energy/time/length/temperature).
+- `insulation_depth`: Insulation depth (length).
+- `k_insulation`: Insulation conductivity (energy/time/length/temperature).
 - `oxygen_extraction_efficiency`: Oxygen extraction efficiency (fraction).
 - `stress_factor`: Fraction of basal metabolism at which evaporative water loss begins.
 - `air_temperature`: Air temperature.
 - `wind_speed`: Wind speed (length/time).
 - `relative_humidity`: Relative humidity (%).
 - `P_atmos`: Atmospheric_pressue (pressure).
-- `Q10`: Temperature dependence factor for metabolism.
+- `q10`: Temperature dependence factor for metabolism.
 - `minimum_metabolic_rate`: Optional user-specified minimum metabolic rate (energy/time).
 - `f_O2`: Fractional oxygen in the atmosphere (-).
 - `metabolic_multiplier`: Scaling factor for the mouse–elephant basal rate.
@@ -40,19 +40,20 @@ Porter, W. P., & Kearney, M. R. (2009). *Size, shape, and the thermal niche of e
 PNAS, 106(46), 19666–19672.
 """
 function ellipsoid_endotherm(;
+    mrate_equation::MetabolicRateEquation = Kleiber(),
     posture,
     mass,
     density,
     core_temperature,
-    fur_depth,
-    fur_conductivity,
+    insulation_depth,
+    k_insulation,
     oxygen_extraction_efficiency,
     stress_factor,
     air_temperature,
     wind_speed,
     relative_humidity,
     P_atmos,
-    Q10,
+    q10,
     minimum_metabolic_rate=missing,
     metabolic_multiplier=1,
     lethal_desiccation,
@@ -60,9 +61,8 @@ function ellipsoid_endotherm(;
 )
 
     # refinition of variables and parameters to match Porter & Kearney 2009 formulae
-    T_f = u"K"(air_temperature) # fluid temperature
-    T_c = u"K"(core_temperature) # core body temperature
-    k_fur = fur_conductivity
+    T_f = air_temperature |> u"K" # fluid temperature
+    T_c = core_temperature |> u"K" # core body temperature
     v = wind_speed
     Q_gen_min = minimum_metabolic_rate
 
@@ -70,10 +70,9 @@ function ellipsoid_endotherm(;
     posture = posture == 1 ? 1.01 : posture
 
     # estimate basal metabolism if not provided
-    # TODO make a set of allometric models of metabolic rate
     if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
-        mouse_elephant = (10^(-1.462 + 0.675 * log10(ustrip(u"g", mass))) * metabolic_multiplier)u"W"
-        Q_gen_min = mouse_elephant * Q10^((ustrip(u"°C", core_temperature) - 37) / 10)
+        allometric_estimate = metabolic_rate(mrate_equation, mass).Q_metab * metabolic_multiplier
+        Q_gen_min = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
     end
 
     # constants
@@ -93,14 +92,14 @@ function ellipsoid_endotherm(;
     S2 = numerator / denominator # Eq. 5
     R_b = S2 / (2 * k_b * V) # resistance of body
 
-    a_o = b * posture + fur_depth
-    b_o = b + fur_depth
-    c_o = c + fur_depth
+    a_o = b * posture + insulation_depth
+    b_o = b + insulation_depth
+    c_o = c + insulation_depth
 
     e_o = sqrt(a_o^2 - c_o^2) / a_o
     # outer area of ellipsoid # TODO use general function
     A_o = 2 * π * b_o^2 + 2 * π * ((a_o * b_o) / e_o) * asin(e_o)
-    R_ins = (b_o - b) / (k_fur * A_o) # insulation radius
+    R_ins = (b_o - b) / (k_insulation * A_o) # insulation radius
 
     # air properties
     (; μ, k_air, ρ_air) = dry_air_properties(T_f, P_atmos)
@@ -134,19 +133,19 @@ function ellipsoid_endotherm(;
     Q_gen_final = max(Q_gen_required, Q_gen_min)
 
     # TODO make general function to convert metabolic rate to O2
-    O2_consumption_rate = Q_gen_final / 20.1u"J/mL"
+    O2_consumption_rate = u"ml/hr"(Q_gen_final / 20.1u"J/mL")
     ρ_vap_c = wet_air_properties(T_c, 1.0, P_atmos).ρ_vap
     ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).ρ_vap
 
-    respiratory_water_loss_rate = (O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) *
-                                  (ρ_vap_c - ρ_vap_f)
+    respiratory_water_loss_rate = u"g/hr"((O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) *
+                                  (ρ_vap_c - ρ_vap_f))
     latent_heat = enthalpy_of_vaporisation(T_f)
     Q_respiration = u"W"(respiratory_water_loss_rate * latent_heat)
 
     basal_metabolic_rate_fraction = Q_gen_final / Q_gen_min
 
-    Q_evap = max(Q_respiration, (-Q_gen_final) + Q_gen_min)
-    total_water_loss_rate = max((u"J/hr"(Q_evap) / latent_heat), 0.0u"kg/hr")
+    Q_evap = -Q_gen_required + Q_gen_min
+    total_water_loss_rate = u"g/hr"(max((u"J/hr"(Q_evap) / latent_heat), 0.0u"kg/hr"))
     fractional_mass_loss = total_water_loss_rate / mass
 
     return (;
@@ -252,7 +251,7 @@ function solve_without_insulation!(T_skin, T_insulation,
 )
     (; side, cd, conduction_fraction,
         longwave_depth_fraction, convection_enhancement) = geom_vars
-    (; fluid_type, T_air, T_substrate, T_bush, T_vegetation, T_lower, T_sky, T_conduction,
+    (; fluid_type, T_air, T_substrate, T_bush, T_vegetation, T_ground, T_sky, T_substrate,
         rh, wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2) = env_vars
     (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness, insulation_wetness, bare_skin_fraction,
         eye_fraction, insulation_conductivity) = traits
@@ -284,11 +283,11 @@ function solve_without_insulation!(T_skin, T_insulation,
             Q_rad1 = area_convection * (F_sky * 4.0 * ϵ_body * σ * ((T_skin + T_sky) / 2)^3)
             Q_rad2 = area_convection * (F_bush * 4.0 * ϵ_body * σ * ((T_skin + T_bush) / 2)^3)
             Q_rad3 = area_convection * (F_vegetation * 4.0 * ϵ_body * σ * ((T_skin + T_vegetation) / 2)^3)
-            Q_rad4 = area_convection * (F_ground * 4.0 * ϵ_body * σ * ((T_skin + T_lower) / 2)^3)
+            Q_rad4 = area_convection * (F_ground * 4.0 * ϵ_body * σ * ((T_skin + T_ground) / 2)^3)
 
             T_skin1 = ((4.0 * k_flesh * volume) / (r_skin^2) * T_core) - Q_evap_skin +
                       hc * area_convection * T_air + Q_solar
-            T_skin2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_lower
+            T_skin2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
             T_skin3 = ((4.0 * k_flesh * volume) / (r_skin^2)) + hc * area_convection + Q_rad1 +
                       Q_rad2 + Q_rad3 + Q_rad4
 
@@ -297,7 +296,7 @@ function solve_without_insulation!(T_skin, T_insulation,
             Q_rad_sky = Q_rad1 * (T_skin_calc - T_sky)
             Q_rad_bush = Q_rad2 * (T_skin_calc - T_bush)
             Q_rad_vegetation = Q_rad3 * (T_skin_calc - T_vegetation)
-            Q_rad_ground = Q_rad4 * (T_skin_calc - T_lower)
+            Q_rad_ground = Q_rad4 * (T_skin_calc - T_ground)
 
             Q_radiation = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
             Q_convection = hc * area_convection * (T_skin_calc - T_air)
@@ -339,7 +338,7 @@ function solve_with_insulation!(T_skin, T_insulation,
 )
     (; side, cd, conduction_fraction,
         longwave_depth_fraction, convection_enhancement) = geom_vars
-    (; fluid_type, T_air, T_substrate, T_bush, T_vegetation, T_lower, T_sky, T_conduction, rh,
+    (; fluid_type, T_air, T_substrate, T_bush, T_vegetation, T_ground, T_sky, T_substrate, rh,
         wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2) = env_vars
     (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness, insulation_wetness, bare_skin_fraction,
         eye_fraction, insulation_conductivity) = traits
@@ -384,7 +383,7 @@ function solve_with_insulation!(T_skin, T_insulation,
             absorption_coefficient = absorption_coefficients[side+1]
             k_eff = effective_conductivities[side+1]
 
-            # Effective fur conductivity
+            # Effective insulation conductivity
             if !isnothing(insulation_conductivity)
                 k_insulation = insulation_conductivity
             else
@@ -396,14 +395,14 @@ function solve_with_insulation!(T_skin, T_insulation,
 
             (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4) =
                 radiant_temperature(; body=geometry_out, insulation=insulation_out, insulation_pars,
-                    Q_evap=Q_evap_skin, T_core, T_skin, T_conduction, T_insulation, 
+                    Q_evap=Q_evap_skin, T_core, T_skin, T_substrate, T_insulation, 
                     k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, conduction_fraction)
 
             # Radiative heat fluxes
             Q_rad1 = area_convection * F_sky * 4 * ϵ_body * σ * ((T_radiant + T_sky) / 2)^3
             Q_rad2 = area_convection * F_bush * 4 * ϵ_body * σ * ((T_radiant + T_bush) / 2)^3
             Q_rad3 = area_convection * F_vegetation * 4 * ϵ_body * σ * ((T_radiant + T_vegetation) / 2)^3
-            Q_rad4 = area_convection * F_ground * 4 * ϵ_body * σ * ((T_radiant + T_lower) / 2)^3
+            Q_rad4 = area_convection * F_ground * 4 * ϵ_body * σ * ((T_radiant + T_ground) / 2)^3
 
             if conduction_fraction < 1
                 # These calculations are for when there is less than 100% conduction.
@@ -411,27 +410,27 @@ function solve_with_insulation!(T_skin, T_insulation,
                 # the insulation surface
                 (; T_insulation_calc, T_radiant2) =
                     insulation_radiant_temperature(; body=geometry_out, insulation=insulation_out,
-                        insulation_pars, T_core, T_ins_compressed, T_air, T_sky, T_lower, T_vegetation, T_bush,
-                        T_conduction, area_convection, hc, cd, k_insulation, Q_solar, Q_evap_insulation,
+                        insulation_pars, T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush,
+                        T_substrate, area_convection, hc, cd, k_insulation, Q_solar, Q_evap_insulation,
                         Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, dv1, dv2, dv3, dv4,
                         longwave_depth_fraction, conduction_fraction)
 
                 Q_rad_sky = Q_rad1 * (T_radiant2 - T_sky)
                 Q_rad_bush = Q_rad2 * (T_radiant2 - T_bush)
                 Q_rad_vegetation = Q_rad3 * (T_radiant2 - T_vegetation)
-                Q_rad_ground = Q_rad4 * (T_radiant2 - T_lower)
+                Q_rad_ground = Q_rad4 * (T_radiant2 - T_ground)
                 Q_radiation = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
                 Q_convection = hc * area_convection * (T_insulation_calc - T_air)
-                Q_conduction = cd * (T_ins_compressed - T_conduction)
+                Q_conduction = cd * (T_ins_compressed - T_substrate)
             else
                 (; cf1, T_ins_compressed) =
                     compressed_radiant_temperature(; body=geometry_out, insulation=insulation_out,
-                        insulation_pars, k_flesh, k_fat, T_core, T_conduction, cd)
+                        insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd)
                 Q_radiation = 0.0u"W"
                 Q_convection = 0.0u"W"
                 Q_evap_insulation = 0.0u"W"
                 Q_solar = 0.0u"W"
-                Q_conduction = cd * (T_ins_compressed - T_conduction)
+                Q_conduction = cd * (T_ins_compressed - T_substrate)
             end
             Q_env = Q_radiation + Q_convection + Q_conduction + Q_evap_insulation - Q_solar
             T_skin_mean, T_skin_calc1 =
@@ -505,13 +504,13 @@ function solve_with_insulation!(T_skin, T_insulation,
 end
 
 radiant_temperature(; body::AbstractBody, insulation, insulation_pars, Q_evap, T_core, T_skin, 
- T_conduction, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
+ T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
  conduction_fraction) = radiant_temperature(shape(body), body, insulation, insulation_pars, 
- Q_evap, T_core, T_skin, T_conduction, T_insulation, k_flesh, k_fat, k_insulation, cd, 
+ Q_evap, T_core, T_skin, T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, 
  longwave_depth_fraction, conduction_fraction)
 
 function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, insulation_pars, 
-    Q_evap, T_core, T_skin, T_conduction, T_insulation, k_flesh, k_fat, k_insulation,
+    Q_evap, T_core, T_skin, T_ground, T_insulation, k_flesh, k_fat, k_insulation,
      cd, longwave_depth_fraction, conduction_fraction)
 
     volume = body.geometry.volume
@@ -526,7 +525,7 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
         log(r_compressed / r_skin)
 
     T_ins_compressed = conduction_fraction > 0 ?
-        (compression_fraction * T_skin + cd * T_conduction) / (cd + compression_fraction) :
+        (compression_fraction * T_skin + cd * T_substrate) / (cd + compression_fraction) :
         0.0u"K"
 
     cd1 = (k_compressed / log(r_compressed / r_skin)) * conduction_fraction +
@@ -562,7 +561,7 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
 end
 
 function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q_evap, T_core, T_skin,
-     T_conduction, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
+     T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
      conduction_fraction)
 
     volume = body.geometry.volume
@@ -577,7 +576,7 @@ function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q
         (r_compressed - r_skin)
 
     T_ins_compressed = conduction_fraction > 0 ?
-        (compression_fraction * T_skin + cd * T_conduction) / (cd + compression_fraction) :
+        (compression_fraction * T_skin + cd * T_substrate) / (cd + compression_fraction) :
         0.0u"K"
 
     cd1 = ((k_compressed * r_compressed) / (r_compressed - r_skin)) * conduction_fraction +
@@ -614,7 +613,7 @@ function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q
 end
 
 function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_evap,
-     T_core, T_skin, T_conduction, T_insulation, k_flesh, k_fat, k_insulation, cd, 
+     T_core, T_skin, T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, 
       longwave_depth_fraction, conduction_fraction)
 
     volume = body.geometry.volume
@@ -646,7 +645,7 @@ function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_e
         ((sqrt(3 * ssqg))^3 * (bl_compressed - bs))
 
     T_ins_compressed = conduction_fraction > 0.0 ?
-        (compression_fraction * T_skin + cd * T_conduction) / (cd + compression_fraction) :
+        (compression_fraction * T_skin + cd * T_substrate) / (cd + compression_fraction) :
         0.0u"K"
 
     cd1 = ((k_compressed * bl_compressed) / (bl_compressed - bs)) * conduction_fraction +
@@ -677,16 +676,16 @@ function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_e
 end
 
 insulation_radiant_temperature(; body::AbstractBody, insulation, insulation_pars, T_core, 
-    T_ins_compressed, T_air, T_sky, T_lower, T_vegetation, T_bush, T_conduction, area_convection, hc, cd,
+    T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc, cd,
      k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, dv1,
       dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction) = 
       insulation_radiant_temperature(shape(body), body, insulation, insulation_pars, T_core,
-      T_ins_compressed, T_air, T_sky, T_lower, T_vegetation, T_bush, T_conduction, area_convection, hc, cd,
+      T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc, cd,
        k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, dv1,
         dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
         
 function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars,
-     T_core, T_ins_compressed, T_air, T_sky, T_lower, T_vegetation, T_bush, T_conduction, area_convection, hc,
+     T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc,
       cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
       dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
     r_skin = get_r_skin(body)
@@ -694,10 +693,10 @@ function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insu
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation.insulation_depth_compressed
     length = body.geometry.length.length
     if longwave_depth_fraction < 1
-        T_ins1 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_lower - 
+        T_ins1 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground - 
             (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) * ((dv3 / dv4) + ((T_ins_compressed * cd2) / dv4))
         T_ins2 = ((2 * π * LEN) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
-        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_conduction - 
+        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate - 
             Q_evap_insulation + Q_solar
         T_ins4 = (2 * π * length * cd3) / dv1 + (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) * 
             (((k_insulation / log(r_insulation / r_radiation)) * (1 - conduction_fraction)) / dv4) 
@@ -706,9 +705,9 @@ function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insu
         T_radiant2 = u"K"(dv3 / dv4 + ((T_ins_compressed * cd2) / dv4) + (T_insulation_calc *
              ((k_insulation / log(r_insulation / r_radiation)) * (1 - conduction_fraction))) / dv4)
     else
-        T_ins1 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_lower
+        T_ins1 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
         T_ins2 = ((2 * π * length) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
-        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_conduction -
+        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate -
          Q_evap_insulation + Q_solar
         T_ins4 = (2 * π * length * cd3) / dv1 + (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) + hc * area_convection
         T_insulation_calc = u"K"((T_ins1 + T_ins2 + T_ins3) / T_ins4)
@@ -718,7 +717,7 @@ function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insu
 end
 
 function insulation_radiant_temperature(shape::Sphere, body, insulation, insulation_pars, T_core, T_insulation,
-     T_ins_compressed, T_air, T_sky, T_lower, T_vegetation, T_bush, T_conduction, area_convection,
+     T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection,
       hc, cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4,
        cd1, cd2, cd3, dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
     r_skin = get_r_skin(body)
@@ -726,9 +725,9 @@ function insulation_radiant_temperature(shape::Sphere, body, insulation, insulat
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation.insulation_depth_compressed
     if longwave_depth_fraction < 1
         T_ins1 = ((4 * π * r_skin) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
-        T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_lower -
+        T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground -
          (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) * ((dv3 / dv4) + ((T_ins_compressed * cd2) / dv4))
-        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_conduction - 
+        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate - 
          Q_evap_insulation + Q_solar
         T_ins4 = (4 * π * r_skin * cd3) / dv1 + (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) *
          ((((k_insulation * r_insulation) / (r_insulation - r_radiation)) * 
@@ -739,8 +738,8 @@ function insulation_radiant_temperature(shape::Sphere, body, insulation, insulat
          (1 - conduction_fraction))) / dv4)
     else
         T_ins1 = ((4 * π * r_skin) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
-        T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_lower
-        T_ins3 = hc * area_convection * T_ins_compressed - cd * T_ins_compressed + cd * T_conduction - 
+        T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
+        T_ins3 = hc * area_convection * T_ins_compressed - cd * T_ins_compressed + cd * T_substrate - 
          Q_evap_insulation + Q_solar
         T_ins4 = (4 * π * r_skin * cd3) / dv1 + (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) + hc * area_convection
         T_insulation_calc = u"K"((T_ins1 + T_ins2 + T_ins3) / T_ins4)
@@ -750,7 +749,7 @@ function insulation_radiant_temperature(shape::Sphere, body, insulation, insulat
 end
 
 function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars, 
-    T_core, T_ins_compressed, T_air, T_sky, T_lower, T_vegetation, T_bush, T_conduction, area_convection, 
+    T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, 
     hc, cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
     dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
     
@@ -777,12 +776,12 @@ function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insu
     br = bs + longwave_depth_fraction * insulation_depth
 
     if longwave_depth_fraction < 1
-        T_ins1 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_lower - 
+        T_ins1 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground - 
          (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) * ((dv3 / dv4) + ((T_ins_compressed * cd2) / dv4))
         T_ins2 = ((3 * volume * bs) / ((((3 * ssqg)^0.5)^3) * dv1)) * 
          (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + 
-         cd * T_conduction - Q_evap_insulation + Q_solar
+         cd * T_substrate - Q_evap_insulation + Q_solar
         T_ins4 = (3 * volume * bs * cd3) / ((((3 * ssqg)^0.5)^3) * dv1) + 
          (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) * ((((k_insulation * bl) / (bl - br)) * 
          (1 - conduction_fraction)) / dv4) + hc * area_convection
@@ -792,8 +791,8 @@ function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insu
     else
         T_ins1 = ((3 * volume * bs) / ((((3 * ssqg)^0.5)^3) * dv1)) * 
          (T_core * cd1 - dv2 - T_ins_compressed * cd2)
-        T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_lower
-        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_conduction - 
+        T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
+        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate - 
          Q_evap_insulation + Q_solar
         T_ins4 = (3 * volume * bs * cd3) / ((((3 * ssqg)^0.5)^3) * dv1) + 
          (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) + hc * area_convection
@@ -803,35 +802,35 @@ function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insu
     return (; T_insulation_calc, T_radiant2)
 end
 
-compressed_radiant_temperature(; body::AbstractBody, insulation, insulation_pars, k_flesh, k_fat, T_core, T_conduction, cd) = compressed_radiant_temperature(shape(body), body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_conduction, cd)
+compressed_radiant_temperature(; body::AbstractBody, insulation, insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd) = compressed_radiant_temperature(shape(body), body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd)
 
-function compressed_radiant_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_conduction, cd)
+function compressed_radiant_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd)
     k_compressed = insulation.insulation_conductivity_compressed
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
     r_compressed = r_skin + insulation.insulation_depth_compressed
     cf1 = (2 * π * k_compressed * length) / (log(r_compressed / r_skin))
     dv5 = 1 + ((cf1 * r_flesh^2) / (4 * k_flesh * volume)) + ((cf1 * r_flesh^2) / (2 * k_fat * volume)) * log(r_skin / RFLESH)
-    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_conduction
+    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_substrate
     T_ins_compressed_calc2 = cd + cf1 / dv5
     T_ins_compressed = T_ins_compressed_calc1 / T_ins_compressed_calc2
     return (; cf1, T_ins_compressed)
 end
 
-function compressed_radiant_temperature(shape::Sphere, body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_conduction, cd)
+function compressed_radiant_temperature(shape::Sphere, body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd)
     k_compressed = insulation.insulation_conductivity_compressed
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
     r_compressed = r_skin + insulation.insulation_depth_compres
     cf1 = (4 * π * k_compressed * r_compressed) / (r_compressed - r_skin)
     dv5 = 1 + ((cf1 * r_flesh^2.) / (6 * k_flesh * volume)) + ((cf1 * r_flesh^3) / (3 * k_fat * volume)) * ((r_skin - r_flesh) / (r_skin - r_flesh))
-    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_conduction
+    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_substrate
     T_ins_compressed_calc2 = cd + cf1 / dv5
     T_ins_compressed = T_ins_compressed_calc1 / T_ins_compressed_calc2
     return (; cf1, T_ins_compressed)
 end
 
-function compressed_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_conduction, cd)
+function compressed_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd)
     volume = body.geometry.volume
     k_compressed = insulation.insulation_conductivity_compressed
 
@@ -858,7 +857,7 @@ function compressed_radiant_temperature(shape::Ellipsoid, body, insulation, insu
     
     cf1 = (3 * k_compressed * volume * bl_compressed * bs) / ((((3 * ssqg)^0.5)^3) * (bl - bs))
     dv5 = 1 + ((cf1 * ssqg) / (2 * k_flesh * volume)) + ((cf1 * (((3 * ssqg)^0.5)^3)) / (3 * k_fat * volume)) * ((bs - bg) / (bs * bg))
-    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_conduction
+    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_substrate
     T_ins_compressed_calc2 = cd + cf1 / dv5
     T_ins_compressed = T_ins_compressed_calc1 / T_ins_compressed_calc2
     return (; cf1, T_ins_compressed)

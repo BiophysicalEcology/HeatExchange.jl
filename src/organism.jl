@@ -149,6 +149,7 @@ struct Organism{B<:Body,M<:AbstractMorphoParameters,P<:AbstractPhysioParameters,
     thermoregpars::T
 end
 
+# TODO use this as a container for outputs? Or remove?
 """
     AbstractOrganismalVars
 

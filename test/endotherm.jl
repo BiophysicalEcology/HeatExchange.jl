@@ -2,28 +2,60 @@ using HeatExchange
 using ModelParameters
 using Unitful, UnitfulMoles
 using FluidProperties
+using Test
+using DataFrames, CSV
 #using Plots
 
 # ellipsoid model
+testdir = realpath(joinpath(dirname(pathof(HeatExchange)), "../test"))
 
-ellipsoid_endotherm(; 
-    posture=4.5, 
-    mass=0.5u"kg", 
-    density=1000.0u"kg/m^3", 
-    core_temperature=37u"°C",
-    fur_depth=5u"mm", 
-    fur_conductivity=0.04u"W/m/K", 
-    oxygen_extraction_efficiency=0.2, 
-    stress_factor=0.6,
-    air_temperature=20.0u"°C", 
-    wind_speed=1.0u"m/s", 
-    relative_humidity=0.5, 
-    P_atmos = 101325.0u"Pa", 
-    Q10=3,
-    minimum_metabolic_rate=missing, 
-    metabolic_multiplier=1, 
-    lethal_desiccation=0.15, 
-    f_O2=0.2094)
+ellipsoid_input_vec = DataFrame(CSV.File("$testdir/data/ellipsoid_input.csv"))[:, 2]
+ellipsoid_output_NicheMapR = DataFrame(CSV.File("$testdir/data/ellipsoid_output.csv"))[:, 2:end]
+
+names = [
+    :posture, :mass, :density, :coreT, :furdepth, :furcond, :O2eff, :stress, :windspd, :rh, :Q10, 
+    :basal, :basmult
+]
+
+ellipsoid_input = (; zip(names, ellipsoid_input_vec[1:13])...)
+
+# TODO make ellipsoid_endotherm broadcastable
+air_temperatures = (ellipsoid_input_vec[14:end])u"°C"
+ellipsoid_output = DataFrame(map(air_temperatures) do Ta
+    ellipsoid_endotherm(;
+        mrate_equation = Kleiber(),
+        posture = ellipsoid_input.posture, 
+        mass = (ellipsoid_input.mass)u"kg", 
+        density = (ellipsoid_input.density)u"kg/m^3", 
+        core_temperature = (ellipsoid_input.coreT)u"°C",
+        insulation_depth = (ellipsoid_input.furdepth)u"mm", 
+        k_insulation = (ellipsoid_input.furcond)u"W/m/K", 
+        oxygen_extraction_efficiency = ellipsoid_input.O2eff, 
+        stress_factor = ellipsoid_input.stress,
+        air_temperature = Ta,      # ← element
+        wind_speed = (ellipsoid_input.windspd)u"m/s", 
+        relative_humidity = ellipsoid_input.rh / 100, 
+        P_atmos = 101325.0u"Pa", 
+        q10 = ellipsoid_input.Q10,
+        metabolic_multiplier = ellipsoid_input.basmult, 
+        lethal_desiccation = 0.15, 
+        f_O2 = 0.2094
+    )
+end)
+
+@testset "ellipsoid comparisons" begin
+    @test ellipsoid_output_NicheMapR.Tskin ≈ ustrip.(u"°C", ellipsoid_output.skin_temperature) rtol = 1e-6
+    @test ellipsoid_output_NicheMapR.LCT ≈ ustrip.(u"°C", ellipsoid_output.lower_critical_air_temperature) rtol = 1e-8
+    @test ellipsoid_output_NicheMapR.UCT ≈ ustrip.(u"°C", ellipsoid_output.upper_critical_air_temperature) rtol = 1e-8
+    @test ellipsoid_output_NicheMapR.QgenFinal ≈ ustrip.(u"W", ellipsoid_output.Q_gen_final) rtol = 1e-7
+    @test ellipsoid_output_NicheMapR.Qresp_W ≈ ustrip.(u"W", ellipsoid_output.Q_respiration) rtol = 1e-4
+    @test ellipsoid_output_NicheMapR.H2Oloss_W ≈ ustrip.(u"W", ellipsoid_output.Q_evap) rtol = 1e-7
+    @test ellipsoid_output_NicheMapR.mlO2ph ≈ ustrip.(u"ml/hr", ellipsoid_output.O2_consumption_rate) rtol = 1e-7
+    @test ellipsoid_output_NicheMapR.H2O_gph ≈ ustrip.(u"g/hr", ellipsoid_output.total_water_loss_rate) rtol = 1e-3
+    @test ellipsoid_output_NicheMapR.PctBasal / 100 ≈ ellipsoid_output.basal_metabolic_rate_fraction rtol = 1e-7
+    @test ellipsoid_output_NicheMapR.massph_percent / 100 ≈ ustrip.(u"hr^-1", ellipsoid_output.fractional_mass_loss) rtol = 1e-3
+
+end
 
 # solvendo
 
@@ -31,6 +63,7 @@ T_air = u"K"(20.0u"°C") # air temperature at local height
 T_air_reference = T_air # air temperature at reference height
 T_substrate = T_air # ground temperature
 T_sky = T_air # sky temperature
+T_ground = T_air # ground temperature
 T_vegetation = T_air_reference
 wind_speed = 0.1u"m/s" # wind speed
 rh = 0.05 # relative humidity (fractional)
@@ -40,8 +73,8 @@ diffuse_radiation = solar_radiation * fraction_diffuse
 direct_radiation = solar_radiation - diffuse_radiation
 zenith_angle = 20u"°" # zenith angle of sun (degrees from overhead)
 elevation = 0.0u"m" # elevation
-α_substrate = 0.8 # solar absorptivity of substrate, fractional
-ϵ_substrate = 1.0 # substrate emissivity, fractional
+α_ground = 0.8 # solar absorptivity of substrate, fractional
+ϵ_ground = 1.0 # substrate emissivity, fractional
 ϵ_sky = 1.0 # sky emissivity, fractional
 shade = 0.0 # shade, fractional
 fluid = 0
@@ -158,6 +191,7 @@ bodyshape = Ellipsoid(mass, ρ_body, shape_b, shape_b) # define shape as a Cylin
 environmental_vars = EnvironmentalVars(
     T_air,
     T_sky,
+    T_ground,
     T_substrate,
     rh,
     wind_speed,
@@ -170,9 +204,9 @@ environmental_vars = EnvironmentalVars(
 )
 
 environmental_pars = EnvironmentalPars(
-    α_substrate,
+    α_ground,
     shade,
-    ϵ_substrate,
+    ϵ_ground,
     ϵ_sky,
     elevation,
     fluid,
@@ -198,37 +232,49 @@ insulation_pars = InsulationPars(;
     longwave_depth_fraction,
 )
 
+environmental_pars = EnvironmentalPars(
+    α_ground,
+    shade,
+    ϵ_ground,
+    ϵ_sky,
+    elevation,
+    fluid,
+    fN2,
+    fO2,
+    fCO2,
+)
 
-T_air = u"K"(20.0u"°C") # air temperature at local height
-T_air_reference = T_air # air temperature at reference height
-T_substrate = T_air # ground temperature
-T_sky = T_air # sky temperature
-T_vegetation = T_air_reference
-wind_speed = 0.1u"m/s" # wind speed
-rh = 0.05 # relative humidity (fractional)
-solar_radiation = 0.0u"W/m^2" # solar radiation, horizontal plane
-fraction_diffuse = 0.15 # fraction of solar radiation that is diffuse
-diffuse_radiation = solar_radiation * fraction_diffuse
-direct_radiation = solar_radiation - diffuse_radiation
-zenith_angle = 20u"°" # zenith angle of sun (degrees from overhead)
-elevation = 0.0u"m" # elevation
-α_substrate = 0.8 # solar absorptivity of substrate, fractional
-ϵ_substrate = 1.0 # substrate emissivity, fractional
-ϵ_sky = 1.0 # sky emissivity, fractional
-shade = 0.0 # shade, fractional
-fluid = 0
+Base.@kwdef struct EnvironmentalVars{TA,TU,TG,TB,TV,TS,KS,RH,WS,PA,ZA,RS,RB,RD} <: AbstractEnvironmentalVars
+    T_air::TA
+    T_sky::TU
+    T_ground::TG
+    T_bush::TB = T_air
+    T_vegetation::TV = T_air
+    T_substrate::TS = T_ground
+    k_substrate::KS
+    rh::RH
+    wind_speed::WS
+    P_atmos::PA
+    zenith_angle::ZA
+    solar_radiation::RS
+    direct_radiation::RB
+    diffuse_radiation::RD
+end
 
-# other environmental variables
-fluid_type = 0 # fluid type: 0 = air; 1 = fresh water; 2 = salt water
-T_conduction = T_substrate # surface temperature for conduction
-k_substrate = 2.79u"W/m/K" # substrate thermal conductivity
-T_bush = T_air # bush temperature
+Base.@kwdef struct EnvironmentalPars{A,S,E,L,F} <: AbstractEnvironmentalPars
+    α_ground::A = Param(0.2, bounds=(0.0, 1.0))
+    ϵ_ground::A = Param(1.0, bounds=(0.0, 1.0))
+    ϵ_sky::A = Param(1.0, bounds=(0.0, 1.0))
+    elevation::E = Param(0.0, units=u"m")
+    fluid::L = Param(0)
+    fN2::F = Param(0.7902)
+    fO2::F = Param(0.2095)
+    fCO2::F = Param(0.0003)
+end
+
+
 P_atmos = atmospheric_pressure(elevation) # Pa, negative means elevation is used
-fO2 = 0.2095 # oxygen concentration of air, to account for non-atmospheric concentrations e.g. in burrows (fractional)
-fN2 = 0.7902 # nitrogen concentration of air, to account for non-atmospheric concentrations e.g. in burrows (fractional)
-fCO2 = 0.000412 # carbon dioxide concentration of air, to account for non-atmospheric concentrations e.g. in burrows (fractional)
 p_diffuse = 0.15 # proportion of solar radiation that is diffuse 
-g = u"gn" # acceleration due to gravity
 
 # initial conditions
 T_skin = T_core - 3u"K" # skin temperature (°C)
@@ -246,7 +292,7 @@ torpor = false # go into torpor if possible (drop T_core down to TC_MIN)
 bodyshape = Ellipsoid(mass, ρ_body, shape_b, shape_b) # define shape as a Cylinder struct of type 'Shape' and give it required values
 
 
-#function endotherm()
+function endotherm()
     Q_minimum_ref = Q_minimum
     T_core_ref = T_core
     insulation_depth_dorsal_ref = insulation_depth_dorsal
@@ -285,7 +331,7 @@ bodyshape = Ellipsoid(mass, ρ_body, shape_b, shape_b) # define shape as a Cylin
         area_evaporation = get_evaporation_area(geometry_out)
         area_convection = area_total * (1 - conduction_fraction)
 
-        Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate = solar_out = solar(α_body_dorsal, α_body_ventral, area_silhouette, area_total, area_conduction, F_ground, F_sky, α_substrate, shade, normal_radiation, direct_radiation, diffuse_radiation)
+        Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate = solar_out = solar(α_body_dorsal, α_body_ventral, area_silhouette, area_total, area_conduction, F_ground, F_sky, α_ground, shade, normal_radiation, direct_radiation, diffuse_radiation)
         Q_dorsal = Q_direct + Q_solar_sky
         Q_ventral = Q_solar_substrate
         Q_diffuse = Q_solar_sky + Q_solar_substrate
@@ -298,8 +344,7 @@ bodyshape = Ellipsoid(mass, ρ_body, shape_b, shape_b) # define shape as a Cylin
         #     hd_free, hd_forc) = convection(geometry_out, area_convection, T_air, T_insulation, wind_speed, P_atmos, fluid, fO2, fCO2, fN2)
 
         # set infrared environment
-        T_veg = T_air_reference # assume vegetation casting shade is at reference (e.g. 1.2m or 2m) air temperature (deg C)
-        T_lower = T_substrate
+        T_vegetation = T_air_reference # assume vegetation casting shade is at reference (e.g. 1.2m or 2m) air temperature (deg C)
 
         simulsol_out = Vector{NamedTuple}(undef, 2)
         for side in 1:2
@@ -385,7 +430,7 @@ bodyshape = Ellipsoid(mass, ρ_body, shape_b, shape_b) # define shape as a Cylin
 
             # package up inputs
             geom_vars = (; side, cd, conduction_fraction, longwave_depth_fraction, convection_enhancement)
-            env_vars = (; fluid_type, T_air, T_substrate, T_bush, T_vegetation, T_lower, T_sky, T_conduction,
+            env_vars = (; fluid_type, T_air, T_substrate, T_bush, T_vegetation, T_ground, T_sky, T_conduction,
                 rh, wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2)
             traits = (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness,
                 insulation_wetness, bare_skin_fraction, eye_fraction, insulation_conductivity)
@@ -521,4 +566,4 @@ bodyshape = Ellipsoid(mass, ρ_body, shape_b, shape_b) # define shape as a Cylin
             end
         end
     end
-#end
+end

@@ -3,15 +3,14 @@ abstract type AbstractEnvironmentalPars end
 """
     EnvironmentalParamsMorphoPars
 
-    EnvironmentalParams(α_substrate, ϵ_substrate, ϵ_sky, elevation, fluid, fN2, fO2, fCO2)
+    EnvironmentalParams(α_ground, ϵ_ground, ϵ_sky, elevation, fluid, fN2, fO2, fCO2)
     EnvironmentalParams(; kw...)
 
 Environmental parameters for an organism model.
 """
 Base.@kwdef struct EnvironmentalPars{A,S,E,L,F} <: AbstractEnvironmentalPars
-    α_substrate::A = Param(0.2, bounds=(0.0, 1.0))
-    shade::S = Param(0.0, bounds=(0.0, 1.0))
-    ϵ_substrate::A = Param(1.0, bounds=(0.0, 1.0))
+    α_ground::A = Param(0.2, bounds=(0.0, 1.0))
+    ϵ_ground::A = Param(1.0, bounds=(0.0, 1.0))
     ϵ_sky::A = Param(1.0, bounds=(0.0, 1.0))
     elevation::E = Param(0.0, units=u"m")
     fluid::L = Param(0)
@@ -30,18 +29,19 @@ abstract type AbstractEnvironmentalVars end
 
 Environmental variables for an organism model.
 """
-Base.@kwdef struct EnvironmentalVars{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
-    T_air::T
-    T_sky::T
-    T_substrate::T
-    rh::R
-    wind_speed::V
-    P_atmos::P
-    zenith_angle::Z
-    k_substrate::K
-    solar_radiation::Q
-    direct_radiation::Q
-    diffuse_radiation::Q
+Base.@kwdef struct EnvironmentalVars{TA,TU,TG,TS,RH,WS,PA,ZA,KS,RS,RB,RD} <: AbstractEnvironmentalVars
+    T_air::TA
+    T_sky::TU
+    T_ground::TG
+    T_substrate::TS
+    rh::RH
+    wind_speed::WS
+    P_atmos::PA
+    zenith_angle::ZA
+    k_substrate::KS
+    solar_radiation::RS
+    direct_radiation::RB
+    diffuse_radiation::RD
 end
 
 Base.@kwdef struct EnvironmentalVarsVec{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars

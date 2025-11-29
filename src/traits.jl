@@ -16,13 +16,13 @@ and tissue composition.
 These parameters are used to construct an object of type Body.
 """
 Base.@kwdef struct BodyPars{BM,FL,FA,FF,SB,SC,MB} <: AbstractMorphoParameters
-    mass::BM =          Param(65.0u"kg")
-    ρ_flesh::FL =        Param(1000.0u"kg/m^3")
-    ρ_fat::FA =         Param(901.0u"kg/m^3")
-    fat_fraction::FF =   Param(0.0, bounds=(0.0, 1.0))
-    shape_b::SB =       Param(1.1, bounds=(1.0, Inf))
-    shape_c::SC =       Param(1.1, bounds=(1.0, Inf))
-    shape_b_max::MB =   Param(5.0, bounds=(1.0, Inf))
+    mass::BM =         Param(65.0u"kg")
+    ρ_flesh::FL =      Param(1000.0u"kg/m^3")
+    ρ_fat::FA =        Param(901.0u"kg/m^3")
+    fat_fraction::FF = Param(0.0, bounds=(0.0, 1.0))
+    shape_b::SB =      Param(1.1, bounds=(1.0, Inf))
+    shape_c::SC =      Param(1.1, bounds=(1.0, Inf))
+    shape_b_max::MB =  Param(5.0, bounds=(1.0, Inf))
 end
 
 """
@@ -36,7 +36,7 @@ Morphological parameters relating to the integument (boundary) of the organism.
 - `ϵ_body_dorsal::F` — Longwave emissivity of dorsal body surface (0–1).
 - `ϵ_body_ventral::F` — Longwave emissivity of ventral body surface (0–1).
 - `F_sky::F` — Radiative configuration factor to sky (0–1).
-- `F_substrate::F` — Radiative configuration factor to substrate/ground (0–1).
+- `F_ground::F` — Radiative configuration factor to substrate/ground (0–1).
 - `F_vegetation::F` — Configuration factor to surrounding vegetation (0–1).
 - `F_bush::F` — Configuration factor to vegetation at animal height (0–1).
 - `eye_fraction::F` — Fraction of surface area that is eye (0–1).
@@ -49,20 +49,20 @@ Morphological parameters relating to the integument (boundary) of the organism.
 These parameters influence radiative and evaporative exchange.
 """
 Base.@kwdef struct IntegumentPars{AD,AV,ED,EV,FS,FG,FV,FB,EF,SW,BF,IF,CF,VF} <: AbstractMorphoParameters
-    α_body_dorsal::AD =          Param(0.85, bounds=(0.0, 1.0))
-    α_body_ventral::AV =         Param(0.85, bounds=(0.0, 1.0))
-    ϵ_body_dorsal::ED =          Param(0.95, bounds=(0.0, 1.0))
-    ϵ_body_ventral::EV =         Param(0.95, bounds=(0.0, 1.0))
-    F_sky::FS =                  Param(0.5, bounds=(0.0, 1.0))
-    F_substrate::FG =            Param(0.5, bounds=(0.0, 1.0))
-    F_vegetation::FV =           Param(0.0, bounds=(0.0, 1.0))
-    F_bush::FB =                 Param(0.0, bounds=(0.0, 1.0))
-    eye_fraction::EF =           Param(0.0, bounds=(0.0, 1.0))
-    skin_wetness::SW =           Param(0.0, bounds=(0.0, 1.0))
-    bare_skin_fraction::BF =     Param(1.0, bounds=(0.0, 1.0))
-    insulation_fraction::IF =    Param(0.0, bounds=(0.0, 1.0))
-    conduction_fraction::CF =    Param(0.0, bounds=(0.0, 1.0))
-    ventral_fraction::VF =       Param(0.5, bounds=(0.0, 1.0))
+    α_body_dorsal::AD =       Param(0.85, bounds=(0.0, 1.0))
+    α_body_ventral::AV =      Param(0.85, bounds=(0.0, 1.0))
+    ϵ_body_dorsal::ED =       Param(0.95, bounds=(0.0, 1.0))
+    ϵ_body_ventral::EV =      Param(0.95, bounds=(0.0, 1.0))
+    F_sky::FS =               Param(0.5, bounds=(0.0, 1.0))
+    F_ground::FG =            Param(0.5, bounds=(0.0, 1.0))
+    F_vegetation::FV =        Param(0.0, bounds=(0.0, 1.0))
+    F_bush::FB =              Param(0.0, bounds=(0.0, 1.0))
+    eye_fraction::EF =        Param(0.0, bounds=(0.0, 1.0))
+    skin_wetness::SW =        Param(0.0, bounds=(0.0, 1.0))
+    bare_skin_fraction::BF =  Param(1.0, bounds=(0.0, 1.0))
+    insulation_fraction::IF = Param(0.0, bounds=(0.0, 1.0))
+    conduction_fraction::CF = Param(0.0, bounds=(0.0, 1.0))
+    ventral_fraction::VF =    Param(0.5, bounds=(0.0, 1.0))
 end
 
 """
@@ -152,29 +152,31 @@ A collection of physiological parameters describing metabolic,
 respiratory, and thermal tissue properties of an organism.
 
 # Parameters
-- `fO2_extract::F` — Fraction of inspired oxygen extracted per breath (0–1).
-- `rq::F` — Respiratory quotient relating CO₂ produced to O₂ consumed (0–1).
+- `Q_minimum::B` — Minimum allowed metabolic heat generation rate (W), 
+    e.g., resting, active.
+- `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
 - `k_flesh::K` — Thermal conductivity of lean tissue (W/m/K).
 - `k_fat::K` — Thermal conductivity of fat tissue (W/m/K).
+- `fO2_extract::F` — Fraction of inspired oxygen extracted per breath (0–1).
+- `rq::F` — Respiratory quotient relating CO₂ produced to O₂ consumed (0–1).
 - `Δ_breath::B` — Temperature offset between ambient air and exhaled air.
 - `rh_exit::F` — Relative humidity of exhaled air (fraction 0–1).
-- `ψ_org::B` — Body water potential (determines boundary humidity) (J/kg).
-- `Q_minimum::B` — Minimum allowed metabolic heat generation rate (W), e.g., resting, active.
-- `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
+- `ψ_org::B` — Body water potential (determines humidity at skin surface 
+    and liquid water exchange) (J/kg).
 
 All parameters may be given using `Param(...)` wrappers for bounds,
 units, or documentation, and support Unitful values.
 """
-Base.@kwdef struct PhysioPars{FO,RQ,KF,KA,DB,RE,WP,QM,QT} <: AbstractPhysioParameters
-    fO2_extract::FO =            Param(0.20, bounds=(0.0, 1.0))
-    rq::RQ =   Param(0.8, bounds=(0.0, 1.0))
+Base.@kwdef struct PhysioPars{QM,QT,KF,KA,FO,RQ,DB,RE,WP} <: AbstractPhysioParameters
+    Q_minimum::QM =              Param(0.0u"W")
+    q10::QT =                    Param(2.0)
     k_flesh::KF =                Param(0.9u"W/m/K")
     k_fat::KA =                  Param(0.230u"W/m/K")
+    fO2_extract::FO =            Param(0.20, bounds=(0.0, 1.0))
+    rq::RQ =                     Param(0.8, bounds=(0.0, 1.2))
     Δ_breath::DB =               Param(0.0u"K")
     rh_exit::RE =                Param(1.0, bounds=(0.0, 1.0))
     ψ_org::WP =                  Param(0.0u"J/kg", bounds=(-Inf, 0.0))
-    Q_minimum::QM =              Param(0.0u"W")
-    q10::QT =                    Param(2.0)
 end
 
 """
@@ -186,18 +188,16 @@ changes in body shape or tissue conductivity.
 
 # Fields
 
+- `insulation_step` — Incremental reduction in insulation depth from the
+  piloerect (maximum fur depth) state.
 - `shape_b_step` — Increment by which the body‐shape parameter `shape_b`
   increases per iteration, allowing the animal to uncurl toward
   `shape_b_max`.
+- `T_core_target` — Target (normothermic) core temperature (K).
 - `T_core_max` — Maximum core temperature (K).
 - `T_core_min` — Minimum core temperature during torpor (K).
-- `T_core_target` — Target (normothermic) core temperature (K).
 - `T_core_step` — Increment by which core temperature is elevated per
   iteration (K).
-- `skin_wetness_step` — Increment in surface wetness fraction used to
-  model sweating behaviour.
-- `skin_wetness_max` — Maximum fraction of body surface area that can be
-  wetted (0–1).
 - `k_flesh_step` — Increment in flesh thermal conductivity (W/m/K).
 - `k_flesh_max` — Maximum flesh thermal conductivity (W/m/K).
 - `pant` — Multiplier on breathing rate to simulate panting.
@@ -205,28 +205,30 @@ changes in body shape or tissue conductivity.
 - `pant_multiplier` — Multiplier applied to basal metabolic rate at
   maximum panting effort.
 - `pant_max` — Maximum panting multiplier.
-- `insulation_step` — Incremental reduction in insulation depth from the
-  piloerect (maximum fur depth) state.
+- `skin_wetness_step` — Increment in surface wetness fraction used to
+  model sweating behaviour.
+- `skin_wetness_max` — Maximum fraction of body surface area that can be
+  wetted (0–1).
 
 All parameters use `Param` wrappers where appropriate for unit support
 and bounds checking.
 """
 Base.@kwdef struct ThermoregulationPars{
-    SBS, TCMX, TCMN, TCT, TCS, SWS, SWM,
-    KFS, KFM, P, PS, PM, PMX, IS
+    IS, SBS, TCT, TCMX, TCMN, TCS, KFS, KFM,
+    P, PS, PM, PMX, SWS, SWM
 } <: AbstractBehavParameters
-    shape_b_step::SBS        = Param(0.1)
-    T_core_max::TCMX         = Param(39u"°C" |> u"K")
-    T_core_min::TCMN         = Param(19u"°C" |> u"K")
-    T_core_target::TCT       = Param(37u"°C" |> u"K")
-    T_core_step::TCS         = Param(0.1u"K")
-    skin_wetness_step::SWS   = Param(0.001)
-    skin_wetness_max::SWM    = Param(1.0, bounds=(0.0, 1.0))
-    k_flesh_step::KFS        = Param(0.1u"W/m/K")
-    k_flesh_max::KFM         = Param(2.8u"W/m/K")
-    pant::P                  = Param(1.0)
-    pant_step::PS            = Param(0.1)
-    pant_multiplier::PM      = Param(1.05)
-    pant_max::PMX            = Param(5.0)
-    insulation_step::IS      = Param(1.0)
+    insulation_step::IS    = Param(1.0)
+    shape_b_step::SBS      = Param(0.1)
+    T_core_target::TCT     = Param(37u"°C" |> u"K")
+    T_core_max::TCMX       = Param(39u"°C" |> u"K")
+    T_core_min::TCMN       = Param(19u"°C" |> u"K")
+    T_core_step::TCS       = Param(0.1u"K")
+    k_flesh_step::KFS      = Param(0.1u"W/m/K")
+    k_flesh_max::KFM       = Param(2.8u"W/m/K")
+    pant::P                = Param(1.0)
+    pant_step::PS          = Param(0.1)
+    pant_multiplier::PM    = Param(1.05)
+    pant_max::PMX          = Param(5.0)
+    skin_wetness_step::SWS = Param(0.001)
+    skin_wetness_max::SWM  = Param(1.0, bounds=(0.0, 1.0))
 end
