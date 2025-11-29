@@ -1,12 +1,12 @@
 
-# Behavioral rules here
-abstract type AbstractBehavior end
+# # Behavioral rules here
+# abstract type AbstractBehavior end
 
-abstract type AbstractBehavModel <: AbstractBehavior end 
+# abstract type AbstractBehavModel <: AbstractBehavior end 
         
-abstract type AbstractBehavParameters <: AbstractBehavior end
+# abstract type AbstractBehavParameters <: AbstractBehavior end
         
-abstract type AbstractBehavThresholds <: AbstractBehavior end
+# abstract type AbstractBehavThresholds <: AbstractBehavior end
 
 #abstract type Diurnal <: AbstractBehavModel end
 #abstract type Nocturnal <: AbstractBehavModel end

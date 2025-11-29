@@ -971,7 +971,7 @@ function net_metabolic_heat(shape::Ellipsoid, body, T_core, T_skin, k_flesh, k_f
     return Q_gen_net
 end
 
-function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_min, respiratory_quotient,
+function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_min, rq,
      T_lung, mass, fO2_extract, rh, rh_exit, T_air_exit, pant, Q_sum)
 
     T_air = T_air_reference
@@ -1007,14 +1007,14 @@ function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_mi
     # respgen is assumed to be in J/s
     # o2stp will be in L/s
     # litres of O₂/S @ STP: (data from Kleiber, 1961)
-    if respiratory_quotient ≥ 1.0
+    if rq ≥ 1.0
         # carbohydrate metabolism
         # carbohydrates ≈ 4193 cal/g
         # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
         V_O2_STP = resp_gen * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal")
     end
 
-    if respiratory_quotient ≤ 0.7
+    if rq ≤ 0.7
         # fat metabolism; fats ≈ 9400 cal/g
         V_O2_STP = resp_gen * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal")
     else
@@ -1041,7 +1041,7 @@ function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_mi
     # moles at exit
     J_O2_out = J_O2_in - J_O2 # remove consumed oxygen from the total
     J_N2_out = J_N2_in
-    J_CO2_out = respiratory_quotient * J_O2 + J_CO2_in
+    J_CO2_out = rq * J_O2 + J_CO2_in
     # total moles of air at exit will be approximately the same as at entrance, since 
     # the moles of O2 removed = approx. the # moles of co2 added
     J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant

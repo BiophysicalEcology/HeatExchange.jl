@@ -1,18 +1,18 @@
 
 insulation = InsulationPars(;
-    fibre_diameter_dorsal=30.0u"μm", # hair diameter, dorsal (m)
-    fibre_diameter_ventral=30.0u"μm", # hair diameter, ventral (m)
-    fibre_length_dorsal=23.9u"mm", # hair length, dorsal (m)
-    fibre_length_ventral=23.9u"mm", # hair length, ventral (m)
-    insulation_depth_dorsal=9.0u"mm", # fur depth, dorsal (m)
-    insulation_depth_ventral=9.0u"mm", # fur depth, ventral (m)
-    fibre_density_dorsal=3000u"cm^-2", # hair density, dorsal (1/m2)
-    fibre_density_ventral=3000u"cm^-2", # hair density, ventral (1/m2)
-    insulation_reflectance_dorsal=0.301,  # fur reflectivity dorsal (fractional, 0-1)
-    insulation_reflectance_ventral=0.301,  # fur reflectivity ventral (fractional, 0-1)
-    insulation_depth_compressed=9.0u"mm", # depth of compressed fur (for conduction) (m)
-    fibre_conductivity=0.209u"W/m/K", # hair thermal conductivity (W/m°C)
-    longwave_depth_fraction=1.0,
+    fibre_diameter_dorsal=Param(30.0u"μm"), # hair diameter, dorsal (m)
+    fibre_diameter_ventral=Param(30.0u"μm"), # hair diameter, ventral (m)
+    fibre_length_dorsal=Param(23.9u"mm"), # hair length, dorsal (m)
+    fibre_length_ventral=Param(23.9u"mm"), # hair length, ventral (m)
+    insulation_depth_dorsal=Param(9.0u"mm"), # fur depth, dorsal (m)
+    insulation_depth_ventral=(9.0u"mm"), # fur depth, ventral (m)
+    fibre_density_dorsal=Param(3000u"cm^-2"), # hair density, dorsal (1/m2)
+    fibre_density_ventral=Param(3000u"cm^-2"), # hair density, ventral (1/m2)
+    insulation_reflectance_dorsal=Param(0.301),  # fur reflectivity dorsal (fractional, 0-1)
+    insulation_reflectance_ventral=Param(0.301),  # fur reflectivity ventral (fractional, 0-1)
+    insulation_depth_compressed=Param(9.0u"mm"), # depth of compressed fur (for conduction) (m)
+    fibre_conductivity=Param(0.209u"W/m/K"), # hair thermal conductivity (W/m°C)
+    longwave_depth_fraction=Param(1.0),
 )
 
 insulation_out = insulation_properties(; insulation, insulation_temperature=(273.15 + 20.0)u"K", ventral_fraction=0.3)

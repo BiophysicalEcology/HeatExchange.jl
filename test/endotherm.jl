@@ -4,6 +4,27 @@ using Unitful, UnitfulMoles
 using FluidProperties
 #using Plots
 
+# ellipsoid model
+
+ellipsoid_endotherm(; 
+    posture=4.5, 
+    mass=0.5u"kg", 
+    density=1000.0u"kg/m^3", 
+    core_temperature=37u"°C",
+    fur_depth=5u"mm", 
+    fur_conductivity=0.04u"W/m/K", 
+    oxygen_extraction_efficiency=0.2, 
+    stress_factor=0.6,
+    air_temperature=20.0u"°C", 
+    wind_speed=1.0u"m/s", 
+    relative_humidity=0.5, 
+    P_atmos = 101325.0u"Pa", 
+    Q10=3,
+    minimum_metabolic_rate=missing, 
+    metabolic_multiplier=1, 
+    lethal_desiccation=0.15, 
+    f_O2=0.2094)
+
 # solvendo
 
 T_air = u"K"(20.0u"°C") # air temperature at local height
@@ -50,6 +71,7 @@ pant = 1 # multiplier on breathing rate to simulate panting (-)
 pant_step = 0.1 # increment for multiplier on breathing rate to simulate panting (-)
 pant_multiplier = 1.05 # multiplier on basal metabolic rate at maximum panting level (-)
 insulation_step = 1.0
+
 # MORPHOLOGY
 
 # geometry
@@ -66,7 +88,8 @@ conduction_fraction = 0.0 # fraction of surface area that is touching the substr
 #ORIENT = 0 # if 1 = normal to sun's rays (heat maximising), if 2 = parallel to sun's rays (heat minimising), 3 = vertical and changing with solar altitude, or 0 = average
 
 # fur properties
-insulation_conductivity = nothing # user-specified fur thermal conductivity (W/mK), not used if 0
+insulation_conductivity_dorsal = nothing # user-specified fur thermal conductivity (W/mK), not used if 0
+insulation_conductivity_ventral = nothing # user-specified fur thermal conductivity (W/mK), not used if 0
 fibre_diameter_dorsal = 30.0u"μm" # hair diameter, dorsal (m)
 fibre_diameter_ventral = 30.0u"μm" # hair diameter, ventral (m)
 fibre_length_dorsal = 23.9u"mm" # hair length, dorsal (m)
@@ -81,8 +104,6 @@ insulation_reflectance_dorsal = 0.301  # fur reflectivity dorsal (fractional, 0-
 insulation_reflectance_ventral = 0.301  # fur reflectivity ventral (fractional, 0-1)
 insulation_depth_compressed = insulation_depth_ventral # depth of compressed fur (for conduction) (m)
 fibre_conductivity = 0.209u"W/m/K" # hair thermal conductivity (W/m°C)
-ventral_fraction = 0.3
-conduction_fraction = 0.0
 longwave_depth_fraction = 1 # fractional depth of fur at which longwave radiation is exchanged (0-1)
 
 # radiation exchange
@@ -99,7 +120,6 @@ T_core = u"K"(37.0u"°C") # core temperature (°C)
 T_core_max = u"K"(39.0u"°C") # maximum core temperature (°C)
 k_flesh = 0.9u"W/m/K" # initial thermal conductivity of flesh (0.412 - 2.8 W/m°C)
 k_fat = 0.230u"W/m/K" # conductivity of fat (W/mK)
-insulation_conductivity = nothing # conductivity of insulation (W/mK)
 
 # evaporation
 skin_wetness = 0.005 # part of the skin surface that is wet (fractional)
@@ -115,7 +135,6 @@ Q_minimum = (70 * ustrip(u"kg", mass)^0.75) * (4.185 / (24 * 3.6))u"W" # basal h
 respiratory_quotient = 0.80 # respiratory quotient (fractional, 0-1)
 fO2_extract = 0.2 # O2 extraction efficiency (fractional)
 pant_max = 5 # maximum breathing rate multiplier to simulate panting (-)
-#AIRVOL_MAX = 1e12 # maximum absolute breathing rate to simulate panting (L/s), can override PANT_MAX
 fur_step = 1 # # incremental fractional reduction in insulation_depth from piloerect state (-) (a value greater than zero triggers piloerection response)
 q10 = 2 # q10 factor for adjusting BMR for T_core
 T_core_min = 19 # minimum core temperature during torpor (TORPOR = 1)
@@ -179,7 +198,55 @@ insulation_pars = InsulationPars(;
     longwave_depth_fraction,
 )
 
-function endotherm()
+
+T_air = u"K"(20.0u"°C") # air temperature at local height
+T_air_reference = T_air # air temperature at reference height
+T_substrate = T_air # ground temperature
+T_sky = T_air # sky temperature
+T_vegetation = T_air_reference
+wind_speed = 0.1u"m/s" # wind speed
+rh = 0.05 # relative humidity (fractional)
+solar_radiation = 0.0u"W/m^2" # solar radiation, horizontal plane
+fraction_diffuse = 0.15 # fraction of solar radiation that is diffuse
+diffuse_radiation = solar_radiation * fraction_diffuse
+direct_radiation = solar_radiation - diffuse_radiation
+zenith_angle = 20u"°" # zenith angle of sun (degrees from overhead)
+elevation = 0.0u"m" # elevation
+α_substrate = 0.8 # solar absorptivity of substrate, fractional
+ϵ_substrate = 1.0 # substrate emissivity, fractional
+ϵ_sky = 1.0 # sky emissivity, fractional
+shade = 0.0 # shade, fractional
+fluid = 0
+
+# other environmental variables
+fluid_type = 0 # fluid type: 0 = air; 1 = fresh water; 2 = salt water
+T_conduction = T_substrate # surface temperature for conduction
+k_substrate = 2.79u"W/m/K" # substrate thermal conductivity
+T_bush = T_air # bush temperature
+P_atmos = atmospheric_pressure(elevation) # Pa, negative means elevation is used
+fO2 = 0.2095 # oxygen concentration of air, to account for non-atmospheric concentrations e.g. in burrows (fractional)
+fN2 = 0.7902 # nitrogen concentration of air, to account for non-atmospheric concentrations e.g. in burrows (fractional)
+fCO2 = 0.000412 # carbon dioxide concentration of air, to account for non-atmospheric concentrations e.g. in burrows (fractional)
+p_diffuse = 0.15 # proportion of solar radiation that is diffuse 
+g = u"gn" # acceleration due to gravity
+
+# initial conditions
+T_skin = T_core - 3u"K" # skin temperature (°C)
+T_insulation = T_air # fur/air interface temperature (°C)
+
+# other model settings
+convection_enhancement = 1 # convective enhancement factor for turbulent conditions, typically 1.4
+tolerance_simusol = 0.001u"K" # tolerance for SIMULSOL
+tolerance_torpor = 0.05 # allowable tolerance of heat balance as a fraction of torpid metabolic rate
+thermoregulate = true # invoke thermoregulatory response
+respire = true # compute respiration and associated heat loss
+thermoregulation_mode = 1 # 1 = raise core then pant then sweat, 2 = raise core and pant simultaneously, then sweat
+torpor = false # go into torpor if possible (drop T_core down to TC_MIN)
+
+bodyshape = Ellipsoid(mass, ρ_body, shape_b, shape_b) # define shape as a Cylinder struct of type 'Shape' and give it required values
+
+
+#function endotherm()
     Q_minimum_ref = Q_minimum
     T_core_ref = T_core
     insulation_depth_dorsal_ref = insulation_depth_dorsal
@@ -243,7 +310,6 @@ function endotherm()
             # The ventral side will have diffuse solar scattered off the substrate.
             # Resetting config factors and solar depending on whether the dorsal side (side=1) or ventral side (side=2) is being estimated.
             if Q_solar > 0.0u"W"
-                then
                 if side == 1
                     F_sky = F_sky_reference * 2.0 # proportion of upward view that is sky
                     F_vegetation = F_vegetation_reference * 2.0 # proportion of upward view that is vegetation (shade)
@@ -284,6 +350,11 @@ function endotherm()
                 insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
             end
 
+            if side == 1
+                insulation_conductivity = insulation_conductivity_dorsal
+            else
+                insulation_conductivity = insulation_conductivity_ventral                
+            end
             composite_insulation = (fat, fur)
             geometry_out = Body(bodyshape, CompositeInsulation(insulation, fat))
             # volume, accounting for any subcutaneous fat
@@ -401,7 +472,7 @@ function endotherm()
                             q10mult = q10^((ustrip(u"K", (T_core - T_core_ref))) / 10)
 
                             if (thermoregulation_mode >= 2) && (pant < pant_max)
-                                pant += pant_inc
+                                pant += pant_step
                                 pant_cost = ((pant - 1) / (pant_max + 1e-6 - 1)) *
                                             (pant_multiplier - 1) * Q_minimum_ref
 
@@ -417,10 +488,10 @@ function endotherm()
 
                         else
                             T_core = T_core_max
-                            q10mult = q10^((T_core - T_core_ref) / 10)
+                            q10mult = q10^((ustrip(u"K", (T_core - T_core_ref))) / 10)
 
                             if pant < pant_max
-                                pant += pant_inc
+                                pant += pant_step
                                 pant_cost = ((pant - 1) / (pant_max + 1e-6 - 1)) *
                                             (pant_multiplier - 1) * Q_minimum_ref
                                 Q_minimum = (Q_minimum_ref + pant_cost) * q10mult
@@ -450,4 +521,4 @@ function endotherm()
             end
         end
     end
-end
+#end

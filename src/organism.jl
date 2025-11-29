@@ -1,62 +1,121 @@
+abstract type AbstractMorphoModel end
+        
+abstract type AbstractMorphoParameters end
+
+abstract type AbstractMorphoThresholds end
+
 abstract type AbstractPhysioModel end
         
 abstract type AbstractPhysioParameters end
         
 abstract type AbstractPhysioThresholds end
 
-"""
-    MorphoPars <: AbstractMorphoParameters
+abstract type AbstractBehavModel end 
+        
+abstract type AbstractBehavParameters end
+        
+abstract type AbstractBehavThresholds end
 
-A collection of morphological parameter functional traits for an organism.
 """
-Base.@kwdef struct MorphoPars{F} <: AbstractMorphoParameters
-    α_body_dorsal::F = Param(0.85, bounds=(0.0, 1.0))
-    α_body_ventral::F = Param(0.85, bounds=(0.0, 1.0))
-    ϵ_body_dorsal::F = Param(0.95, bounds=(0.0, 1.0))
-    ϵ_body_ventral::F = Param(0.95, bounds=(0.0, 1.0))
-    F_sky::F = Param(0.5, bounds=(0.0, 1.0))
-    F_substrate::F = Param(0.5, bounds=(0.0, 1.0))
-    eye_fraction::F = Param(0.0, bounds=(0.0, 1.0))
-    skin_wetness::F = Param(0.0, bounds=(0.0, 1.0))
-    conduction_fraction::F = Param(0.0, bounds=(0.0, 1.0))
-    ventral_fraction::F = Param(0.5, bounds=(0.0, 1.0))
+    Shape
+
+Abstract supertype for the shape of the organism being modelled.
+"""
+abstract type Shape <: AbstractMorphoModel end
+
+"""
+    Insulation
+
+Abstract supertype for the insulation of the organism being modelled.
+"""
+abstract type Insulation <: AbstractMorphoParameters end
+
+
+"""
+    Naked <: Insulation
+
+    Naked()
+
+Insulation trait for an organism without fur.
+"""
+struct Naked <: Insulation end
+
+"""
+    CompositeInsulation <: Insulation
+
+    CompositeInsulation(layers)
+
+A composite of insulation layers (e.g., fur, fat) for an organism.
+"""
+struct CompositeInsulation{T<:Tuple} <: Insulation
+    layers::T
+end
+CompositeInsulation(i::Insulation) = CompositeInsulation((i,))
+CompositeInsulation(is::Insulation...) = CompositeInsulation((is...,))
+function geometry(shape, ins::CompositeInsulation)
+    geometry(shape, ins.layers...)
 end
 
 """
-    InsulationPars <: AbstractMorphoParameters
+    Fur <: Insulation
+    
+    Fur(thickness)
 
-A collection of insulation parameter functional traits for an organism.
+Insulation trait for an organism with fur.
 """
-Base.@kwdef struct InsulationPars{FDD,FDV,FLD,FLV,IDD,IDV,FRD,FRV,IRD,IRV,IDC,FC,LDF} <: AbstractMorphoParameters
-    fibre_diameter_dorsal::FDD
-    fibre_diameter_ventral::FDV
-    fibre_length_dorsal::FLD
-    fibre_length_ventral::FLV
-    insulation_depth_dorsal::IDD
-    insulation_depth_ventral::IDV
-    fibre_density_dorsal::FRD 
-    fibre_density_ventral::FRV 
-    insulation_reflectance_dorsal::IRD
-    insulation_reflectance_ventral::IRV
-    insulation_depth_compressed::IDC
-    fibre_conductivity::FC
-    longwave_depth_fraction::LDF
+struct Fur{T,D,R} <: Insulation
+    thickness::T
+    fibre_diameter::D
+    fibre_density::R
+end
+"""
+    Fat <: Insulation
+    
+    Fat(fraction, density)
+
+Insulation trait for an organism with fat.
+"""
+struct Fat{F,D} <: Insulation
+    fraction::F
+    density::D
 end
 
 """
-    PhysioPars <: AbstractParameterTrait
+    Geometry
 
-A collection of physiological parameter functional traits for an organism.
+    Geometry(volume, characteristic_dimension, length, area)
+
+The geometry of an organism.
 """
-Base.@kwdef struct PhysioPars{F,M,B,K} <: AbstractPhysioParameters
-    fO2_extract::F = Param(0.20, bounds=(0.0, 1.0))
-    rq::F = Param(0.8, bounds=(0.0, 1.0))
-    M1::M = Param(0.013)
-    M2::M = Param(0.8)
-    M3::M = Param(0.038)
-    M4::M = Param(0.0)
-    pant::B = Param(1.0)
-    k_body::K = Param(0.9, units="W/m/K")
+struct Geometry{V,C,L,A} <: AbstractMorphoParameters
+    volume::V
+    characteristic_dimension::C
+    length::L
+    area::A
+end
+
+"""
+    AbstractBody
+
+Abstract supertype for organism bodies.
+"""
+abstract type AbstractBody <: AbstractMorphoParameters end
+
+"""
+    Body <: AbstractBody
+
+    Body(shape::Shape, insulation::Insulation)
+    Body(shape::Shape, insulation::Insulation, geometry::Geometry)
+
+Physical dimensions of a body or body part that may or may note be insulated.
+"""
+struct Body{S<:Shape,I<:Insulation,G} <: AbstractBody
+    shape::S
+    insulation::I
+    geometry::G
+end
+function Body(shape::Shape, insulation::Insulation)
+    Body(shape, insulation, geometry(shape, insulation))
 end
 
 """
@@ -68,8 +127,10 @@ abstract type AbstractOrganism end
 
 # With some generic methods to get the params and body
 body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
-morphopars(o::AbstractOrganism) = o.morphopars # gets the morphological parameter traits from an object of type AbstractOrganism
+#morphopars(o::AbstractOrganism) = o.morphopars # gets the morphological parameter traits from an object of type AbstractOrganism
+integumentpars(o::AbstractOrganism) = o.integumentpars # gets the morphological parameter traits from an object of type AbstractOrganism
 physiopars(o::AbstractOrganism) = o.physiopars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
+thermoregpars(o::AbstractOrganism) = o.thermoregpars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
 shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
 insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
 
@@ -81,10 +142,11 @@ insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from
 A concrete implementation of `AbstractOrganism`, it accepts an
 [`AbstractBody`](@ref) and [`AbstractFunctionalTraits`](@ref) object.
 """
-struct Organism{B<:Body,M<:AbstractMorphoParameters,P<:AbstractPhysioParameters} <: AbstractOrganism
+struct Organism{B<:Body,M<:AbstractMorphoParameters,P<:AbstractPhysioParameters,T<:AbstractBehavParameters} <: AbstractOrganism
     body::B
-    morphopars::M
+    integumentpars::M
     physiopars::P
+    thermoregpars::T
 end
 
 """

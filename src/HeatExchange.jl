@@ -18,9 +18,9 @@ export Body, get_total_area, get_skin_area, get_evaporation_area, get_r_skin, ge
 
 export Insulation, CompositeInsulation, Naked, Fur, Fat
 
-export Organism, MorphoPars, PhysioPars, OrganismalVars
+export Organism, BodyPars, InsulationPars, IntegumentPars, PhysioPars, ThermoregulationPars, OrganismalVars
 
-export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec, InsulationPars
+export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
 export surface_area, silhouette_area
 
@@ -28,9 +28,9 @@ export geometry, shape, insulation, geometry_with_layers
 
 export heat_balance, get_Tb, flip2vectors
 
-export metabolism, respiration, solar, radin, radout, evaporation, conduction, convection
+export solar, radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced 
 
-export nusselt_free, nusselt_forced, Tsurf_and_Tlung
+export Tsurf_and_Tlung, respiration_ectotherm
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -40,17 +40,16 @@ export insulation_thermal_conductivity, insulation_properties, net_metabolic_hea
 
 export simulsol, respiration_endotherm, mean_skin_temperature
 
-include("geometry.jl")
-include("insulation.jl")
-include("environment.jl")
+export metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
+
 include("organism.jl")
+include("traits.jl")
+include("insulation.jl")
+include("geometry.jl")
+include("environment.jl")
 include("biophysics.jl")
 include("ectotherm.jl")
 include("endotherm.jl")
-
-# @compound H2O
-# @compound O2
-# @compound CO2
-# @compound N2
+include("metabolism.jl")
 
 end
