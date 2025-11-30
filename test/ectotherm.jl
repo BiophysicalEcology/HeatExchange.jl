@@ -55,6 +55,7 @@ shade = ecto_input.SHADE
 fO2 = ecto_input.O2gas / 100
 fCO2 = ecto_input.CO2gas / 100
 fN2 = ecto_input.N2gas / 100
+convection_enhancement = ecto_input.conv_enhance
 
 # organism morphology
 mass = u"kg"((ecto_input.Ww_g)u"g")
@@ -166,11 +167,13 @@ Q_ir_out = ir_loss.Q_ir_out
 Q_cond = conduction(A_conduction, Le, T_surface, T_substrate, k_substrate)
 
 # convection
-conv_out = convection(geometric_pars, A_convection, T_air, T_surface, wind_speed, P_atmos, fluid, fO2, fCO2, fN2)
+conv_out = convection(; body=geometric_pars, area=A_convection, T_air, T_surface, 
+    wind_speed, P_atmos, fluid, fO2, fCO2, fN2, convection_enhancement)
 Q_conv = conv_out.Q_conv
 
 # evaporation
-evap_out = evaporation(; T_surface, ψ_org, wetness=skin_wetness, area=A_convection, conv_out.hd, eye_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
+evap_out = evaporation(; T_surface, ψ_org, wetness=skin_wetness, area=A_convection, 
+    conv_out.hd, eye_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
 Q_evap = evap_out.Q_evap
 
 

@@ -172,8 +172,9 @@ Base.@kwdef struct EndoModelPars{TM,TR,RE,TP,TO} <: AbstractModelParameters
     tolerance::TO =             Param(0.001u"K")
 end
 
-function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulation_pars, physio_pars, thermoreg_pars, environmental_pars, organism_vars, environmental_vars)
-    shade = 0.0 # TODO how to deal with shade?
+function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulation_pars, 
+        physio_pars, thermoreg_pars, environmental_pars, organism_vars, environmental_vars)
+        shade = 0.0 # TODO how to deal with shade?
     # unpack parameters and variables
     (; thermoregulation_mode, thermoregulate, respire, torpor, tolerance) = model_pars
     (; mass, ρ_flesh, ρ_fat, fat_fraction, shape_b, shape_c) = body_pars
@@ -187,13 +188,15 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         insulation_reflectance_ventral, insulation_depth_compressed, fibre_conductivity, 
         longwave_depth_fraction, insulation_wetness) = insulation_pars
     (; Q_minimum, q10, k_flesh, k_fat, fO2_extract, rq, Δ_breath, rh_exit) = physio_pars
-    (; insulation_step, shape_b_step, T_core_target, T_core_max, T_core_min, T_core_step,
-        k_flesh_step, k_flesh_max, pant, pant_step, pant_multiplier, pant_max,
+    (; insulation_step, shape_b_step, shape_b_max, T_core_target, T_core_max, T_core_min, 
+        T_core_step,k_flesh_step, k_flesh_max, pant, pant_step, pant_multiplier, pant_max,
         skin_wetness_step, skin_wetness_max) = thermoreg_pars
-    (; α_ground, ϵ_ground, ϵ_sky, elevation, fluid, fN2, fO2, fCO2, convection_enhancement) = environmental_pars
+    (; α_ground, ϵ_ground, ϵ_sky, elevation, fluid, fN2, fO2, fCO2, convection_enhancement) = 
+        environmental_pars
     (; T_core, T_skin, T_insulation, T_lung, ψ_org) = organism_vars
-    (; T_air, T_air_reference, T_sky, T_ground, T_substrate, T_bush, T_vegetation, rh, wind_speed, P_atmos,
-        zenith_angle, k_substrate, solar_radiation, direct_radiation, diffuse_radiation)= environmental_vars
+    (; T_air, T_air_reference, T_sky, T_ground, T_substrate, T_bush, T_vegetation, rh, 
+        wind_speed, P_atmos, zenith_angle, k_substrate, solar_radiation, direct_radiation, 
+        diffuse_radiation) = environmental_vars
     ϵ_body = ϵ_body_dorsal # TODO use both dorsal and ventral
     Q_minimum_ref = Q_minimum
     T_core_ref = T_core_target
@@ -206,6 +209,25 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
     F_bush_reference = F_bush
     Q_gen = 0.0u"W"
     pant_cost = 0.0u"W"
+    shape_b_last = shape_b
+    k_flesh_last = k_flesh
+    T_core_last = T_core
+    pant_last = pant
+    skin_wetness_last = skin_wetness
+    simulsol_out = Vector{NamedTuple}(undef, 2) # TODO preallocate
+    respiration_out = Vector{NamedTuple}(undef, 1) # TODO preallocate
+    geometry_pars = nothing
+    dmult = nothing
+    vmult = nothing
+    T_lung = nothing
+    area_silhouette = nothing
+    area_total = nothing
+    area_skin = nothing
+    area_convection = nothing
+    area_evaporation = nothing
+    area_conduction = nothing
+    fat = nothing
+    fur = nothing
 
     while Q_gen < Q_minimum * 0.995
         insulation_temperature = T_insulation * 0.7 + T_skin * 0.3
@@ -235,10 +257,13 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         area_silhouette = silhouette_area(geometry_pars, 0u"°")
         area_total = get_total_area(geometry_pars) # total area, m2
         area_conduction = area_total * conduction_fraction # area of skin for convection/evaporation (total skin area - hair area), m2
-        #area_evaporation = get_evaporation_area(geometry_pars)
-        #area_convection = area_total * (1 - conduction_fraction)
+        area_evaporation = get_evaporation_area(geometry_pars)
+        area_convection = area_total * (1 - conduction_fraction)
 
-        Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate = solar_out = solar(α_body_dorsal, α_body_ventral, area_silhouette, area_total, area_conduction, F_ground, F_sky, α_ground, shade, normal_radiation, direct_radiation, diffuse_radiation)
+        Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate = 
+            solar_out = solar(α_body_dorsal, α_body_ventral, area_silhouette, 
+            area_total, area_conduction, F_ground, F_sky, α_ground, shade, 
+            normal_radiation, direct_radiation, diffuse_radiation)
         #Q_dorsal = Q_direct + Q_solar_sky
         Q_ventral = Q_solar_substrate
         #Q_diffuse = Q_solar_sky + Q_solar_substrate
@@ -253,10 +278,9 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         # set infrared environment
         T_vegetation = T_air_reference # assume vegetation casting shade is at reference (e.g. 1.2m or 2m) air temperature (deg C)
 
-        simulsol_out = Vector{NamedTuple}(undef, 2)
         for side in 1:2
 
-            # Calculating solar intensity entering fur. This will depend on whether we are calculating the fur
+            # Calculating solar intensity entering insulation. This will depend on whether we are calculating the fur
             # temperature for the dorsal side or the ventral side. The dorsal side will have solar inputs from
             # the direct beam hitting the silhouette area as well as diffuse solar scattered from the sky.
             # The ventral side will have diffuse solar scattered off the substrate.
@@ -336,14 +360,15 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
             end
 
             # package up inputs
-            geom_vars = (; side, cd, conduction_fraction, longwave_depth_fraction, convection_enhancement)
+            geom_vars = (; side, cd, conduction_fraction, longwave_depth_fraction)
             env_vars = (; fluid, T_air, T_ground, T_bush, T_vegetation, T_sky, T_substrate,
-                rh, wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2)
+                rh, wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2, 
+                convection_enhancement)
             traits = (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness,
                 insulation_wetness, bare_skin_fraction, eye_fraction, insulation_conductivity)
 
-            simulsol_out[side,] = simulsol(; T_skin, T_insulation, tolerance, geometry_pars, insulation_pars, insulation_out, geom_vars,
-                env_vars, traits)
+            simulsol_out[side,] = simulsol(; T_skin, T_insulation, tolerance, geometry_pars, 
+                insulation_pars, insulation_out, geom_vars, env_vars, traits)
         end
 
         T_skin_max = max(simulsol_out[1].T_skin, simulsol_out[2].T_skin)
@@ -381,13 +406,15 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
             end
             #tolerance = Q_minimum * tolerance_zbrent
 
-            Q_gen = find_zero(x -> respiration_endotherm(x; T_air_reference=T_air, fO2, fN2, fCO2, P_atmos, Q_min, rq,
-                    T_lung, mass, fO2_extract, rh, rh_exit, T_air_exit, pant, Q_sum).balance, (Q_m1, Q_m2), Bisection())
+            Q_gen = find_zero(x -> respiration_endotherm(x; T_air_reference=T_air, fO2, 
+                fN2, fCO2, P_atmos, Q_min, rq, T_lung, mass, fO2_extract, rh, rh_exit, 
+                T_air_exit, pant, Q_sum).balance, (Q_m1, Q_m2), Bisection())
 
-            zbrent_out = respiration_endotherm(Q_gen; T_air_reference=T_air, fO2, fN2, fCO2, P_atmos, Q_min, rq,
-                T_lung, mass, fO2_extract, rh, rh_exit, T_air_exit, pant, Q_sum)
+            respiration_out = respiration_endotherm(Q_gen; T_air_reference=T_air, fO2, 
+                fN2, fCO2, P_atmos, Q_min, rq, T_lung, mass, fO2_extract, rh, rh_exit, 
+                T_air_exit, pant, Q_sum)
 
-            Q_gen = zbrent_out.Q_gen # Q_gen_net
+            Q_gen = respiration_out.Q_gen # Q_gen_net
         else
             Q_gen = Q_sum
         end
@@ -473,7 +500,110 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
             end
         end
     end
-    return(; T_core_last, Q_gen, shape_b_last, k_flesh_last, pant_last, skin_wetness_last)
+
+    # collate output
+
+    # simusol outputs
+    T_insulation_dorsal      = simulsol_out[1].T_insulation   # feather/fur-air interface temp (°C)
+    T_skin_dorsal            = simulsol_out[1].T_skin   # average skin temp
+    Q_convection_dorsal      = simulsol_out[1].Q_convection   # convection (W)
+    Q_conduction_dorsal      = simulsol_out[1].Q_conduction   # conduction (W)
+    Q_evap_skin_dorsal       = simulsol_out[1].Q_evap_skin   # cutaneous evaporation (W)
+    Q_longwave_dorsal        = simulsol_out[1].Q_longwave   # radiative loss (W)
+    Q_solar_dorsal           = simulsol_out[1].Q_solar   # solar (W)
+    Q_evap_insulation_dorsal = simulsol_out[1].Q_evap_insulation  # fur evaporation (W)
+    ntry_dorsal              = simulsol_out[1].ntry  # attempts
+    success_dorsal           = simulsol_out[1].success  # success?
+    k_insulation_dorsal      = simulsol_out[1].k_insulation  # fur conductivity? (same as FORTRAN)
+
+    T_insulation_ventral      = simulsol_out[2].T_insulation   # feather/fur-air interface temp (°C)
+    T_skin_ventral            = simulsol_out[2].T_skin   # average skin temp
+    Q_convection_ventral      = simulsol_out[2].Q_convection   # convection (W)
+    Q_conduction_ventral      = simulsol_out[2].Q_conduction   # conduction (W)
+    Q_evap_skin_ventral       = simulsol_out[2].Q_evap_skin   # cutaneous evaporation (W)
+    Q_longwave_ventral        = simulsol_out[2].Q_longwave   # radiative loss (W)
+    Q_solar_ventral           = simulsol_out[2].Q_solar   # solar (W)
+    Q_evap_insulation_ventral = simulsol_out[2].Q_evap_insulation  # fur evaporation (W)
+    ntry_ventral              = simulsol_out[2].ntry  # attempts
+    success_ventral           = simulsol_out[2].success  # success?
+    k_insulation_ventral      = simulsol_out[2].k_insulation  # fur conductivity? (same as FORTRAN)
+
+    # respiration outputs
+    balance   = respiration_out.balance
+    Q_resp    = respiration_out.Q_resp
+    m_resp    = respiration_out.m_resp
+    Q_gen     = respiration_out.Q_gen
+    V_air     = respiration_out.V_air
+    V_O2_STP  = respiration_out.V_O2_STP
+    J_air_in  = respiration_out.J_air_in
+    J_air_out = respiration_out.J_air_out
+    J_H2O_in  = respiration_out.J_H2O_in
+    J_H2O_out = respiration_out.J_H2O_out
+    J_O2_in   = respiration_out.J_O2_in
+    J_O2_out  = respiration_out.J_O2_out
+    J_CO2_in  = respiration_out.J_CO2_in
+    J_CO2_out = respiration_out.J_CO2_out
+    J_N2_in   = respiration_out.J_N2_in
+    J_N2_out  = respiration_out.J_N2_out
+
+    # evaporation calculations
+    L_v   = enthalpy_of_vaporisation(T_air)
+    m_sweat  = u"g/hr"((Q_evap_skin_dorsal + Q_evap_skin_ventral) * 0.5 / L_v)
+    m_evap   = u"g/hr"(m_resp + m_sweat)
+
+    # geometric outputs
+    fat_mass = geometry_pars.shape.mass * fat.fraction
+    fat_volume = fat_mass / fat.density
+    volume = geometry_pars.geometry.volume
+    flesh_volume = volume - fat_volume
+
+    # radiation outputs
+
+    σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
+    # infrared dorsal
+    Q_rad_out_dorsal = 2 * F_sky * σ * ϵ_body_dorsal * area_total * T_insulation_dorsal^4
+    Q_rad_in_dorsal  = -Q_longwave_dorsal + Q_rad_out_dorsal
+
+    # infrared ventral
+    Q_rad_out_ventral = 2 * F_ground * σ * ϵ_body_ventral * area_total * T_insulation_ventral^4
+    Q_rad_in_ventral  = -Q_longwave_ventral + Q_rad_out_ventral
+
+    # energy flows
+    Q_solar = Q_solar_dorsal * dmult + Q_solar_ventral * vmult
+    Q_longwave_in  = Q_rad_in_dorsal * dmult + Q_rad_in_ventral * vmult
+    Q_evaporation  = Q_evap_skin_dorsal * dmult + Q_evap_skin_ventral * vmult + 
+        Q_evap_insulation_dorsal * dmult + Q_evap_insulation_ventral * vmult + Q_resp
+    Q_longwave_out = Q_rad_out_dorsal * dmult + Q_rad_out_ventral * vmult
+    Q_convection  = Q_convection_dorsal * dmult + Q_convection_ventral * vmult
+    Q_conduction  = Q_conduction_dorsal * dmult + Q_conduction_ventral * vmult
+
+    insulation_out = insulation_properties(; insulation=insulation_pars, 
+        insulation_temperature = T_insulation, ventral_fraction)
+    k_insulation_effective = insulation_out.effective_conductivities[1]
+    k_insulation_compressed = insulation_out.insulation_conductivity_compressed
+
+    thermoregulation = (;
+        T_core=T_core_last, T_lung, T_skin_dorsal, T_skin_ventral, T_insulation_dorsal, T_insulation_ventral,
+        shape_b=shape_b_last, pant = pant_last, skin_wetness = skin_wetness_last, k_flesh = k_flesh_last, k_insulation_effective,
+        k_insulation_dorsal, k_insulation_ventral, k_insulation_compressed, insulation_depth_dorsal, insulation_depth_ventral, q10
+    )
+
+    morphology = (;
+        area_total, area_skin, area_evaporation, area_convection, area_conduction, area_silhouette,
+        F_sky, F_ground, volume, flesh_volume, 
+        characteristic_dimension = geometry_pars.geometry.characteristic_dimension, 
+        fat_mass, geometry_pars.geometry.length...
+    )
+
+    energy_balance = (;
+        Q_solar, Q_longwave_in, Q_gen, Q_evaporation, Q_longwave_out, Q_convection, Q_conduction, balance,
+        ntry = max(ntry_dorsal, ntry_ventral), success = all((success_dorsal, success_ventral))
+    )
+
+    mass_balance = (; V_air, V_O2_STP, m_evap, m_sweat, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out,
+        J_CO2_in, J_CO2_out, J_N2_in, J_N2_out, J_air_in, J_air_out
+    )
+    return(; thermoregulation, morphology, energy_balance, mass_balance)
 end
 
 function simulsol(; T_skin, T_insulation, tolerance, geometry_pars, insulation_pars,
@@ -484,15 +614,15 @@ function simulsol(; T_skin, T_insulation, tolerance, geometry_pars, insulation_p
     success = true
 
     if insulation_test > 0.0u"m"
-        return (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin,
-            Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
-            Q_rad_ground, Q_evap_insulation, success, ntry) = solve_with_insulation!(T_skin, T_insulation,
+        return (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin, 
+            Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
+            Q_rad_ground, Q_evap_insulation, k_insulation, success, ntry) = solve_with_insulation!(T_skin, T_insulation,
             geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits,
             tolerance)
     else
         return (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin,
-            Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
-            Q_rad_ground, Q_evap_insulation, success, ntry) = solve_without_insulation!(T_skin, T_insulation,
+            Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
+            Q_rad_ground, Q_evap_insulation, k_insulation, success, ntry) = solve_without_insulation!(T_skin, T_insulation,
             geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits,
             tolerance)        
     end
@@ -561,10 +691,9 @@ function solve_without_insulation!(T_skin, T_insulation,
     geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits,
     tolerance
 )
-    (; side, cd, conduction_fraction,
-        longwave_depth_fraction, convection_enhancement) = geom_vars
-    (; fluid, T_air, T_bush, T_vegetation, T_ground, T_sky, T_substrate,
-        rh, wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2) = env_vars
+    (; side, cd, conduction_fraction, longwave_depth_fraction) = geom_vars
+    (; fluid, T_air, T_bush, T_vegetation, T_ground, T_sky, T_substrate, rh, wind_speed, P_atmos, 
+        F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2, convection_enhancement) = env_vars
     (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness, insulation_wetness, bare_skin_fraction,
         eye_fraction, insulation_conductivity) = traits
 
@@ -585,8 +714,8 @@ function solve_without_insulation!(T_skin, T_insulation,
         for i in 1:20
 
             # Evaporative heat loss
-            (; hc, hd, hd_free) = convection(geometry_pars, area_convection, T_air,
-                T_insulation, wind_speed, P_atmos, fluid, fO2, fCO2, fN2)
+            (; hc, hd, hd_free) = convection(; body=geometry_pars, area_convection, T_air,
+                T_surface=T_insulation, wind_speed, P_atmos, fluid, fO2, fCO2, fN2, convection_enhancement)
             Q_evap_skin = evaporation(; T_surface=T_skin, wetness=skin_wetness, area=area_evaporation, hd,
                 hd_free, eye_fraction, bare_fraction=bare_skin_fraction, T_air, 
                 rh, P_atmos, fO2, fCO2, fN2).Q_evap
@@ -610,18 +739,18 @@ function solve_without_insulation!(T_skin, T_insulation,
             Q_rad_vegetation = Q_rad3 * (T_skin_calc - T_vegetation)
             Q_rad_ground = Q_rad4 * (T_skin_calc - T_ground)
 
-            Q_radiation = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
+            Q_longwave = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
             Q_convection = hc * area_convection * (T_skin_calc - T_air)
-            Q_env = Q_radiation + Q_convection - Q_solar
+            Q_env = Q_longwave + Q_convection - Q_solar
 
             ΔT_skin = abs(T_skin - T_skin_calc)
 
             if ΔT_skin < tolerance
                 Q_gen_net = (4 * k_flesh * volume / r_skin^2) * (T_core - T_skin_calc)
                 success = true
-                return (; T_insulation, T_skin=T_skin_calc, Q_convection, Q_conduction,
-                    Q_gen_net, Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
-                    Q_rad_ground, Q_evap_insulation, success, ntry)
+                return (; T_insulation, T_skin_mean, Q_convection, Q_conduction, Q_gen_net,
+                            Q_evap_skin, Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, 
+                            Q_rad_ground, Q_evap_insulation, k_insulation=nothing, success, ntry)
             else
                 T_skin = T_skin_calc
                 T_insulation = T_skin_calc
@@ -635,8 +764,8 @@ function solve_without_insulation!(T_skin, T_insulation,
                         success = false
                         Q_gen_net = 0.0u"W"
                         return (; T_insulation, T_skin_mean, Q_convection, Q_conduction, Q_gen_net,
-                            Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
-                            Q_evap_insulation, success, ntry)
+                            Q_evap_skin, Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
+                            Q_evap_insulation, k_insulation=nothing, success, ntry)
                     end
                 end
             end
@@ -648,10 +777,9 @@ function solve_with_insulation!(T_skin, T_insulation,
     geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits,
     tolerance
 )
-    (; side, cd, conduction_fraction,
-        longwave_depth_fraction, convection_enhancement) = geom_vars
-    (; fluid, T_air, T_substrate, T_bush, T_vegetation, T_ground, T_sky, rh,
-        wind_speed, P_atmos, F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2) = env_vars
+    (; side, cd, conduction_fraction, longwave_depth_fraction) = geom_vars
+    (; fluid, T_air, T_substrate, T_bush, T_vegetation, T_ground, T_sky, rh, wind_speed, P_atmos, 
+        F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2, convection_enhancement) = env_vars
     (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness, insulation_wetness, bare_skin_fraction,
         eye_fraction, insulation_conductivity) = traits
 
@@ -672,8 +800,8 @@ function solve_with_insulation!(T_skin, T_insulation,
         for i in 1:20
             # Evaporative heat loss
             # first from the skin
-            (; hc, hd, hd_free) = convection(geometry_pars, area_convection, T_air,
-                T_insulation, wind_speed, P_atmos, fluid, fO2, fCO2, fN2)
+            (; hc, hd, hd_free) = convection(; body=geometry_pars, area=area_convection, T_air,
+                T_surface=T_insulation, wind_speed, P_atmos, fluid, fO2, fCO2, fN2, convection_enhancement)
             Q_evap_skin = evaporation(; T_surface=T_skin, wetness=skin_wetness, area=area_evaporation, hd,
                 hd_free, eye_fraction, bare_fraction=bare_skin_fraction, T_air, rh, P_atmos, 
                 fO2, fCO2, fN2).Q_evap
@@ -731,20 +859,20 @@ function solve_with_insulation!(T_skin, T_insulation,
                 Q_rad_bush = Q_rad2 * (T_radiant2 - T_bush)
                 Q_rad_vegetation = Q_rad3 * (T_radiant2 - T_vegetation)
                 Q_rad_ground = Q_rad4 * (T_radiant2 - T_ground)
-                Q_radiation = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
+                Q_longwave = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
                 Q_convection = hc * area_convection * (T_insulation_calc - T_air)
                 Q_conduction = cd * (T_ins_compressed - T_substrate)
             else
                 (; cf1, T_ins_compressed) =
                     compressed_radiant_temperature(; body=geometry_pars, insulation=insulation_out,
                         insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd)
-                Q_radiation = 0.0u"W"
+                Q_longwave = 0.0u"W"
                 Q_convection = 0.0u"W"
                 Q_evap_insulation = 0.0u"W"
                 Q_solar = 0.0u"W"
                 Q_conduction = cd * (T_ins_compressed - T_substrate)
             end
-            Q_env = Q_radiation + Q_convection + Q_conduction + Q_evap_insulation - Q_solar
+            Q_env = Q_longwave + Q_convection + Q_conduction + Q_evap_insulation - Q_solar
             T_skin_mean, T_skin_calc1 =
                 mean_skin_temperature(; body=geometry_pars, insulation=insulation_out,
                     insulation_pars, Q_env, Q_evap_skin, k_flesh, k_fat, T_core, T_insulation_calc,
@@ -760,8 +888,8 @@ function solve_with_insulation!(T_skin, T_insulation,
                     Q_gen_net = net_metabolic_heat(; body = geometry_pars, T_core, T_skin, k_flesh, k_fat)
                     success = true
                     return return (; T_insulation, T_skin=T_skin_mean, Q_convection, Q_conduction,
-                        Q_gen_net, Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
-                        Q_rad_ground, Q_evap_insulation, success, ntry)
+                        Q_gen_net, Q_evap_skin, Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
+                        Q_rad_ground, Q_evap_insulation, k_insulation, success, ntry)
                 else
                     # Not converged, restart iteration
                     if ntry < 20
@@ -775,8 +903,8 @@ function solve_with_insulation!(T_skin, T_insulation,
                             ssqg, bs, bg
                         )
                         return (; T_insulation, T_skin_mean, Q_convection, Q_conduction, Q_gen_net,
-                            Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
-                            Q_evap_insulation, success, ntry)
+                            Q_evap_skin, Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
+                            Q_evap_insulation, k_insulation, success, ntry)
                     end
                 end
 
@@ -803,26 +931,26 @@ function solve_with_insulation!(T_skin, T_insulation,
                         success = false
                         Q_gen_net = 0.0u"W"
                         return (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net,
-                            Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
-                            Q_evap_insulation, success, ntry)
+                            Q_evap_skin, Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
+                            Q_evap_insulation, k_insulation, success, ntry)
                     end
                 end
             end
         end
     end
     return (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net,
-        Q_evap_skin, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
-        Q_evap_insulation, success, ntry)
+        Q_evap_skin, Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
+        Q_evap_insulation, k_insulation, success, ntry)
 end
 
 radiant_temperature(; body::AbstractBody, insulation, insulation_pars, Q_evap, T_core, T_skin, 
- T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
+ T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
  conduction_fraction) = radiant_temperature(shape(body), body, insulation, insulation_pars, 
- Q_evap, T_core, T_skin, T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, 
+ Q_evap, T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, 
  longwave_depth_fraction, conduction_fraction)
 
 function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, insulation_pars, 
-    Q_evap, T_core, T_skin, T_ground, T_insulation, k_flesh, k_fat, k_insulation,
+    Q_evap, T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation,
      cd, longwave_depth_fraction, conduction_fraction)
 
     volume = body.geometry.volume
@@ -873,7 +1001,7 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
 end
 
 function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q_evap, T_core, T_skin,
-     T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
+     T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
      conduction_fraction)
 
     volume = body.geometry.volume
@@ -925,7 +1053,7 @@ function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q
 end
 
 function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_evap,
-     T_core, T_skin, T_ground, T_insulation, k_flesh, k_fat, k_insulation, cd, 
+     T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, 
       longwave_depth_fraction, conduction_fraction)
 
     volume = body.geometry.volume
@@ -1392,5 +1520,5 @@ function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_mi
     # note that there is no recovery of heat or moisture assumed in the nose
     Q_net_check = x - Q_resp
     balance = Q_net_check - Q_sum
-    return (; balance, Q_resp, m_resp, Q_gen = x, V_air, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out)
+    return (; balance, Q_resp, m_resp, Q_gen = x, V_air, V_O2_STP, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
 end

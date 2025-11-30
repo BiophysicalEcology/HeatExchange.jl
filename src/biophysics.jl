@@ -99,7 +99,8 @@ function radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsa
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end
 
-function convection(body, area, T_air, T_surface, wind_speed, P_atmos, fluid, fO2, fCO2, fN2)
+function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, fO2, fCO2, fN2, 
+        convection_enhancement = 1.0)
     G = Unitful.gn # acceleration due to gravity, m.s^2
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
@@ -139,7 +140,7 @@ function convection(body, area, T_air, T_surface, wind_speed, P_atmos, fluid, fO
     hd_free = Sh_free * D_w / D # mass transfer coefficient, free
     Q_free = hc_free * area * (T_surface - T_air) # free convective heat loss at surface
     # forced convection
-    Nu = nusselt_forced(body.shape, Re)
+    Nu = nusselt_forced(body.shape, Re) * convection_enhancement
     # forced convection for object
     hc_forc = Nu * k_fluid / D # heat transfer coefficient, forced
     Sh_forc = Nu * (Sc / Pr)^(1 / 3) # Sherwood number, forced

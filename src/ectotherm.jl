@@ -10,15 +10,18 @@ Calculate heat balance for an organism at temperature T.
 function ectotherm end
 
 # A method dispatching on a `Model`
-ectotherm(T_x, mod::Model, e_pars, vars) = ectotherm(T_x, stripparams(mod), stripparams(e_pars), vars)
+ectotherm(T_x, mod::Model, e_pars, vars) = ectotherm(T_x, stripparams(mod), 
+    stripparams(e_pars), vars)
 # A generic method that expands dispatch to include the insulation
 # this could be <:Ectotherm or <:Endotherm?
-ectotherm(T_x, o::Organism, e_pars, vars) = ectotherm(T_x, insulation(o), o, integumentpars(o), physiopars(o), thermoregpars(o), e_pars, vars)
+ectotherm(T_x, o::Organism, e_pars, vars) = ectotherm(T_x, insulation(o), o, 
+    integumentpars(o), physiopars(o), thermoregpars(o), e_pars, vars)
 # A method for Naked organisms
 
-function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars, thermoregpars, e_pars, vars)
-    o_vars = vars.organism # make small function to get this
-    e_vars = vars.environment # make small function to get this
+function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars, 
+        thermoregpars, e_pars, vars)
+    o_vars = vars.organism # TODO make small function to get this, or extract all?
+    e_vars = vars.environment # TODO make small function to get this, or extract all?
     
     # compute areas for exchange
     A_total = get_total_area(o.body)
@@ -48,13 +51,17 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars, thermo
         integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral, e_pars.ϵ_ground, 
         e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_ground)
     Q_ir_in = ir_gain.Q_ir_in
-    ir_loss = radout(T_surface, A_total, A_conduction, integumentpars.F_sky, integumentpars.F_ground, 
-        integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral)
+    ir_loss = radout(T_surface, A_total, A_conduction, integumentpars.F_sky,
+         integumentpars.F_ground, integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral)
     Q_ir_out = ir_loss.Q_ir_out
     Le = 0.025u"m"
     Q_cond = conduction(A_conduction, Le, T_surface, e_vars.T_substrate, e_vars.k_substrate)
-    conv_out = convection(o.body, A_convection, e_vars.T_air, T_surface, e_vars.wind_speed, e_vars.P_atmos, e_pars.fluid, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
-    evap_out = evaporation(T_surface, o_vars.ψ_org, integumentpars.skin_wetness, A_convection, conv_out.hd, conv_out.hd_free, integumentpars.eye_fraction, 1.0, e_vars.T_air, e_vars.rh, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
+    conv_out = convection(; body=o.body, area=A_convection, T_air=e_vars.T_air, T_surface, wind_speed=e_vars.wind_speed, 
+        P_atmos=e_vars.P_atmos, fluid=e_pars.fluid, fO2=e_pars.fO2, fCO2=e_pars.fCO2, fN2=e_pars.fN2, 
+        convection_enhancement=e_pars.convection_enhancement)
+    evap_out = evaporation(T_surface, o_vars.ψ_org, integumentpars.skin_wetness, A_convection, 
+        conv_out.hd, conv_out.hd_free, integumentpars.eye_fraction, 1.0, e_vars.T_air, e_vars.rh, 
+        e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
     Q_conv = conv_out.Q_conv # convective heat loss
     Q_evap = evap_out.Q_evap # evaporative heat loss
     
@@ -65,8 +72,10 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars, thermo
     Q_bal = Q_in - Q_out # this must balance
 
     enbal = (; Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal)
-    masbal = (; V_O2 = metab_out.V_O2, m_resp = resp_out.m_resp, m_cut = evap_out.m_cut, m_eye = evap_out.m_eyes)
-    (;Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
+    masbal = (; V_O2 = metab_out.V_O2, m_resp = resp_out.m_resp, m_cut = evap_out.m_cut, 
+        m_eye = evap_out.m_eyes)
+    (;Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, 
+        ir_loss, conv_out, evap_out)
 
 end
 function ectotherm(T_x, insulation::Fur, pars, organism, vars) # A method for organisms with fur
@@ -105,7 +114,7 @@ flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 #    ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 #    Q_ir_out = ir_loss.Q_ir_out
 #    Q_cond = conduction(A_conduction, Le, T_surface, T_substrate, k_substrate)
-#    conv_out = convection(geometric_pars, A_convection, T_air, T_surface, wind_speed, P_atmos, fluid)
+#    conv_out = convection(; body=geometric_pars, A_convection, T_air, T_surface, wind_speed, P_atmos, fluid)
 #    evap_out = evaporation(T_surface, ψ_org, skin_wetness, A_convection, conv_out.hd, eye_fraction, T_air, rh, P_atmos)
 #    Q_conv = conv_out.Q_conv
 #    Q_evap = evap_out.Q_evap

@@ -191,6 +191,7 @@ changes in body shape or tissue conductivity.
 - `shape_b_step` — Increment by which the body‐shape parameter `shape_b`
   increases per iteration, allowing the animal to uncurl toward
   `shape_b_max`.
+- `shape_b_max` — Maximum allowed value of shape_b when adjusting posture.
 - `T_core_target` — Target (normothermic) core temperature (K).
 - `T_core_max` — Maximum core temperature (K).
 - `T_core_min` — Minimum core temperature during torpor (K).
@@ -212,11 +213,12 @@ All parameters use `Param` wrappers where appropriate for unit support
 and bounds checking.
 """
 Base.@kwdef struct ThermoregulationPars{
-    IS, SBS, TCT, TCMX, TCMN, TCS, KFS, KFM,
+    IS, SBS, SBM, TCT, TCMX, TCMN, TCS, KFS, KFM,
     P, PS, PM, PMX, SWS, SWM
 } <: AbstractBehavParameters
     insulation_step::IS    = Param(1.0)
     shape_b_step::SBS      = Param(0.1)
+    shape_b_max::SBM       = Param(5.0)
     T_core_target::TCT     = Param(37u"°C" |> u"K")
     T_core_max::TCMX       = Param(39u"°C" |> u"K")
     T_core_min::TCMN       = Param(19u"°C" |> u"K")
