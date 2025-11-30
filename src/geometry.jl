@@ -48,7 +48,7 @@ silhouette_area(body::AbstractBody, θ) = silhouette_area(shape(body), insulatio
 
 A flat plate-shaped organism shape.
 """
-struct Plate{M,D,B,C} <: Shape
+mutable struct Plate{M,D,B,C} <: Shape
     mass::M
     density::D
     b::B
@@ -171,7 +171,7 @@ surface_area(shape::Plate, length, width, height) = length * width * 2 + length 
 
 A cylindrical organism shape.
 """
-struct Cylinder{M,D,B} <: Shape
+mutable struct Cylinder{M,D,B} <: Shape
     mass::M
     density::D
     b::B
@@ -307,7 +307,7 @@ silhouette_area(shape::Cylinder, r, l, θ) = 2 * r * l * sin(θ) + π * r^2 * co
 
 A spherical organism shape.
 """
-struct Sphere{M,D} <: Shape
+mutable struct Sphere{M,D} <: Shape
     mass::M
     density::D
 end
@@ -424,7 +424,7 @@ silhouette_area(shape::Sphere, r) = π * r ^ 2
 
 An ellipsoidal organism shape.
 """
-struct Ellipsoid{M,D,B,C} <: Shape
+mutable struct Ellipsoid{M,D,B,C} <: Shape
     mass::M
     density::D
     b::B

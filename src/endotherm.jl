@@ -256,12 +256,13 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
 
         area_silhouette = silhouette_area(geometry_pars, 0u"°")
         area_total = get_total_area(geometry_pars) # total area, m2
+        area_skin = get_skin_area(geometry_pars) # total area, m2
         area_conduction = area_total * conduction_fraction # area of skin for convection/evaporation (total skin area - hair area), m2
         area_evaporation = get_evaporation_area(geometry_pars)
         area_convection = area_total * (1 - conduction_fraction)
 
-        Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate = 
-            solar_out = solar(α_body_dorsal, α_body_ventral, area_silhouette, 
+        (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) = 
+            solar(α_body_dorsal, α_body_ventral, area_silhouette, 
             area_total, area_conduction, F_ground, F_sky, α_ground, shade, 
             normal_radiation, direct_radiation, diffuse_radiation)
         #Q_dorsal = Q_direct + Q_solar_sky
@@ -438,8 +439,10 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
                 insulation_depth_ventral = insulation_depth_ventral_ref
                 if shape_b < shape_b_max
                     shape_b += shape_b_step
+                    geometry_pars.shape.b = shape_b
                 else
                     shape_b = shape_b_max
+                    geometry_pars.shape.b = shape_b
 
                     if k_flesh < k_flesh_max
                         k_flesh += k_flesh_step
@@ -556,6 +559,8 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
     fat_volume = fat_mass / fat.density
     volume = geometry_pars.geometry.volume
     flesh_volume = volume - fat_volume
+    area_total = get_total_area(geometry_pars)
+    area_skin = get_skin_area(geometry_pars)
 
     # radiation outputs
 
@@ -581,9 +586,11 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         insulation_temperature = T_insulation, ventral_fraction)
     k_insulation_effective = insulation_out.effective_conductivities[1]
     k_insulation_compressed = insulation_out.insulation_conductivity_compressed
+    T_skin = T_skin_dorsal * dmult + T_skin_ventral * vmult
+    T_insulation = T_insulation_dorsal * dmult + T_insulation_ventral * vmult
 
     thermoregulation = (;
-        T_core=T_core_last, T_lung, T_skin_dorsal, T_skin_ventral, T_insulation_dorsal, T_insulation_ventral,
+        T_core=T_core_last, T_skin, T_insulation, T_lung, T_skin_dorsal, T_skin_ventral, T_insulation_dorsal, T_insulation_ventral,
         shape_b=shape_b_last, pant = pant_last, skin_wetness = skin_wetness_last, k_flesh = k_flesh_last, k_insulation_effective,
         k_insulation_dorsal, k_insulation_ventral, k_insulation_compressed, insulation_depth_dorsal, insulation_depth_ventral, q10
     )
@@ -595,15 +602,15 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         fat_mass, geometry_pars.geometry.length...
     )
 
-    energy_balance = (;
+    energy_fluxes = (;
         Q_solar, Q_longwave_in, Q_gen, Q_evaporation, Q_longwave_out, Q_convection, Q_conduction, balance,
         ntry = max(ntry_dorsal, ntry_ventral), success = all((success_dorsal, success_ventral))
     )
 
-    mass_balance = (; V_air, V_O2_STP, m_evap, m_sweat, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out,
+    mass_fluxes = (; V_air, V_O2_STP, m_evap, m_resp, m_sweat, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out,
         J_CO2_in, J_CO2_out, J_N2_in, J_N2_out, J_air_in, J_air_out
     )
-    return(; thermoregulation, morphology, energy_balance, mass_balance)
+    return(; thermoregulation, morphology, energy_fluxes, mass_fluxes)
 end
 
 function simulsol(; T_skin, T_insulation, tolerance, geometry_pars, insulation_pars,
