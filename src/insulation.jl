@@ -82,7 +82,7 @@ function insulation_thermal_conductivity(; fibre_density::Quantity, fibre_length
     # Absorption and optical parameters
     absorption_coefficient = (0.67 / π) * u"m^-2"(effective_density) * u"m"(fibre_diameter)
     optical_thickness_factor = absorption_coefficient * u"m"(insulation_depth)
-
+    @show effective_conductivity
     return [effective_conductivity, absorption_coefficient, optical_thickness_factor]
 end
 

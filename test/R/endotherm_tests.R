@@ -1,13 +1,13 @@
 library(NicheMapR)
-furmult <- 1
+furmult <- 0
 endoR_input = list(
-    TA = 10.0, # air temperature at local height (°C)
-    TAREF = 10.0, # air temperature at reference height (°C)
-    TGRD = 10.0, # ground temperature (°C)
+    TA = 20.0, # air temperature at local height (°C)
+    TAREF = 20.0, # air temperature at reference height (°C)
+    TGRD = 30.0, # ground temperature (°C)
     TSKY = 10.0, # sky temperature (°C)
     VEL = 1.0, # wind speed (m/s)
     RH = 5.0, # relative humidity (%)
-    QSOLR = 0.0, # solar radiation, horizontal plane (W/m2)
+    QSOLR = 500.0, # solar radiation, horizontal plane (W/m2)
     Z = 20.0, # zenith angle of sun (degrees from overhead)
     ELEV = 0.0, # elevation (m)
     ABSSB = 0.8, # solar absorptivity of substrate (fractional, 0-1)
@@ -57,7 +57,7 @@ endoR_input = list(
     ORIENT = 1, # if 1 = normal to sun's rays (heat maximising), if 2 = parallel to sun's rays (heat minimising), 3 = vertical and changing with solar altitude, or 0 = average
     
     # fur properties
-    FURTHRMK = 0.04, # user-specified fur thermal conductivity (W/mK), not used if 0
+    FURTHRMK = 0.0,#4, # user-specified fur thermal conductivity (W/mK), not used if 0
     DHAIRD = furmult*30E-06, # hair diameter, dorsal (m)
     DHAIRV = furmult*30E-06, # hair diameter, ventral (m)
     LHAIRD = furmult*23.9E-03, # hair length, dorsal (m)
@@ -115,7 +115,7 @@ endoR_input = list(
     CONV_ENHANCE = 1.0, # convective enhancement factor for turbulent conditions, typically 1.4
     DIFTOL = 0.001, # tolerance for SIMULSOL
     BRENTOL = 1e-5, # tolerance for ZBRENT
-    THERMOREG = 0, # invoke thermoregulatory response
+    THERMOREG = 1, # invoke thermoregulatory response
     RESPIRE = 1, # compute respiration and associated heat loss
     TREGMODE = 1, # 1 = raise core then pant then sweat, 2 = raise core and pant simultaneously, then sweat
     TORPOR = 0, # go into torpor if possible (drop TC down to TC_MIN)

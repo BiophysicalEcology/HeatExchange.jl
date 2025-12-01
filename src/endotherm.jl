@@ -513,24 +513,24 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
 
                                 if thermoregulation_mode == 3
                                     skin_wetness += skin_wetness_step
-                                    thermoreg_vars.skin_wetness = skin_wetness
+                                    #thermoreg_vars.skin_wetness = skin_wetness
                                     if skin_wetness > skin_wetness_max
                                         skin_wetness = skin_wetness_max
                                     end
                                 end
                             else
                                 pant = pant_max
-                                thermoreg_vars.pant = pant
+                                #thermoreg_vars.pant = pant
                                 pant_cost = ((pant - 1) / (pant_max + 1e-6 - 1)) *
                                             (pant_multiplier - 1) * Q_minimum_ref
 
                                 Q_minimum = (Q_minimum_ref + pant_cost) * q10mult
 
                                 skin_wetness += skin_wetness_step
-                                thermoreg_vars.skin_wetness = skin_wetness
+                                #thermoreg_vars.skin_wetness = skin_wetness
                                 if (skin_wetness > skin_wetness_max) || (skin_wetness_step <= 0)
                                     skin_wetness = skin_wetness_max
-                                    thermoreg_vars.skin_wetness = skin_wetness
+                                    #thermoreg_vars.skin_wetness = skin_wetness
                                     return
                                 end
                             end
@@ -653,7 +653,7 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
     Q_conduction  = Q_conduction_dorsal * dmult + Q_conduction_ventral * vmult
 
     insulation_out = insulation_properties(; insulation=insulation_pars, 
-        insulation_temperature = T_insulation, ventral_fraction, 
+        insulation_temperature = T_insulation * 0.7 + T_skin * 0.3, ventral_fraction, 
         insulation_depth_dorsal, insulation_depth_ventral)
     k_insulation_effective = insulation_out.effective_conductivities[1]
     k_insulation_compressed = insulation_out.insulation_conductivity_compressed
@@ -896,7 +896,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 insulation_properties(;
                     insulation=insulation_pars,
                     insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
-                    ventral_fraction=0.0, insulation_depth_dorsal, insulation_depth_ventral
+                    ventral_fraction=0.5, insulation_depth_dorsal, insulation_depth_ventral
                 )
             absorption_coefficient = absorption_coefficients[side+1]
             k_eff = effective_conductivities[side+1]

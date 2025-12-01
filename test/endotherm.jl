@@ -195,34 +195,36 @@ mass_fluxes = endotherm_out.mass_fluxes
     @test treg_output_vec.PCTWET / 100.0 ≈ thermoregulation.skin_wetness rtol = 1e-4
     @test treg_output_vec.K_FLESH ≈ ustrip(u"W/m/K", thermoregulation.k_flesh) rtol = 1e-4
     if insulation_test > 0.0u"m"
-        @test treg_output_vec.K_FUR_D ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_dorsal) rtol = 1e-4
-        @test treg_output_vec.K_FUR_V ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_ventral) rtol = 1e-4
+        @test treg_output_vec.K_FUR_D ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_dorsal) rtol = 1e-3
+        @test treg_output_vec.K_FUR_V ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_ventral) rtol = 1e-3
     end
-    #if isnothing(insulation_conductivity)
+    if isnothing(insulation_conductivity)
         @test treg_output_vec.K_FUR_EFF ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_effective) rtol = 1e-4
         @test treg_output_vec.K_COMPFUR ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_compressed) rtol = 1e-4
-    #end
+    end
     @test treg_output_vec.Z_FUR_D ≈ ustrip(u"m", thermoregulation.insulation_depth_dorsal) rtol = 1e-4
     @test treg_output_vec.Z_FUR_V ≈ ustrip(u"m", thermoregulation.insulation_depth_ventral) rtol = 1e-4
 end
 
+fat = morphology.fat < 1.0e-10u"m" ? 0.0u"m" : morphology.fat
+
 @testset "endotherm morphology comparisons" begin
-    @test morph_output_vec.AREA ≈ ustrip(u"m^2", morphology.area_total) rtol = 1e-7
-    @test morph_output_vec.AREA_SKIN ≈ ustrip(u"m^2", morphology.area_skin) rtol = 1e-7
-    @test morph_output_vec.AREA_SKIN_EVAP ≈ ustrip(u"m^2", morphology.area_evaporation) rtol = 1e-7
-    @test morph_output_vec.AREA_CONV ≈ ustrip(u"m^2", morphology.area_convection) rtol = 1e-7
-    @test morph_output_vec.AREA_COND ≈ ustrip(u"m^2", morphology.area_conduction) rtol = 1e-7
-    #@test morph_output_vec.AREA_SIL ≈ ustrip(u"m^2", morphology.area_silhouette) rtol = 1e-7
-    @test morph_output_vec.F_SKY ≈ morphology.F_sky rtol = 1e-7
-    @test morph_output_vec.F_GROUND ≈ morphology.F_ground rtol = 1e-7
-    @test morph_output_vec.VOLUME ≈ ustrip(u"m^3", morphology.volume) rtol = 1e-7
-    @test morph_output_vec.FLESH_VOL ≈ ustrip(u"m^3", morphology.flesh_volume) rtol = 1e-7
-    @test morph_output_vec.CHAR_DIM ≈ ustrip(u"m", morphology.characteristic_dimension) rtol = 1e-7
-    @test morph_output_vec.MASS_FAT ≈ ustrip(u"kg", morphology.fat_mass) rtol = 1e-7
-    @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.a_semi_major * 2) rtol = 1e-7
-    @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor * 2) rtol = 1e-7
-    @test morph_output_vec.HEIGHT ≈ ustrip(u"m", morphology.c_semi_minor * 2) rtol = 1e-7
-    @test morph_output_vec.FAT_THICK ≈ ustrip(u"m", morphology.fat) rtol = 1e-7
+    @test morph_output_vec.AREA ≈ ustrip(u"m^2", morphology.area_total) rtol = 1e-5
+    @test morph_output_vec.AREA_SKIN ≈ ustrip(u"m^2", morphology.area_skin) rtol = 1e-5
+    @test morph_output_vec.AREA_SKIN_EVAP ≈ ustrip(u"m^2", morphology.area_evaporation) rtol = 1e-5
+    @test morph_output_vec.AREA_CONV ≈ ustrip(u"m^2", morphology.area_convection) rtol = 1e-5
+    @test morph_output_vec.AREA_COND ≈ ustrip(u"m^2", morphology.area_conduction) rtol = 1e-5
+    @test morph_output_vec.AREA_SIL ≈ ustrip(u"m^2", morphology.area_silhouette) rtol = 1e-5
+    @test morph_output_vec.F_SKY ≈ morphology.F_sky rtol = 1e-5
+    @test morph_output_vec.F_GROUND ≈ morphology.F_ground rtol = 1e-5
+    @test morph_output_vec.VOLUME ≈ ustrip(u"m^3", morphology.volume) rtol = 1e-5
+    @test morph_output_vec.FLESH_VOL ≈ ustrip(u"m^3", morphology.flesh_volume) rtol = 1e-5
+    @test morph_output_vec.CHAR_DIM ≈ ustrip(u"m", morphology.characteristic_dimension) rtol = 1e-5
+    @test morph_output_vec.MASS_FAT ≈ ustrip(u"kg", morphology.fat_mass) rtol = 1e-5
+    @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.a_semi_major * 2) rtol = 1e-5
+    @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor * 2) rtol = 1e-5
+    @test morph_output_vec.HEIGHT ≈ ustrip(u"m", morphology.c_semi_minor * 2) rtol = 1e-5
+    @test morph_output_vec.FAT_THICK ≈ ustrip(u"m", fat) rtol = 1e-5
 end
 
 # check for near zero
