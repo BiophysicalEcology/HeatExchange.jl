@@ -136,9 +136,7 @@ version = "0.4.3"
 
 [[deps.FluidProperties]]
 deps = ["Unitful", "UnitfulMoles"]
-git-tree-sha1 = "0765cbf4287c69708e76c0a51f7b20a739a29935"
-repo-rev = "main"
-repo-url = "https://github.com/BiophysicalEcology/FluidProperties"
+path = "../FluidProperties.jl"
 uuid = "d16f1b92-71d3-42f3-aafa-43e5bb0efda8"
 version = "0.1.0"
 

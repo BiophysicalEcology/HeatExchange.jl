@@ -33,15 +33,34 @@ get_r_skin(body::AbstractBody) = get_r_skin(shape(body), insulation(body), body)
 get_r_insulation(body::AbstractBody) = get_r_insulation(shape(body), insulation(body), body)
 get_r_flesh(body::AbstractBody) = get_r_flesh(shape(body), insulation(body), body)
 
+# functions to compute silhouette area as a function of zenith angle (passive) or 
+# orientation (thermoregulating)
+
 """
     silhouette_area(body::AbstractBody, θ)
 
-Calculates the silhouette (projected) area of a cylinder given a solar zenith angle, θ.
-Calculates the silhouette (projected) area of a cylinder.
-Equation from Fig. 11.6 in Campbell, G. S., & Norman, J. M.
-(1998). Environmental Biophysics. Springer.
+Calculates the silhouette (projected) area of an object given a solar zenith angle, θ.
+
 """
 silhouette_area(body::AbstractBody, θ) = silhouette_area(shape(body), insulation(body), body, θ)
+
+"""
+    silhouette_area(body::AbstractBody, orientation)
+
+Calculates the silhouette (projected) area of an object given an orientation towards the sun (normal, parallel or inbetween).
+
+"""
+silhouette_area(body::AbstractBody) = silhouette_area(shape(body), insulation(body), body)
+
+# Orientation-specific implementations
+silhouette_area(body::AbstractBody, ::NormalToSun) =
+    silhouette_area(body).normal
+
+silhouette_area(body::AbstractBody, ::ParallelToSun) =
+    silhouette_area(body).parallel
+
+silhouette_area(body::AbstractBody, ::Intermediate) =
+    (silhouette_area(body).normal + silhouette_area(body).parallel) * 0.5
 
 """
     Plate <: Shape
@@ -165,6 +184,24 @@ function surface_area(shape::Plate, body)
     surface_area(shape, length, width, height)
 end
 surface_area(shape::Plate, length, width, height) = length * width * 2 + length * height * 2 + width * height * 2
+
+function silhouette_area(shape::Plate, insulation::Union{Naked,Fat}, body::AbstractBody)
+    length = body.geometry.length.length
+    width = body.geometry.length.width
+    height = body.geometry.length.height
+    normal = max(length * width, length * height, height * width)
+    parallel = min(length * width, length * height, height * width)
+    return (; normal, parallel)
+end
+
+function silhouette_area(shape::Plate, insulation::Union{Fur,CompositeInsulation}, body::AbstractBody)
+    length = body.geometry.length.length_fur
+    width = body.geometry.length.width_fur
+    height = body.geometry.length.height_fur
+    normal = max(length * width, length * height, height * width)
+    parallel = min(length * width, length * height, height * width)
+    return (; normal, parallel)
+end
 
 """
     Cylinder <: Shape
@@ -302,6 +339,22 @@ function silhouette_area(shape::Cylinder, insulation::CompositeInsulation, body:
 end
 silhouette_area(shape::Cylinder, r, l, θ) = 2 * r * l * sin(θ) + π * r^2 * cos(θ)
 
+function silhouette_area(shape::Cylinder, insulation::Union{Naked,Fat}, body::AbstractBody)
+    r = body.geometry.length.radius
+    l = body.geometry.length.length
+    normal = 2 * r * l
+    parallel = π *r^2
+    return (; normal, parallel)
+end
+
+function silhouette_area(shape::Cylinder, insulation::Union{Fur,CompositeInsulation}, body::AbstractBody)
+    r = body.geometry.length.radius_fur
+    l = body.geometry.length.length_fur
+    normal = 2 * r * l
+    parallel = π *r^2
+    return (; normal, parallel)
+end
+
 """
     Sphere <: Shape
 
@@ -413,11 +466,32 @@ function surface_area(shape::Sphere, r)
     4 * π * r ^ 2
 end
 
-function silhouette_area(shape::Sphere, body::AbstractBody)
-    r = body.geometry.length[1] / 2
+silhouette_area(shape::Sphere, r) = π * r ^ 2
+
+function silhouette_area(shape::Sphere, insulation::Union{Naked,Fat}, body::AbstractBody, θ)
+    r = body.geometry.length.radius
     return silhouette_area(shape, r)
 end
-silhouette_area(shape::Sphere, r) = π * r ^ 2
+function silhouette_area(shape::Sphere, insulation::Union{Fur,CompositeInsulation}, body::AbstractBody, θ)
+    r = body.geometry.length.radius_fur
+    return silhouette_area(shape, r)
+end
+
+function silhouette_area(shape::Sphere, insulation::Union{Naked,Fat}, body::AbstractBody)
+    r = body.geometry.length.radius
+    area = silhouette_area(shape, r)
+    normal = area
+    parallel = area
+    return (; normal, parallel)
+end
+
+function silhouette_area(shape::Sphere, insulation::Union{Fur,CompositeInsulation}, body::AbstractBody)
+    r = body.geometry.length.radius_fur
+    area = silhouette_area(shape, r)
+    normal = area
+    parallel = area
+    return (; normal, parallel)
+end
 
 """
     Ellipsoid <: Shape
@@ -617,7 +691,6 @@ function surface_area(shape::Ellipsoid, a, b, c, e)
     (2 * π * b ^ 2 + 2 * π * (a * b / e) * asin(e)) * u"m^2"
 end
 
-# TODO: should we use this rather than the one below that ignores theta?
 """
     silhouette_area
 
@@ -635,6 +708,24 @@ function silhouette_area(shape::Ellipsoid, a, b, c, θ)
     semax1 = 1 / sqrt(a3)
     semax2 = 1 / sqrt(b3)
     π * semax1  * semax2
+end
+
+function silhouette_area(shape::Ellipsoid, insulation::Union{Naked,Fat}, body::AbstractBody)
+    a = body.geometry.length.a_semi_major
+    b = body.geometry.length.b_semi_minor
+    c = body.geometry.length.c_semi_minor
+    normal = π * a * b
+    parallel = π * b * c
+    return (; normal, parallel)
+end
+
+function silhouette_area(shape::Ellipsoid, insulation::Union{Fur,CompositeInsulation}, body::AbstractBody)
+    a = body.geometry.length.a_semi_major_fur
+    b = body.geometry.length.b_semi_minor_fur
+    c = body.geometry.length.c_semi_minor_fur
+    normal = π * a * b
+    parallel = π * b * c
+    return (; normal, parallel)
 end
 
 function silhouette_area(shape::Ellipsoid, ::Naked, body::AbstractBody, θ)
@@ -664,7 +755,6 @@ function silhouette_area(shape::Ellipsoid, insulation::CompositeInsulation, body
     c = body.geometry.length.c_semi_minor_fur
     return silhouette_area(shape, a, b, c, θ)
 end
-#silhouette_area(shape::Ellipsoid, a, b, c, θ) = max(π * a * c, π * b * c)
 
 """
     LeopardFrog <: Shape
@@ -700,6 +790,7 @@ function surface_area(shape::LeopardFrog)
 end
 
 function silhouette_area(shape::LeopardFrog, θ)
+    area = surface_area(shape)
     pct = 1.38171e-6 * θ ^ 4 - 1.93335e-4 * θ ^ 3 + 4.75761e-3 * θ ^ 2 - 0.167912 * θ + 45.8228
     return pct * area / 100
 end
@@ -739,11 +830,21 @@ function surface_area(shape::DesertIguana)
     return (; total, ventral)
 end
 
-function silhouette_area(shape::DesertIguana)
+function silhouette_area(shape::DesertIguana, ::NormalToSun)
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    return Unitful.uconvert(u"m^2", (3.798 * Unitful.ustrip(mass_g) ^ 0.683)u"cm^2")
+end
+
+function silhouette_area(shape::DesertIguana, ::ParallelToSun)
+    mass_g = Unitful.uconvert(u"g", shape.mass)
+    return Unitful.uconvert(u"m^2", (0.694 * Unitful.ustrip(mass_g) ^ 0.743)u"cm^2")
+end
+
+function silhouette_area(shape::DesertIguana, ::Intermediate)
     mass_g = Unitful.uconvert(u"g", shape.mass)
     normal = Unitful.uconvert(u"m^2", (3.798 * Unitful.ustrip(mass_g) ^ 0.683)u"cm^2")
     parallel = Unitful.uconvert(u"m^2", (0.694 * Unitful.ustrip(mass_g) ^ 0.743)u"cm^2")
-    return (; normal, parallel)
+    return (normal + parallel) * 0.5
 end
 
 """

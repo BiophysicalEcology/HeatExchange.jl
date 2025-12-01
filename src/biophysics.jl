@@ -31,16 +31,16 @@ function solar(;
     F_sky,
     α_ground,
     shade,
-    Q_solar,
-    Q_direct,
-    Q_diffuse,
+    global_radiation,
+    beam_radiation,
+    diffuse_radiation,
 )
-    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, Q_solar, Q_direct, Q_diffuse)
+    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, global_radiation, beam_radiation, diffuse_radiation)
 end
-function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, Q_solar, Q_direct, Q_diffuse)
-    Q_direct = α_body_dorsal * A_silhouette * Q_direct * (1 - shade)
-    Q_solar_sky = α_body_dorsal * F_sky * A_total * Q_diffuse * (1 - shade)
-    Q_solar_substrate = α_body_ventral * F_ground * (A_total - A_conduction) * (1 - α_ground) * Q_solar * (1 - shade)
+function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, global_radiation, beam_radiation, diffuse_radiation)
+    Q_direct = α_body_dorsal * A_silhouette * beam_radiation * (1 - shade)
+    Q_solar_sky = α_body_dorsal * F_sky * A_total * diffuse_radiation * (1 - shade)
+    Q_solar_substrate = α_body_ventral * F_ground * (A_total - A_conduction) * (1 - α_ground) * global_radiation * (1 - shade)
     Q_solar = (Q_direct + Q_solar_substrate + Q_solar_sky)
     return (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate)
 end
@@ -101,7 +101,6 @@ end
 
 function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, fO2, fCO2, fN2, 
         convection_enhancement = 1.0)
-    G = Unitful.gn # acceleration due to gravity, m.s^2
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
     dry_air_out = dry_air_properties(T_air, P_atmos; fO2, fCO2, fN2)
@@ -128,8 +127,11 @@ function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, 
     else
         Sc = μ / (ρ_air * D_w)
     end
-    δ_T = max(1.0e-5u"K", T_surface - T_air)
-    Gr = abs(((ρ_air^2) * β * G * (D^3) * δ_T) / (μ^2))
+    δ_T = T_surface - T_air
+    if δ_T <= 0.0u"K" # stability check - avoiding zero
+        δ_T = δ_T + 0.00001u"K"
+    end 
+    Gr = abs(((ρ_air^2) * β * Unitful.gn * (D^3) * δ_T) / (μ^2))
     Re = ρ_air * wind_speed * D / μ
     Nu_free = nusselt_free(body.shape, Gr, Pr)
     hc_free = (Nu_free * k_fluid) / D # heat transfer coefficient, free
@@ -153,7 +155,6 @@ function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, 
     Q_conv = hc * area * (T_surface - T_air) # total convective heat loss
     Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
     hd = Sh * D_w / D # mass transfer coefficient, combined
-
     return (;Q_conv, hc, hd, Sh, Q_free, Q_forc, hc_free, hc_forc, Sh_free, Sh_forc, hd_free, hd_forc)
 end
 

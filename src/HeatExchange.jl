@@ -18,11 +18,12 @@ export Body, get_total_area, get_skin_area, get_evaporation_area, get_r_skin, ge
 
 export Insulation, CompositeInsulation, Naked, Fur, Fat
 
-export Organism, EndoModelPars, BodyPars, InsulationPars, IntegumentPars, PhysioPars, ThermoregulationPars, OrganismalVars
+export Organism, EndoModelPars, BodyPars, InsulationPars, IntegumentPars, PhysioPars, 
+    ThermoregulationPars, ThermoregulationVars, OrganismalVars
 
 export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
-export surface_area, silhouette_area
+export surface_area, silhouette_area, SolarOrientation, Intermediate, ParallelToSun, NormalToSun
 
 export geometry, shape, insulation, geometry_with_layers
 

@@ -25,12 +25,12 @@ abstract type AbstractEnvironmentalVars end
 """
     EnvironmentalVars <: AbstractEnvironmentalVars
 
-    EnvironmentalVars(T_air, T_sky, T_sub, rh, wind_speed, P_atmos, zenith_angle, k_substrate, Q_solar, Q_direct, Q_diffuse)
+    EnvironmentalVars(T_air, T_sky, T_sub, rh, wind_speed, P_atmos, zenith_angle, k_substrate, global_solar_radiation, fraction_diffuse)
     EnvironmentalVars(; kw...)
 
 Environmental variables for an organism model.
 """
-Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,RS,RB,RD} <: AbstractEnvironmentalVars
+Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD} <: AbstractEnvironmentalVars
     T_air::TA
     T_air_reference::TR = T_air
     T_sky::TU
@@ -43,21 +43,22 @@ Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,RS,RB,R
     P_atmos::PA
     zenith_angle::ZA
     k_substrate::KS
-    solar_radiation::RS
-    direct_radiation::RB
-    diffuse_radiation::RD
+    global_radiation::GR
+    fraction_diffuse::FD
 end
 
-Base.@kwdef struct EnvironmentalVarsVec{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
-    T_air::Matrix{T}
-    T_sky::Vector{T}
-    T_sub::Matrix{T}
-    rh::Matrix{R}
-    wind_speed::Matrix{V}
-    P_atmos::Vector{P}
-    zenith_angle::Vector{Z}
-    k_substrate::Matrix{K}
-    solar_radiation::Vector{Q}
-    direct_radiation::Vector{Q}
-    diffuse_radiation::Vector{Q}
+Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD} <: AbstractEnvironmentalVars
+    T_air::Vector{TA}
+    T_sky::Vector{TR}
+    T_ground::Vector{TG}
+    T_substrate::Vector{TS}
+    T_bush::Vector{TB}
+    T_vegetation::Vector{TV}
+    rh::Vector{RH}
+    wind_speed::Vector{WS}
+    P_atmos::Vector{PA}
+    zenith_angle::Vector{ZA}
+    k_substrate::Vector{KS}
+    global_radiation::Vector{GR}
+    fraction_diffuse::Vector{FD}
 end

@@ -1,10 +1,10 @@
 library(NicheMapR)
-
+furmult <- 1
 endoR_input = list(
-    TA = 40.0, # air temperature at local height (°C)
-    TAREF = 40.0, # air temperature at reference height (°C)
-    TGRD = 60.0, # ground temperature (°C)
-    TSKY = 5.0, # sky temperature (°C)
+    TA = 10.0, # air temperature at local height (°C)
+    TAREF = 10.0, # air temperature at reference height (°C)
+    TGRD = 10.0, # ground temperature (°C)
+    TSKY = 10.0, # sky temperature (°C)
     VEL = 1.0, # wind speed (m/s)
     RH = 5.0, # relative humidity (%)
     QSOLR = 0.0, # solar radiation, horizontal plane (W/m2)
@@ -14,9 +14,9 @@ endoR_input = list(
     
     # other environmental variables
     FLTYPE = 0, # fluid type: 0 = air; 1 = fresh water; 2 = salt water
-    TCONDSB = 35.0, # surface temperature for conduction (°C)
+    TCONDSB = 10.0, # surface temperature for conduction (°C)
     KSUB = 2.79, # substrate thermal conductivity (W/m°C)
-    TBUSH = 40.0, # bush temperature (°C)
+    TBUSH = 10.0, # bush temperature (°C)
     BP = 101325.0, # Pa, negative means elevation is used
     O2GAS = 20.95, # oxygen concentration of air, to account for non-atmospheric concentrations e.g. in burrows (\%)
     N2GAS = 79.02, # nitrogen concentration of air, to account for non-atmospheric concentrations e.g. in burrows (\%)
@@ -54,23 +54,23 @@ endoR_input = list(
     PVEN = 0.5, # fraction of surface area that is ventral fur (fractional, 0-1)
     PCOND = 0.0, # fraction of surface area that is touching the substrate (fractional, 0-1)
     SAMODE = 0.0, # if 0, uses surface area for SHAPE parameter geometry, if 1, uses bird skin surface area allometry from Walsberg & King. 1978. JEB 76:185–189, if 2 uses mammal surface area from Stahl 1967.J. App. Physiol. 22, 453–460.
-    ORIENT = 0.0, # if 1 = normal to sun's rays (heat maximising), if 2 = parallel to sun's rays (heat minimising), 3 = vertical and changing with solar altitude, or 0 = average
+    ORIENT = 1, # if 1 = normal to sun's rays (heat maximising), if 2 = parallel to sun's rays (heat minimising), 3 = vertical and changing with solar altitude, or 0 = average
     
     # fur properties
-    FURTHRMK = 0.0, # user-specified fur thermal conductivity (W/mK), not used if 0
-    DHAIRD = 30E-06, # hair diameter, dorsal (m)
-    DHAIRV = 30E-06, # hair diameter, ventral (m)
-    LHAIRD = 23.9E-03, # hair length, dorsal (m)
-    LHAIRV = 23.9E-03, # hair length, ventral (m)
-    ZFURD_MAX = 23.9E-03, # max fur depth, dorsal (m)
-    ZFURV_MAX = 23.9E-03, # max fur depth, ventral (m)
-    ZFURD = 2E-03, # fur depth, dorsal (m)
-    ZFURV = 2E-03, # fur depth, ventral (m)
-    RHOD = 3000E+04, # hair density, dorsal (1/m2)
-    RHOV = 3000E+04, # hair density, ventral (1/m2)
+    FURTHRMK = 0.04, # user-specified fur thermal conductivity (W/mK), not used if 0
+    DHAIRD = furmult*30E-06, # hair diameter, dorsal (m)
+    DHAIRV = furmult*30E-06, # hair diameter, ventral (m)
+    LHAIRD = furmult*23.9E-03, # hair length, dorsal (m)
+    LHAIRV = furmult*23.9E-03, # hair length, ventral (m)
+    ZFURD_MAX = furmult*23.9E-03, # max fur depth, dorsal (m)
+    ZFURV_MAX = furmult*23.9E-03, # max fur depth, ventral (m)
+    ZFURD = furmult*23.9E-03, # fur depth, dorsal (m)
+    ZFURV = furmult*23.9E-03, # fur depth, ventral (m)
+    RHOD = furmult*3000E+04, # hair density, dorsal (1/m2)
+    RHOV = furmult*3000E+04, # hair density, ventral (1/m2)
     REFLD = 0.2,  # fur reflectivity dorsal (fractional, 0-1)
     REFLV = 0.2,  # fur reflectivity ventral (fractional, 0-1)
-    ZFURCOMP = 2E-03, # depth of compressed fur (for conduction) (m)
+    ZFURCOMP = furmult*23.9E-03, # depth of compressed fur (for conduction) (m)
     KHAIR = 0.209, # hair thermal conductivity (W/m°C)
     XR = 1.0, # fractional depth of fur at which longwave radiation is exchanged (0-1)
     
@@ -89,11 +89,11 @@ endoR_input = list(
     AK2 = 0.23, # conductivity of fat (W/mK)
     
     # evaporation
-    PCTWET = 0.5, # part of the skin surface that is wet (%)
-    FURWET = 5.0, # part of the fur/feathers that is wet after rain (%)
-    PCTBAREVAP = 5.0, # surface area for evaporation that is skin, e.g. licking paws (%)
-    PCTEYES = 0.03, # surface area made up by the eye (%) - make zero if sleeping
-    DELTAR = 0.0, # offset between air temperature and breath (°C)
+    PCTWET = 0.0,#0.5, # part of the skin surface that is wet (%)
+    FURWET = 0.0, # part of the fur/feathers that is wet after rain (%)
+    PCTBAREVAP = 0.0, # surface area for evaporation that is skin, e.g. licking paws (%)
+    PCTEYES = 0.0,#0.03, # surface area made up by the eye (%) - make zero if sleeping
+    DELTAR = 100.0, # offset between air temperature and breath (°C)
     RELXIT = 100.0, # relative humidity of exhaled air, %
     
     # metabolism/respiration
@@ -104,22 +104,22 @@ endoR_input = list(
     AIRVOL_MAX = 1e12, # maximum absolute breathing rate to simulate panting (L/s), can override PANT_MAX
     PZFUR = 1.0, # # incremental fractional reduction in ZFUR from piloerect state (-) (a value greater than zero triggers piloerection response)
     Q10 = 2.0, # Q10 factor for adjusting BMR for TC
-    TC_MIN = 19.0, # minimum core temperature during torpor (TORPOR = 1)
+    TC_MIN = 37.0, # minimum core temperature during torpor (TORPOR = 1)
     TORPTOL = 0.05, # allowable tolerance of heat balance as a fraction of torpid metabolic rate
     
     # initial conditions
     TS = 37.0 - 3.0, # skin temperature (°C)
-    TFA = 40.0, # fur/air interface temperature (°C)
+    TFA = 37.0 - 3.0 - 5, # fur/air interface temperature (°C)
     
     # other model settings
     CONV_ENHANCE = 1.0, # convective enhancement factor for turbulent conditions, typically 1.4
     DIFTOL = 0.001, # tolerance for SIMULSOL
     BRENTOL = 1e-5, # tolerance for ZBRENT
-    THERMOREG = 1, # invoke thermoregulatory response
+    THERMOREG = 0, # invoke thermoregulatory response
     RESPIRE = 1, # compute respiration and associated heat loss
     TREGMODE = 1, # 1 = raise core then pant then sweat, 2 = raise core and pant simultaneously, then sweat
     TORPOR = 0, # go into torpor if possible (drop TC down to TC_MIN)
-    WRITE_INPUT = 0
+    WRITE_INPUT = 1
 )
 
 TAs <- c(endoR_input$TA)
@@ -263,3 +263,6 @@ write.csv(treg, file = '../data/endoR_treg.csv')
 write.csv(morph, file = '../data/endoR_morph.csv')
 write.csv(enbal, file = '../data/endoR_enbal.csv')
 write.csv(masbal, file = '../data/endoR_masbal.csv')
+
+file.copy("SOLVENDO.input.csv", to = "C:\\Users\\mrke\\Dropbox\\NicheMapR_Debug\\endo_source\\SOLVENDO.input.csv", overwrite = TRUE)
+file.remove("SOLVENDO.input.csv")

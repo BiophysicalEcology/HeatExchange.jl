@@ -47,7 +47,7 @@ elevation = (ecto_input.elevation)u"m"
 wind_speed = (ecto_input.VEL)u"m/s"
 fluid = ecto_input.fluid
 zenith_angle = (ecto_input.Z)u"°"
-solar_radiation = (ecto_input.QSOLR)u"W/m^2"
+global_radiation = (ecto_input.QSOLR)u"W/m^2"
 α_ground = ecto_input.alpha_sub
 shade = ecto_input.SHADE
 ϵ_substrate = ecto_input.epsilon_sub
@@ -151,10 +151,10 @@ T_surface, T_lung = Tsurf_and_Tlung(geometric_pars, k_flesh, Q_gen_spec, T_core)
 @test T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-8
 
 # solar radiation
-diffuse_radiation = solar_radiation * ecto_input.PDIF
-normal_radiation = solar_radiation * (1 - ecto_input.PDIF) / cos(zenith_angle)  # use this in calculating Q_dir if want organism to be orienting towards beam
-direct_radiation = normal_radiation - diffuse_radiation
-solar_out = solar(α_body_dorsal, α_body_ventral, A_sil_normal, A_total, A_conduction, F_ground, F_sky, α_ground, shade, solar_radiation, normal_radiation, diffuse_radiation)
+diffuse_radiation = global_radiation * ecto_input.PDIF
+beam_radiation = global_radiation * (1 - ecto_input.PDIF) / cos(zenith_angle)  # use this in calculating Q_dir if want organism to be orienting towards beam
+direct_radiation = beam_radiation - diffuse_radiation
+solar_out = solar(α_body_dorsal, α_body_ventral, A_sil_normal, A_total, A_conduction, F_ground, F_sky, α_ground, shade, global_radiation, beam_radiation, diffuse_radiation)
 Q_solar = solar_out.Q_solar
 
 # longwave radiation

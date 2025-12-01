@@ -44,7 +44,7 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
     
     solar_out = solar(integumentpars.α_body_dorsal, integumentpars.α_body_ventral, A_sil, 
         A_total, A_conduction, integumentpars.F_ground, integumentpars.F_sky, 
-        e_pars.α_substrate, e_pars.shade, e_vars.solar_radiation, e_vars.direct_radiation, 
+        e_pars.α_substrate, e_pars.shade, e_vars.global_radiation, e_vars.beam_radiation, 
         e_vars.diffuse_radiation)
     Q_solar = solar_out.Q_solar
     ir_gain = radin(A_total, A_conduction, integumentpars.F_sky, integumentpars.F_ground, 
