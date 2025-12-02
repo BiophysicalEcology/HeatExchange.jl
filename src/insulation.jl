@@ -82,8 +82,7 @@ function insulation_thermal_conductivity(; fibre_density::Quantity, fibre_length
     # Absorption and optical parameters
     absorption_coefficient = (0.67 / π) * u"m^-2"(effective_density) * u"m"(fibre_diameter)
     optical_thickness_factor = absorption_coefficient * u"m"(insulation_depth)
-    @show effective_conductivity
-    return [effective_conductivity, absorption_coefficient, optical_thickness_factor]
+    return (; effective_conductivity, absorption_coefficient, optical_thickness_factor)
 end
 
 
@@ -193,7 +192,7 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
             absorption_coefficients[i] = 0.0u"m^-1"
             optical_thickness_factors[i] = 0.0
         else
-            effective_conductivity, absorption_coefficient, optical_thickness_factor = 
+            (; effective_conductivity, absorption_coefficient, optical_thickness_factor) = 
                 insulation_thermal_conductivity(fibre_density = fibre_densities[i], 
                     fibre_length = fibre_lengths[i], insulation_depth = insulation_depths[i],
                     fibre_diameter = fibre_diameters[i], air_conductivity = air_conductivity, 
@@ -204,7 +203,7 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
 
             # Compressed ventral insulation conductivity
             if i == 3
-                effective_conductivity, _, _ = insulation_thermal_conductivity(fibre_density = 
+                (; effective_conductivity) = insulation_thermal_conductivity(fibre_density = 
                     fibre_densities[i], fibre_length = fibre_lengths[i], 
                     insulation_depth = insulation_depth_compressed,
                     fibre_diameter = fibre_diameters[i], 

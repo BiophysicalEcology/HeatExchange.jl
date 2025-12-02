@@ -25,7 +25,7 @@ abstract type AbstractEnvironmentalVars end
 """
     EnvironmentalVars <: AbstractEnvironmentalVars
 
-    EnvironmentalVars(T_air, T_sky, T_sub, rh, wind_speed, P_atmos, zenith_angle, k_substrate, global_solar_radiation, fraction_diffuse)
+    EnvironmentalVars(T_air, T_sky, T_sub, rh, wind_speed, P_atmos, zenith_angle, k_substrate, global_solar_radiation, diffuse_fraction)
     EnvironmentalVars(; kw...)
 
 Environmental variables for an organism model.
@@ -36,15 +36,15 @@ Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD} 
     T_sky::TU
     T_ground::TG
     T_substrate::TS
-    T_bush::TB
-    T_vegetation::TV
+    T_bush::TB = T_air
+    T_vegetation::TV = T_air
     rh::RH
     wind_speed::WS
     P_atmos::PA
     zenith_angle::ZA
     k_substrate::KS
     global_radiation::GR
-    fraction_diffuse::FD
+    diffuse_fraction::FD
 end
 
 Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD} <: AbstractEnvironmentalVars
@@ -60,5 +60,5 @@ Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,F
     zenith_angle::Vector{ZA}
     k_substrate::Vector{KS}
     global_radiation::Vector{GR}
-    fraction_diffuse::Vector{FD}
+    diffuse_fraction::Vector{FD}
 end

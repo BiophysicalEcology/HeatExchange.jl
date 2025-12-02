@@ -230,7 +230,7 @@ struct Intermediate <: SolarOrientation end
 #- `skin_wetness::F` — Fraction of skin surface that is wet (0–1).
 #- `insulation_wetness::F` — Fraction of insulatoin surface that is wet (0–1).
 Base.@kwdef mutable struct ThermoregulationVars{
-    ID, IV, FF, CF, KF, TC, PT, SW, IW, SO} <: AbstractBehavParameters
+    ID, IV, FF, CF, KF, TC, PT, SW, IW, SD, SO} <: AbstractBehavParameters
     insulation_depth_dorsal::ID  = Param(2.0u"mm")
     insulation_depth_ventral::IV = Param(2.0u"mm")
     fat_fraction::FF             = Param(0.0, bounds=(0.0, 1.0))
@@ -240,5 +240,6 @@ Base.@kwdef mutable struct ThermoregulationVars{
     pant::PT                     = Param(1.0)
     skin_wetness::SW             = Param(0.0, bounds=(0.0, 1.0))
     insulation_wetness::IW       = Param(1, bounds=(0.0, 1.0))
-    solar_orientation::SO        = Param(Intermediate())
+    shade::SD                    = Param(1, bounds=(0.0, 1.0))
+    solar_orientation::SO        = Intermediate()
 end

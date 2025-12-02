@@ -31,7 +31,7 @@ export heat_balance, get_Tb, flip2vectors
 
 export solar, radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced 
 
-export Tsurf_and_Tlung, respiration_ectotherm
+export ectotherm, Tsurf_and_Tlung, respiration_ectotherm
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 

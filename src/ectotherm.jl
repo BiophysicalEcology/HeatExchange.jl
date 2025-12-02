@@ -15,57 +15,146 @@ ectotherm(T_x, mod::Model, e_pars, vars) = ectotherm(T_x, stripparams(mod),
 # A generic method that expands dispatch to include the insulation
 # this could be <:Ectotherm or <:Endotherm?
 ectotherm(T_x, o::Organism, e_pars, vars) = ectotherm(T_x, insulation(o), o, 
-    integumentpars(o), physiopars(o), thermoregpars(o), e_pars, vars)
+    integumentpars(o), physiopars(o), thermoregpars(o), thermoregvars(o), e_pars, vars)
 # A method for Naked organisms
 
 function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars, 
-        thermoregpars, e_pars, vars)
+        thermoregpars, thermoregvars, e_pars, vars)
     o_vars = vars.organism # TODO make small function to get this, or extract all?
     e_vars = vars.environment # TODO make small function to get this, or extract all?
     
     # compute areas for exchange
     A_total = get_total_area(o.body)
-    A_convection = A_total * (1 - integumentpars.conduction_fraction)
-    A_conduction = A_total * integumentpars.conduction_fraction
-    #A_sil = silhouette_area(o.body, e_vars.zenith_angle)
-    A_sil = silhouette_area(o.body.shape).normal # TODO make this work for zenith angle vs. normal/parallel
+    A_convection = A_total * (1 - thermoregvars.conduction_fraction)
+    A_conduction = A_total * thermoregvars.conduction_fraction
+    A_silhouette = silhouette_area(o.body.shape, thermoregvars.solar_orientation)
 
     # calculate heat fluxes
+
+    # metabolism
     metab_out = metabolic_rate(AndrewsPough2(), o.body.shape.mass, T_x)
     Q_metab = metab_out.Q_metab
-    resp_out = respiration_ectotherm(T_x, Q_metab, physiopars.fO2_extract, thermoregpars.pant, physiopars.rq, 
-        e_vars.T_air, e_vars.rh, e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
+
+    # respiration
+    resp_out = respiration_ectotherm(;
+        T_x, 
+        Q_metab, 
+        fO2_extract = physiopars.fO2_extract, 
+        pant = thermoregvars.pant, 
+        rq = physiopars.rq, 
+        T_air = e_vars.T_air, 
+        rh = e_vars.rh, 
+        P_atmos = e_vars.P_atmos, 
+        fO2 = e_pars.fO2, 
+        fCO2 = e_pars.fCO2, 
+        fN2 = e_pars.fN2,
+        )
     Q_resp = resp_out.Q_resp
+
+    # net metabolic heat generation
     Q_gen_net = Q_metab - Q_resp
     Q_gen_spec = Q_gen_net / o.body.geometry.volume
-    Tsurf_Tlung_out = Tsurf_and_Tlung(o.body, physiopars.k_flesh, Q_gen_spec, T_x)
+
+    # resultant surfanec and lung temperature
+    Tsurf_Tlung_out = Tsurf_and_Tlung(;
+        body = o.body, 
+        k_flesh = thermoregvars.k_flesh, 
+        Q_gen_spec, 
+        T_core = T_x,
+        )
     T_surface = Tsurf_Tlung_out.T_surface
     T_lung = Tsurf_Tlung_out.T_lung
     
-    solar_out = solar(integumentpars.α_body_dorsal, integumentpars.α_body_ventral, A_sil, 
-        A_total, A_conduction, integumentpars.F_ground, integumentpars.F_sky, 
-        e_pars.α_substrate, e_pars.shade, e_vars.global_radiation, e_vars.beam_radiation, 
-        e_vars.diffuse_radiation)
+    # solar radiation
+    solar_out = solar(; 
+        α_body_dorsal = integumentpars.α_body_dorsal, 
+        α_body_ventral = integumentpars.α_body_ventral, 
+        A_silhouette, 
+        A_total, 
+        A_conduction, 
+        F_ground = integumentpars.F_ground, 
+        F_sky = integumentpars.F_sky, 
+        α_ground = e_pars.α_ground, 
+        shade = thermoregvars.shade, 
+        zenith_angle = e_vars.zenith_angle, 
+        global_radiation = e_vars.global_radiation, 
+        diffuse_fraction = e_vars.diffuse_fraction,
+        )
     Q_solar = solar_out.Q_solar
-    ir_gain = radin(A_total, A_conduction, integumentpars.F_sky, integumentpars.F_ground, 
-        integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral, e_pars.ϵ_ground, 
-        e_pars.ϵ_sky, e_vars.T_sky, e_vars.T_ground)
+
+    # infrared in
+    ir_gain = radin(;
+        A_total, 
+        A_conduction, 
+        integumentpars.F_sky, 
+        integumentpars.F_ground, 
+        integumentpars.ϵ_body_dorsal, 
+        integumentpars.ϵ_body_ventral, 
+        e_pars.ϵ_ground, 
+        e_pars.ϵ_sky, 
+        e_vars.T_sky, 
+        e_vars.T_ground,
+        )
     Q_ir_in = ir_gain.Q_ir_in
-    ir_loss = radout(T_surface, A_total, A_conduction, integumentpars.F_sky,
-         integumentpars.F_ground, integumentpars.ϵ_body_dorsal, integumentpars.ϵ_body_ventral)
+
+    # infrared out
+    ir_loss = radout(;
+        T_surface, 
+        A_total, 
+        A_conduction,
+        integumentpars.F_sky,
+        integumentpars.F_ground, 
+        integumentpars.ϵ_body_dorsal, 
+        integumentpars.ϵ_body_ventral,
+        )
     Q_ir_out = ir_loss.Q_ir_out
-    Le = 0.025u"m"
-    Q_cond = conduction(A_conduction, Le, T_surface, e_vars.T_substrate, e_vars.k_substrate)
-    conv_out = convection(; body=o.body, area=A_convection, T_air=e_vars.T_air, T_surface, wind_speed=e_vars.wind_speed, 
-        P_atmos=e_vars.P_atmos, fluid=e_pars.fluid, fO2=e_pars.fO2, fCO2=e_pars.fCO2, fN2=e_pars.fN2, 
-        convection_enhancement=e_pars.convection_enhancement)
-    evap_out = evaporation(T_surface, o_vars.ψ_org, integumentpars.skin_wetness, A_convection, 
-        conv_out.hd, conv_out.hd_free, integumentpars.eye_fraction, 1.0, e_vars.T_air, e_vars.rh, 
-        e_vars.P_atmos, e_pars.fO2, e_pars.fCO2, e_pars.fN2)
-    Q_conv = conv_out.Q_conv # convective heat loss
-    Q_evap = evap_out.Q_evap # evaporative heat loss
+
+    # conduction
+    Le = 0.025u"m" # TODO make this a parameter
+    Q_cond = conduction(;
+        A_conduction, 
+        L = Le,
+        T_surface,
+        e_vars.T_substrate, 
+        e_vars.k_substrate,
+        )
+
+    # convection
+    conv_out = convection(; 
+        body = o.body, 
+        area = A_convection, 
+        T_air = e_vars.T_air, 
+        T_surface, 
+        wind_speed = e_vars.wind_speed, 
+        P_atmos = e_vars.P_atmos, 
+        fluid = e_pars.fluid, 
+        fO2 = e_pars.fO2, 
+        fCO2 = e_pars.fCO2, 
+        fN2 = e_pars.fN2, 
+        convection_enhancement = e_pars.convection_enhancement,
+        )
+    Q_conv = conv_out.Q_conv
     
-    # calculate balance
+    # evaporation
+    evap_out = evaporation(;
+        T_surface, 
+        ψ_org = o_vars.ψ_org,
+        wetness = thermoregvars.skin_wetness, 
+        area = A_convection, 
+        hd = conv_out.hd, 
+        hd_free = conv_out.hd_free, 
+        eye_fraction = integumentpars.eye_fraction, 
+        bare_fraction = 1.0, 
+        T_air = e_vars.T_air,
+        rh = e_vars.rh, 
+        P_atmos = e_vars.P_atmos, 
+        fO2 = e_pars.fO2, 
+        fCO2 = e_pars.fCO2, 
+        fN2 = e_pars.fN2,
+        )
+    Q_evap = evap_out.Q_evap
+    
+    # heat balance
     Q_in = Q_solar + Q_ir_in + Q_metab # energy in
     Q_out = Q_ir_out + Q_conv + Q_evap + Q_resp + Q_cond # energy out
     #@assert Q_in - Q_out = 0.0u"W" # this must balance
@@ -74,7 +163,7 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
     enbal = (; Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal)
     masbal = (; V_O2 = metab_out.V_O2, m_resp = resp_out.m_resp, m_cut = evap_out.m_cut, 
         m_eye = evap_out.m_eyes)
-    (;Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, 
+    (; Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, 
         ir_loss, conv_out, evap_out)
 
 end
@@ -223,7 +312,40 @@ function respiration_ectotherm(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, P
     return (; Q_resp, m_resp, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out)
 end
 
-Tsurf_and_Tlung(body::AbstractBody, k_flesh, Q_gen_spec, T_core) = Tsurf_and_Tlung(shape(body), body, k_flesh, Q_gen_spec, T_core)
+"""
+    respiration_ectotherm(; kw...)
+    respiration_ectotherm(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2) 
+
+Computes respiratory heat and water loss via mass flow through the lungs 
+given gas concentrations, pressure, respiration rate and humidity for an ectotherm.
+Note that there is no recovery of heat or moisture assumed in the nose.
+If barometric preassure is known, elevation will be ignored. Otherwise, 
+if atmospheric pressure is unknown, elevation will be used to estimate it.
+
+# Keywords
+- `T_x`: current core temperature guess, K
+- `Q_metab`: metabolic rate, W
+- `fO2_extract`: extraction efficiency, fractional
+- `pant`: multiplier on breathing rate due to panting, -
+- `rq`: respiratory quotient, (mol CO2 / mol O2)
+- `T_air`: air temperature, K
+- `rh`: relative humidity, fractional
+- `elevation`: elevation, m
+- `P_atmos`: barometric pressure, Pa
+- `fO2`; fractional O2 concentration in atmosphere, -
+- `fCO2`; fractional CO2 concentration in atmosphere, -
+- `fN2`; fractional N2 concentration in atmosphere, -
+"""
+function Tsurf_and_Tlung(;
+    body,
+    k_flesh,
+    Q_gen_spec,
+    T_core,
+)
+    return Tsurf_and_Tlung(body, k_flesh, Q_gen_spec, T_core)
+end
+Tsurf_and_Tlung(body::AbstractBody, k_flesh, Q_gen_spec, T_core) = 
+    Tsurf_and_Tlung(shape(body), body, k_flesh, Q_gen_spec, T_core)
 function Tsurf_and_Tlung(shape::Cylinder, body, k_flesh, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.length[2]

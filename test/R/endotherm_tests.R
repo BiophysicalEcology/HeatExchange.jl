@@ -1,5 +1,5 @@
 library(NicheMapR)
-furmult <- 0
+furmult <- 1
 endoR_input = list(
     TA = 20.0, # air temperature at local height (°C)
     TAREF = 20.0, # air temperature at reference height (°C)
@@ -115,7 +115,7 @@ endoR_input = list(
     CONV_ENHANCE = 1.0, # convective enhancement factor for turbulent conditions, typically 1.4
     DIFTOL = 0.001, # tolerance for SIMULSOL
     BRENTOL = 1e-5, # tolerance for ZBRENT
-    THERMOREG = 1, # invoke thermoregulatory response
+    THERMOREG = 0, # invoke thermoregulatory response
     RESPIRE = 1, # compute respiration and associated heat loss
     TREGMODE = 1, # 1 = raise core then pant then sweat, 2 = raise core and pant simultaneously, then sweat
     TORPOR = 0, # go into torpor if possible (drop TC down to TC_MIN)

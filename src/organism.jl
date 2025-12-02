@@ -133,6 +133,7 @@ body(o::AbstractOrganism) = o.body # gets the body from an object of type Abstra
 integumentpars(o::AbstractOrganism) = o.integumentpars # gets the morphological parameter traits from an object of type AbstractOrganism
 physiopars(o::AbstractOrganism) = o.physiopars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
 thermoregpars(o::AbstractOrganism) = o.thermoregpars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
+thermoregvars(o::AbstractOrganism) = o.thermoregvars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
 shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
 insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
 
@@ -144,11 +145,13 @@ insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from
 A concrete implementation of `AbstractOrganism`, it accepts an
 [`AbstractBody`](@ref) and [`AbstractFunctionalTraits`](@ref) object.
 """
-struct Organism{B<:Body,M<:AbstractMorphoParameters,P<:AbstractPhysioParameters,T<:AbstractBehavParameters} <: AbstractOrganism
+struct Organism{B<:Body,M<:AbstractMorphoParameters,P<:AbstractPhysioParameters,
+    T<:AbstractBehavParameters, V<:AbstractBehavParameters} <: AbstractOrganism
     body::B
     integumentpars::M
     physiopars::P
     thermoregpars::T
+    thermoregvars::V
 end
 
 # TODO use this as a container for outputs? Or remove?
@@ -169,7 +172,7 @@ Variables for an [`AbstractOrganism`](@ref) model.
 Base.@kwdef mutable struct OrganismalVars{TC,TS,TI,TL,P} <: AbstractOrganismalVars
     T_core::TC
     T_skin::TS
-    T_insulation::TI
+    T_insulation::TI = T_core
     T_lung::TL
     ψ_org::P
 end

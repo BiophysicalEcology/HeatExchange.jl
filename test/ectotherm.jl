@@ -34,7 +34,6 @@ names = [
 
 ecto_output = (; zip(names, ecto_output_vec)...)
 
-
 # environment
 T_air = u"K"((ecto_input.TA)u"°C")
 T_sky = u"K"((ecto_input.TSKY)u"°C")
@@ -50,7 +49,7 @@ zenith_angle = (ecto_input.Z)u"°"
 global_radiation = (ecto_input.QSOLR)u"W/m^2"
 α_ground = ecto_input.alpha_sub
 shade = ecto_input.SHADE
-ϵ_substrate = ecto_input.epsilon_sub
+ϵ_ground = ecto_input.epsilon_sub
 ϵ_sky = ecto_input.epsilon_sky
 fO2 = ecto_input.O2gas / 100
 fCO2 = ecto_input.CO2gas / 100
@@ -62,7 +61,6 @@ mass = u"kg"((ecto_input.Ww_g)u"g")
 ρ_flesh = (ecto_input.rho_body)u"kg/m^3"
 shape_b = ecto_input.shape_b
 shape_c = ecto_input.shape_c
-#shape_body = Cylinder(mass, ρ_flesh, shape_b) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
 eye_fraction = ecto_input.pct_eyes / 100
 conduction_fraction = ecto_input.pct_cond / 100
 
@@ -86,16 +84,26 @@ M2 = ecto_input.M_2
 M3 = ecto_input.M_3
 M4 = ecto_input.M_4
 
+# organism behaviour
+if ecto_input.postur == 0.0
+    solar_orientation = Intermediate()
+elseif ecto_input.postur == 1.0
+    solar_orientation = NormalToSun()
+else
+    solar_orientation = ParallelToSun()
+end
 pant = 1.0
 
-#shape_body = Ellipsoid(mass, ρ_flesh, shape_b, shape_c) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
-shape_body = DesertIguana(mass, ρ_flesh) # define trunkshape as a Cylinder struct of type 'Shape' and give it required values
-geometric_pars = Body(shape_body, Naked()) # construct a Body, which is naked - this constructor will apply the 'geometry' function to the inputs and return a struct that has the struct for the 'Shape' type, as well as the insulation and the geometry struct
-A_total = get_total_area(geometric_pars) #geometric_pars.geometry.area.total
+# geometry
+shape_body = DesertIguana(mass, ρ_flesh) 
+#shape_body = Cylinder(mass, ρ_flesh, shape_b)
+geometric_pars = Body(shape_body, Naked())
+A_total = get_total_area(geometric_pars)
 A_conduction = A_total * conduction_fraction
 A_convection = A_total * (1 - conduction_fraction)
-A_sil_normal, A_sil_parallel = silhouette_area(shape_body)
-A_sil = (A_sil_normal + A_sil_parallel) / 2
+A_sil_normal = silhouette_area(shape_body, NormalToSun())
+A_sil_parallel = silhouette_area(shape_body, ParallelToSun())
+A_silhouette = silhouette_area(shape_body, solar_orientation)
 A_up = A_total / 2
 A_down = A_total / 2
 A_eff = A_convection * skin_wetness
@@ -125,7 +133,19 @@ metab_out = metabolic_rate(AndrewsPough2(), mass, T_core; M1, M2, M3, M4)
 Q_metab = metab_out.Q_metab
 
 # respiration
-resp_out = respiration_ectotherm(T_core, Q_metab, fO2_extract, pant, rq, T_air, rh, P_atmos, fO2, fCO2, fN2)
+resp_out = respiration_ectotherm(; 
+    T_x = T_core, 
+    Q_metab, 
+    fO2_extract, 
+    pant, 
+    rq, 
+    T_air, 
+    rh, 
+    P_atmos, 
+    fO2, 
+    fCO2, 
+    fN2,
+    )
 Q_resp = resp_out.Q_resp
 
 # respiration test
@@ -145,44 +165,63 @@ Q_gen_net = Q_metab - Q_resp
 Q_gen_spec = Q_gen_net / geometric_pars.geometry.volume
 
 # compute skin and lung temperature
-T_surface, T_lung = Tsurf_and_Tlung(geometric_pars, k_flesh, Q_gen_spec, T_core)
+T_skin, T_lung = Tsurf_and_Tlung(;
+    body = geometric_pars, 
+    k_flesh, 
+    Q_gen_spec, 
+    T_core)
 
 # test lung temperature
 @test T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-8
 
 # solar radiation
-diffuse_radiation = global_radiation * ecto_input.PDIF
-beam_radiation = global_radiation * (1 - ecto_input.PDIF) / cos(zenith_angle)  # use this in calculating Q_dir if want organism to be orienting towards beam
-direct_radiation = beam_radiation - diffuse_radiation
-solar_out = solar(α_body_dorsal, α_body_ventral, A_sil_normal, A_total, A_conduction, F_ground, F_sky, α_ground, shade, global_radiation, beam_radiation, diffuse_radiation)
+diffuse_fraction = ecto_input.PDIF
+solar_out = solar(;
+    α_body_dorsal,
+    α_body_ventral,
+    A_silhouette,
+    A_total, 
+    A_conduction, 
+    F_ground, 
+    F_sky, 
+    α_ground, 
+    shade, 
+    zenith_angle, 
+    global_radiation, 
+    diffuse_fraction
+    )
 Q_solar = solar_out.Q_solar
 
 # longwave radiation
-ir_gain = radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_substrate, ϵ_sky, T_sky, T_substrate)
+ir_gain = radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_substrate)
 Q_ir_in = ir_gain.Q_ir_in
-ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+ir_loss = radout(T_skin, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 Q_ir_out = ir_loss.Q_ir_out
 
 # conduction
-Q_cond = conduction(A_conduction, Le, T_surface, T_substrate, k_substrate)
+Q_cond = conduction(;
+    A_conduction, 
+    L = Le, 
+    T_surface = T_skin, 
+    T_substrate, 
+    k_substrate,
+    )
 
 # convection
-conv_out = convection(; body=geometric_pars, area=A_convection, T_air, T_surface, 
+conv_out = convection(; body=geometric_pars, area=A_convection, T_air, T_surface=T_skin, 
     wind_speed, P_atmos, fluid, fO2, fCO2, fN2, convection_enhancement)
 Q_conv = conv_out.Q_conv
 
 # evaporation
-evap_out = evaporation(; T_surface, ψ_org, wetness=skin_wetness, area=A_convection, 
+evap_out = evaporation(; T_surface=T_skin, ψ_org, wetness=skin_wetness, area=A_convection, 
     conv_out.hd, eye_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
 Q_evap = evap_out.Q_evap
 
-
 # energy balance test
-@test solar_out.Q_solar ≈ (ecto_output.QSOL)u"W" rtol=1e-9
+@test Q_solar ≈ (ecto_output.QSOL)u"W" rtol=1e-9
 @test Q_cond ≈ (ecto_output.QCOND)u"W" rtol=1e-6
-@test conv_out.Q_conv ≈ (ecto_output.QCONV)u"W" rtol=1e-4
-@test evap_out.Q_evap ≈ (ecto_output.QEVAP)u"W" rtol=1e-4
-
+@test Q_conv ≈ (ecto_output.QCONV)u"W" rtol=1e-4
+@test Q_evap ≈ (ecto_output.QEVAP)u"W" rtol=1e-4
 
 Q_in = Q_solar + Q_ir_in + Q_metab
 Q_out = Q_ir_out + Q_conv + Q_evap + Q_resp + Q_cond
@@ -196,6 +235,8 @@ Q_in - Q_out
 #@test_broken T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
 
 # using structs to pass parameters
+
+# define a body
 bodypars = BodyPars(;
     mass,
     ρ_flesh,
@@ -203,6 +244,7 @@ bodypars = BodyPars(;
     shape_c,
 )
 
+# define the integument (skin/scales/cuticle/fur/feather surface properties)
 integument_pars = IntegumentPars(;
     α_body_dorsal,
     α_body_ventral,
@@ -211,29 +253,36 @@ integument_pars = IntegumentPars(;
     F_sky,
     F_ground,
     eye_fraction,
-    skin_wetness,
-    conduction_fraction,
     ventral_fraction,
 )
 
+# define physiology
 physio_pars = PhysioPars(;
     fO2_extract,
     rq,
-    k_flesh,
 )
 
+
 thermoreg_pars = ThermoregulationPars(;
+)
+
+# TODO work out how to treat parameters and variables - Raf to add 'Varam' in addition to Param in ModelParameters?
+thermoreg_vars = ThermoregulationVars(;
+    skin_wetness,
+    conduction_fraction,
+    k_flesh,
     pant,
+    shade,
+    solar_orientation,
 )
 
 # construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
-lizard = Model(Organism(geometric_pars, integument_pars, physio_pars, thermoreg_pars))
+lizard = Model(Organism(geometric_pars, integument_pars, physio_pars, thermoreg_pars, thermoreg_vars))
 
 # get the environmental parameters
-environmental_params = EnvironmentalPars(
+environmental_params = EnvironmentalPars(;
     α_ground,
-    shade,
-    ϵ_substrate,
+    ϵ_ground,
     ϵ_sky,
     elevation,
     fluid,
@@ -243,14 +292,14 @@ environmental_params = EnvironmentalPars(
 )
 
 # get the variables for both the organism and environment
-organism=OrganismalVars(
+organism=OrganismalVars(;
     T_core,
-    T_surface,
+    T_skin,
     T_lung,
     ψ_org,
 )
 
-environment=EnvironmentalVars(
+environment=EnvironmentalVars(;
     T_air,
     T_sky,
     T_ground,
@@ -258,13 +307,12 @@ environment=EnvironmentalVars(
     rh,
     wind_speed,
     P_atmos,
-    zenith_angle,
     k_substrate,
-    solar_radiation,
-    normal_radiation,
-    diffuse_radiation,
+    zenith_angle,
+    global_radiation,
+    diffuse_fraction,
 )
-variables = (organism = organism, environment = environment)
+variables = (; organism, environment)
 
 # define the method 'ectotherm' for passing to find_zero, which dispatches off 'lizard' 
 T_air = environment.T_air

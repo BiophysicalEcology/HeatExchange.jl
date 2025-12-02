@@ -199,7 +199,7 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
     (; T_core, T_skin, T_insulation, T_lung, ψ_org) = organism_vars
     (; T_air, T_air_reference, T_sky, T_ground, T_substrate, T_bush, T_vegetation, rh, 
         wind_speed, P_atmos, zenith_angle, k_substrate, global_radiation, 
-        fraction_diffuse) = environmental_vars
+        diffuse_fraction) = environmental_vars
 
     # check if starting piloerect
     if insulation_step > 0.0
@@ -257,11 +257,6 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         # geometric properties
         geometry_pars = Body(bodyshape, CompositeInsulation(fur, fat))
 
-        # solar radiation
-        direct_radiation = global_radiation * (1 - fraction_diffuse)
-        beam_radiation = zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
-        diffuse_radiation = global_radiation * fraction_diffuse
-
         α_body_dorsal = 1 - insulation_reflectance_dorsal #solar absorptivity of dorsal fur (fractional, 0-1)
         α_body_ventral = 1 - insulation_reflectance_ventral # solar absorptivity of ventral fur (fractional, 0-1)
 
@@ -280,7 +275,7 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) = 
             solar(α_body_dorsal, α_body_ventral, area_silhouette, 
             area_total, area_conduction, F_ground, F_sky, α_ground, shade, 
-            global_radiation, beam_radiation, diffuse_radiation)
+            zenith_angle, global_radiation, diffuse_fraction)
 
         #Q_dorsal = Q_direct + Q_solar_sky
         Q_ventral = Q_solar_substrate
@@ -636,13 +631,12 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
         area_radiant_ventral = area_skin #* (1 - conduction_fraction) TODO make conduction occur when no insulation
     end
     # infrared dorsal
-    Q_rad_out_dorsal = 2 * F_sky * σ * ϵ_body_dorsal * area_total * T_surface_dorsal^4
+    Q_rad_out_dorsal = 2 * F_sky * σ * ϵ_body_dorsal * area_radiant_dorsal * T_surface_dorsal^4
     Q_rad_in_dorsal  = -Q_longwave_dorsal + Q_rad_out_dorsal
 
     # infrared ventral
-    Q_rad_out_ventral = 2 * F_ground * σ * ϵ_body_ventral * area_total * T_surface_ventral^4
+    Q_rad_out_ventral = 2 * F_ground * σ * ϵ_body_ventral * area_radiant_ventral * T_surface_ventral^4
     Q_rad_in_ventral  = -Q_longwave_ventral + Q_rad_out_ventral
-
     # energy flows
     Q_solar = Q_solar_dorsal * dmult + Q_solar_ventral * vmult
     Q_longwave_in  = Q_rad_in_dorsal * dmult + Q_rad_in_ventral * vmult
@@ -651,6 +645,7 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
     Q_longwave_out = Q_rad_out_dorsal * dmult + Q_rad_out_ventral * vmult
     Q_convection  = Q_convection_dorsal * dmult + Q_convection_ventral * vmult
     Q_conduction  = Q_conduction_dorsal * dmult + Q_conduction_ventral * vmult
+    @show Q_rad_out_dorsal, Q_rad_in_dorsal, Q_rad_out_ventral, Q_rad_in_ventral, Q_longwave_in, Q_longwave_out
 
     insulation_out = insulation_properties(; insulation=insulation_pars, 
         insulation_temperature = T_insulation * 0.7 + T_skin * 0.3, ventral_fraction, 

@@ -9,11 +9,11 @@ function conduction(;
     L=0.025u"m",
     T_surface=u"K"(25u"°C"),
     T_substrate=u"K"(10u"°C"),
-    k_sub=0.1u"W/m/K"
+    k_substrate=0.1u"W/m/K"
 )
-    return conduction(A_conduction, L, T_surface, T_substrate, k_sub)
+    return conduction(A_conduction, L, T_surface, T_substrate, k_substrate)
 end
-conduction(A_conduction, L, T_surface, T_substrate, k_sub) = A_conduction * (k_sub / L) * (T_surface - T_substrate)
+conduction(A_conduction, L, T_surface, T_substrate, k_substrate) = A_conduction * (k_substrate / L) * (T_surface - T_substrate)
 
 """
     solar(; kw...)
@@ -31,13 +31,16 @@ function solar(;
     F_sky,
     α_ground,
     shade,
+    zenith_angle, 
     global_radiation,
-    beam_radiation,
-    diffuse_radiation,
+    diffuse_fraction,
 )
-    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, global_radiation, beam_radiation, diffuse_radiation)
+    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
 end
-function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, global_radiation, beam_radiation, diffuse_radiation)
+function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
+    direct_radiation = global_radiation * (1 - diffuse_fraction)
+    diffuse_radiation = global_radiation * diffuse_fraction
+    beam_radiation = zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
     Q_direct = α_body_dorsal * A_silhouette * beam_radiation * (1 - shade)
     Q_solar_sky = α_body_dorsal * F_sky * A_total * diffuse_radiation * (1 - shade)
     Q_solar_substrate = α_body_ventral * F_ground * (A_total - A_conduction) * (1 - α_ground) * global_radiation * (1 - shade)
