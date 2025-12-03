@@ -45,7 +45,8 @@ export metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, MetabolicRateEquat
 
 include("organism.jl")
 include("traits.jl")
-include("insulation.jl")
+include("environment.jl")
+
 include("geometry/geometry.jl")
 include("geometry/plate.jl")
 include("geometry/cylinder.jl")
@@ -53,10 +54,23 @@ include("geometry/sphere.jl")
 include("geometry/ellipsoid.jl")
 include("geometry/desert_iguana.jl")
 include("geometry/leopard_frog.jl")
-include("environment.jl")
+
 include("biophysics.jl")
 include("metabolism.jl")
-include("ectotherm.jl")
-include("endotherm.jl")
+
+include("ectotherm/lung_and_surface_temperature.jl")
+include("ectotherm/respiration.jl")
+include("ectotherm/ectotherm.jl")
+
+include("endotherm/insulation.jl")
+include("endotherm/respiration.jl")
+include("endotherm/ellipsoid_model.jl")
+include("endotherm/radiant_temperature.jl")
+include("endotherm/insulation_radiant_temperature.jl")
+include("endotherm/compressed_radiant_temperature.jl")
+include("endotherm/mean_skin_temperature.jl")
+include("endotherm/net_metabolic_heat.jl")
+include("endotherm/skin_and_insulation_temperature.jl")
+include("endotherm/endotherm.jl")
 
 end
