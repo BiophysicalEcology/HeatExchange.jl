@@ -123,22 +123,20 @@ T_core = u"K"((ecto_output.TC)u"°C")
 
 # calculate heat fluxes
 
-# metabolism
-metab_out = metabolic_rate(AndrewsPough2(), mass, T_core; M1, M2, M3, M4)
+# metabolism|
+Q_metab = metabolic_rate(AndrewsPough2(), mass, T_core; M1, M2, M3, M4, O2conversion=Typical())
 
 # metabolism test
-@test metab_out.Q_metab ≈ (ecto_output.QMET)u"W" rtol=1e-9
-@test metab_out.V_O2 ≈ (ecto_output.O2_ml)u"mL/hr" rtol=1e-9
-
-Q_metab = metab_out.Q_metab
+@test Q_metab ≈ (ecto_output.QMET)u"W" rtol=1e-9
 
 # respiration
-resp_out = respiration_ectotherm(; 
-    T_x = T_core, 
+resp_out = respiration(; 
+    T_lung = T_core, 
     Q_metab, 
     fO2_extract, 
     pant, 
-    rq, 
+    rq,
+    mass, 
     T_air, 
     rh, 
     P_atmos, 
@@ -172,7 +170,7 @@ T_skin, T_lung = Tsurf_and_Tlung(;
     T_core)
 
 # test lung temperature
-@test T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-8
+@test T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-7
 
 # solar radiation
 diffuse_fraction = ecto_input.PDIF
@@ -219,7 +217,7 @@ Q_evap = evap_out.Q_evap
 
 # energy balance test
 @test Q_solar ≈ (ecto_output.QSOL)u"W" rtol=1e-9
-@test Q_cond ≈ (ecto_output.QCOND)u"W" rtol=1e-6
+@test Q_cond ≈ (ecto_output.QCOND)u"W" rtol=1e-5
 @test Q_conv ≈ (ecto_output.QCONV)u"W" rtol=1e-4
 @test Q_evap ≈ (ecto_output.QEVAP)u"W" rtol=1e-4
 

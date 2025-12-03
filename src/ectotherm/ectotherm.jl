@@ -32,16 +32,18 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
     # calculate heat fluxes
 
     # metabolism
-    metab_out = metabolic_rate(AndrewsPough2(), o.body.shape.mass, T_x)
-    Q_metab = metab_out.Q_metab
+    Q_metab = metabolic_rate(AndrewsPough2(), o.body.shape.mass, T_x)
 
     # respiration
-    resp_out = respiration_ectotherm(;
-        T_x, 
+    resp_out = respiration(;
+        T_lung = T_x, 
         Q_metab, 
         fO2_extract = physiopars.fO2_extract, 
         pant = thermoregvars.pant, 
-        rq = physiopars.rq, 
+        rq = physiopars.rq,
+        mass = o.body.shape.mass,
+        T_air_exit = T_x,
+        rh_exit = 1.0,         
         T_air = e_vars.T_air, 
         rh = e_vars.rh, 
         P_atmos = e_vars.P_atmos, 
@@ -50,6 +52,7 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
         fN2 = e_pars.fN2,
         )
     Q_resp = resp_out.Q_resp
+    V_O2 = u"ml/hr"(Joules_to_O2(Q_metab))
 
     # net metabolic heat generation
     Q_gen_net = Q_metab - Q_resp
@@ -161,7 +164,7 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
     Q_bal = Q_in - Q_out # this must balance
 
     enbal = (; Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal)
-    masbal = (; V_O2 = metab_out.V_O2, m_resp = resp_out.m_resp, m_cut = evap_out.m_cut, 
+    masbal = (; V_O2, m_resp = resp_out.m_resp, m_cut = evap_out.m_cut, 
         m_eye = evap_out.m_eyes)
     (; Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, 
         ir_loss, conv_out, evap_out)

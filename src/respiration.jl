@@ -1,34 +1,57 @@
-function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_min, rq,
-     T_lung, mass, fO2_extract, rh, rh_exit, T_air_exit, pant, Q_sum)
+"""
+    respiration_ectotherm(; kw...)
+    respiration_ectotherm(T_lung, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2) 
 
-    T_air = T_air_reference
-    gen = x
- 
+Computes respiratory heat and water loss via mass flow through the lungs 
+given gas concentrations, pressure, respiration rate and humidity for an ectotherm.
+
+# Keywords
+- `T_lung`: current core temperature guess, K
+- `Q_metab`: metabolic rate, W
+- `fO2_extract`: extraction efficiency, fractional
+- `pant`: multiplier on breathing rate due to panting, -
+- `rq`: respiratory quotient, (mol CO2 / mol O2)
+- `T_air`: air temperature, K
+- `rh`: relative humidity, fractional
+- `elevation`: elevation, m
+- `P_atmos`: barometric pressure, Pa
+- `fO2`; fractional O2 concentration in atmosphere, -
+- `fCO2`; fractional CO2 concentration in atmosphere, -
+- `fN2`; fractional N2 concentration in atmosphere, -
+"""
+function respiration(;
+    Q_metab,
+    Q_sum = Q_metab,
+    Q_min = Q_metab,
+    T_lung,
+    fO2_extract = 0.2,
+    pant = 1.0,
+    rq = 0.8,
+    mass,
+    T_air_exit = T_lung,
+    rh_exit = 1.0,
+    T_air,
+    rh,
+    P_atmos = 101325u"Pa",
+    fO2 = 0.2095,
+    fCO2 = 0.000412,
+    fN2 = 0.7902,
+    O2conversion::OxygenJoulesConversion=Typical(),
+)
+    return respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit, rh_exit, T_air, rh, P_atmos, fO2, fCO2, fN2, O2conversion)
+end
+function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit, rh_exit, T_air, rh, P_atmos, fO2, fCO2, fN2, O2conversion)
     # adjust O2 to ensure sum to 1
     if fO2 + fCO2 + fN2 != 1
         fO2 = 1 - (fN2 + fCO2)
     end
 
-    resp_gen = max(gen, Q_min)
+    resp_gen = max(Q_metab, Q_min)
 
-    # respgen is assumed to be in J/s
-    # o2stp will be in L/s
-    # litres of O₂/S @ STP: (data from Kleiber, 1961)
-    if rq ≥ 1.0
-        # carbohydrate metabolism
-        # carbohydrates ≈ 4193 cal/g
-        # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
-        V_O2_STP = resp_gen * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal")
-    end
+    #Joule_m3_O2 = 20.1e6u"J/m^3" # joules of energy dissipated per m3 O2 consumed at STP (enthalpy of combustion)
+    V_O2_STP = u"m^3/s"(Joules_to_O2(O2conversion, resp_gen, rq))
 
-    if rq ≤ 0.7
-        # fat metabolism; fats ≈ 9400 cal/g
-        V_O2_STP = resp_gen * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal")
-    else
-        # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
-        V_O2_STP = resp_gen * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal")
-    end
-
+    # converting stp -> vol. of O2 at animal lung temperature, atm. press.
     P_O2 = P_atmos * fO2
     V_O2 = (V_O2_STP * P_O2 / 273.15u"K") * (T_lung / P_O2)
     #n = PV/RT (ideal gas law: number of moles from press,vol,temp)
@@ -52,10 +75,12 @@ function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_mi
     # total moles of air at exit will be approximately the same as at entrance, since 
     # the moles of O2 removed = approx. the # moles of co2 added
     J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
-    # calculate vapour pressue of air at exit
+    # assuming saturated air at exit
     wet_air_out = wet_air_properties(T_air_exit, rh_exit, P_atmos; fO2, fCO2, fN2)
     P_vap_exit = wet_air_out.P_vap
     J_H2O_out = J_air_out * (P_vap_exit / (P_atmos - P_vap_exit))
+    #P_vap_sat = vapour_pressure(T_lung)
+    #J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
     # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 
     # P,T,V constant, so not significant flow energy, PV. (H = U + PV)
 
@@ -63,7 +88,7 @@ function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_mi
     J_evap = J_H2O_out - J_H2O_in
     # grams/s lost by breathing = moles lost * gram molecular weight of water:
     m_resp = J_evap * 18u"g/mol"
-    
+
     # putting a cap on water loss for small animals in very cold conditions
     # by assuming they will seek more moderate conditions if they exceed
     # this cap. this will improve stability for solution method.
@@ -78,6 +103,11 @@ function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_mi
     # for a 0.01 kg animal, the max. rate would be 1.67 x 10^-6 g/s
     m_resp = min(m_resp, (2.22E-03 * ustrip(u"kg", mass) * 15)u"g/s")
 
+    # get latent heat of vapourisation and compute heat exchange due to respiration
+    #L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_lung) - 273.15))J / kg # from wet_air_properties
+    L_v = enthalpy_of_vaporisation(T_lung)
+    # heat loss by breathing (J/s)=(J/kg)*(kg/s)
+    Q_resp = uconvert(u"W", L_v * m_resp)
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
     L_v = enthalpy_of_vaporisation(T_lung)
@@ -87,8 +117,9 @@ function respiration_endotherm(x; T_air_reference, fO2, fN2, fCO2, P_atmos, Q_mi
     (; c_p) = wet_air_properties(T_air, rh, P_atmos; fO2, fCO2, fN2)
     Q_air = c_p * J_air_in * M_a * (T_air - T_lung)
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
-    # note that there is no recovery of heat or moisture assumed in the nose
-    Q_net_check = x - Q_resp
+    
+    Q_net_check = Q_metab - Q_resp
     balance = Q_net_check - Q_sum
-    return (; balance, Q_resp, m_resp, Q_gen = x, V_air, V_O2_STP, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
+    
+    return (; balance, Q_resp, m_resp, Q_gen = Q_metab, V_air, V_O2_STP, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
 end

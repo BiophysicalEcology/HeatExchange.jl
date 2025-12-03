@@ -10,10 +10,11 @@ using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure,
 
 using Unitful, UnitfulMoles, ModelParameters, Roots
 
+# to go in GeometryOfOrganisms.jl
 export Shape, Cylinder, Sphere, Ellipsoid, Plate, LeopardFrog, DesertIguana
-
+# to go in GeometryOfOrganisms.jl
 export bird_skin_area, bird_plumage_area, mammal_skin_area, mammal_fur_area
-
+# to go in GeometryOfOrganisms.jl
 export Body, get_total_area, get_skin_area, get_evaporation_area, get_r_skin, get_r_insulation, get_r_flesh
 
 export Insulation, CompositeInsulation, Naked, Fur, Fat
@@ -39,9 +40,11 @@ export endotherm, ellipsoid_endotherm, update_T_insulation!, solve_with_insulati
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
-export simulsol, respiration_endotherm, mean_skin_temperature
+export simulsol, respiration_endotherm, mean_skin_temperature, respiration
 
-export metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, MetabolicRateEquation
+export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
+
+export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
 include("organism.jl")
 include("traits.jl")
@@ -57,13 +60,12 @@ include("geometry/leopard_frog.jl")
 
 include("biophysics.jl")
 include("metabolism.jl")
+include("respiration.jl")
 
 include("ectotherm/lung_and_surface_temperature.jl")
-include("ectotherm/respiration.jl")
 include("ectotherm/ectotherm.jl")
 
 include("endotherm/insulation.jl")
-include("endotherm/respiration.jl")
 include("endotherm/ellipsoid_model.jl")
 include("endotherm/radiant_temperature.jl")
 include("endotherm/insulation_radiant_temperature.jl")

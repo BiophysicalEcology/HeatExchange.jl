@@ -256,13 +256,13 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
                 Q_m2 = Q_minimum * 1.01
             end
 
-            Q_gen = find_zero(x -> respiration_endotherm(x; T_air_reference=T_air, fO2, 
+            Q_gen = find_zero(x -> respiration(; Q_metab = x, T_air, fO2, 
                 fN2, fCO2, P_atmos, Q_min, rq, T_lung, mass, fO2_extract, rh, rh_exit, 
-                T_air_exit, pant, Q_sum).balance, (Q_m1, Q_m2), Roots.Brent(), atol = resp_tolerance * Q_minimum)
+                T_air_exit, pant, Q_sum, O2conversion=Kleiber1961()).balance, (Q_m1, Q_m2), Roots.Brent(), atol = resp_tolerance * Q_minimum)
 
-            respiration_out = respiration_endotherm(Q_gen; T_air_reference=T_air, fO2, 
+            respiration_out = respiration(; Q_metab = Q_gen, T_air, fO2, 
                 fN2, fCO2, P_atmos, Q_min, rq, T_lung, mass, fO2_extract, rh, rh_exit, 
-                T_air_exit, pant, Q_sum)
+                T_air_exit, pant, Q_sum, O2conversion=Kleiber1961())
 
             Q_gen = respiration_out.Q_gen # Q_gen_net
         else

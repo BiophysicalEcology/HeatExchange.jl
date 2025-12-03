@@ -1,4 +1,5 @@
 abstract type MetabolicRateEquation end
+abstract type OxygenJoulesConversion end
 
 """
     AndrewsPough2 <: MetabolicRateEquation
@@ -24,7 +25,8 @@ and both results are reported. Predictions are capped betwen 1 °C and 50 °C bo
 """
 struct AndrewsPough2 <: MetabolicRateEquation end
 
-function metabolic_rate(::AndrewsPough2, mass, T_body; M1=0.013, M2=0.8, M3=0.038, M4=0.0)
+function metabolic_rate(::AndrewsPough2, mass, T_body; M1=0.013, M2=0.8, M3=0.038, M4=0.0, 
+        O2conversion::OxygenJoulesConversion=Typical())
     mass_g = ustrip(u"g", mass)
     T_c = ustrip(u"°C", T_body)
 
@@ -37,11 +39,10 @@ function metabolic_rate(::AndrewsPough2, mass, T_body; M1=0.013, M2=0.8, M3=0.03
     else
         V_O2 = M1 * mass_g^M2 * 10^(M3 * 1.0) * 10.0 ^ M4
     end
+    
+    Q_metab = u"W"(O2_to_Joules(O2conversion, (V_O2)u"ml/hr", 0.8))
 
-    Q_metab = (0.0056 * V_O2)u"W"
-    V_O2 = (V_O2)u"ml/hr"
-
-    return (; Q_metab, V_O2)
+    return (Q_metab)
 end
 
 """
@@ -63,7 +64,7 @@ function metabolic_rate(::Kleiber, mass)
     mass_kg = ustrip(u"kg", mass)
     m_rate_kcal_day = 70.0 * mass_kg^0.75 # general equation for mammals, p. 535, kcal/day
     Q_metab = (m_rate_kcal_day * 4.185 / (24 * 3.6))u"W" # convert to Watts
-    return (; Q_metab)
+    return (Q_metab)
 end
 
 """
@@ -86,5 +87,150 @@ struct McKechnieWolf <: MetabolicRateEquation end
 function metabolic_rate(::McKechnieWolf, mass)
     mass_kg = ustrip(u"g", mass)
     Q_metab = 10^(-1.461 + 0.669 * log10(mass_kg))u"W"
-    return (; Q_metab)
+    return (Q_metab)
 end
+
+# conversion from O2 consumption to Joules
+
+"""
+    Typical <: OxygenJoulesConversion
+
+Standard conversion between O₂ consumption and energy use.
+
+# Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
+- `Q_metab` — metabolic rate (W).
+
+# Outputs (Joules_to_O2) / Arguments (O2_to_Joules)
+- V_O2_STP, oxygen consumption rate, standard temperature and pressure, L/s
+
+TODO - add a ref?
+"""
+struct Typical <: OxygenJoulesConversion end
+
+function O2_to_Joules(::Typical, V_O2_STP, rq)
+    Joule_m3_O2 = 20.16u"J/ml"
+    Q_metab = V_O2_STP * Joule_m3_O2
+    return (Q_metab)
+end
+
+function Joules_to_O2(::Typical, Q_metab, rq)
+    Joule_m3_O2 = 20.16u"J/ml"
+    V_O2_STP = Q_metab / Joule_m3_O2
+    return (V_O2_STP)
+end
+
+"""
+    Kleiber1961 <: OxygenJoulesConversion
+
+Kleiber's conversion between O₂ consumption and energy use.
+
+# Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
+- `Q_metab` — metabolic rate (W).
+
+# Outputs (Joules_to_O2) / Arguments (O2_to_Joules)
+- V_O2_STP, oxygen consumption rate, standard temperature and pressure, L/s
+
+Kleiber, M. 1961. The Fire of Life. An Introduction to Animal Energetics.
+"""
+struct Kleiber1961 <: OxygenJoulesConversion end
+
+function Joules_to_O2(::Kleiber1961, Q_metab, rq)
+    if rq ≥ 1.0
+        # carbohydrate metabolism
+        # carbohydrates ≈ 4193 cal/g
+        # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
+        V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal")
+    end
+    if rq ≤ 0.7
+        # fat metabolism; fats ≈ 9400 cal/g
+        V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal")
+    else
+        # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
+        V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal")
+    end
+    return (V_O2_STP)
+end
+
+function O2_to_Joules(::Kleiber1961, V_O2_STP, rq)
+    if rq ≥ 1.0
+        # carbohydrate metabolism
+        # carbohydrates ≈ 4193 cal/g
+        # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
+        Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal"))
+    end
+    if rq ≤ 0.7
+        # fat metabolism; fats ≈ 9400 cal/g
+        Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal"))
+    else
+        # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
+        Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal"))
+    end
+    return (Q_metab)
+end
+
+# TODO
+# """
+#     ElliottDavison <: OxygenJoulesConversion
+
+# Elliott and Davison conversion between O₂ consumption and energy use.
+
+# # Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
+# - `Q_metab` — metabolic rate (W).
+
+# # Outputs (Joules_to_O2) / Arguments (O2_to_Joules)
+# - V_O2_STP, oxygen consumption rate, standard temperature and pressure, L/s
+
+# Elliott, J. M., and W. Davison. 1975. Oecologia 19:195–201.
+# """
+# struct ElliottDavison <: OxygenJoulesConversion end
+
+# function Joules_to_O2(::ElliottDavison, Q_metab, rq)
+#     if rq ≥ 1.0
+#         # carbohydrate metabolism
+#         # carbohydrates ≈ 4193 cal/g
+#         # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
+#         V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal")
+#     end
+#     if rq ≤ 0.7
+#         # fat metabolism; fats ≈ 9400 cal/g
+#         V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal")
+#     else
+#         # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
+#         V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal")
+#     end
+#     return (V_O2_STP)
+# end
+
+# function O2_to_Joules(::ElliottDavison, V_O2_STP, rq)
+#     if rq ≥ 1.0
+#         # carbohydrate metabolism
+#         # carbohydrates ≈ 4193 cal/g
+#         # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
+#         Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal"))
+#     end
+#     if rq ≤ 0.7
+#         # fat metabolism; fats ≈ 9400 cal/g
+#         Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal"))
+#     else
+#         # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
+#         Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal"))
+#     end
+#     return (Q_metab)
+# end
+
+"""
+    vapour_pressure(T)
+    vapour_pressure(formulation, T)
+
+Calculates saturation vapour pressure (Pa) for a given air temperature.
+
+# Arguments
+- `T`: air temperature in K.
+
+The `Typical` formulation is used by default.
+"""
+O2_to_Joules(::Missing) = missing
+Joules_to_O2(::Missing) = missing
+
+Joules_to_O2(Q_metab) = Joules_to_O2(Typical(), Q_metab, 1)
+O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, 1)
