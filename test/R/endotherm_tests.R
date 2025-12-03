@@ -266,3 +266,4 @@ write.csv(masbal, file = '../data/endoR_masbal.csv')
 
 file.copy("SOLVENDO.input.csv", to = "C:\\Users\\mrke\\Dropbox\\NicheMapR_Debug\\endo_source\\SOLVENDO.input.csv", overwrite = TRUE)
 file.remove("SOLVENDO.input.csv")
+masbal
