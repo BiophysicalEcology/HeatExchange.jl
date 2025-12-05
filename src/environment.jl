@@ -8,7 +8,7 @@ abstract type AbstractEnvironmentalPars end
 
 Environmental parameters for an organism model.
 """
-Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,FN,FO,FC,CE} <: AbstractEnvironmentalPars
+Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,FN,FO,FC,CE,CD} <: AbstractEnvironmentalPars
     α_ground::AG = Param(0.2, bounds=(0.0, 1.0))
     ϵ_ground::EG = Param(1.0, bounds=(0.0, 1.0))
     ϵ_sky::ES = Param(1.0, bounds=(0.0, 1.0))
@@ -17,7 +17,8 @@ Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,FN,FO,FC,CE} <: AbstractEnvi
     fN2::FN = Param(0.7902)
     fO2::FO = Param(0.2095)
     fCO2::FC = Param(0.0003)
-    convection_enhancement::CE = Param(1.0)    
+    convection_enhancement::CE = Param(1.0)
+    conduction_depth::CD = Param(2.5u"cm", bounds=(0.0, 200.0))
 end
 
 abstract type AbstractEnvironmentalVars end
@@ -30,11 +31,12 @@ abstract type AbstractEnvironmentalVars end
 
 Environmental variables for an organism model.
 """
-Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD} <: AbstractEnvironmentalVars
+Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,
+        WS,PA,ZA,KS,GR,FD,SD} <: AbstractEnvironmentalVars
     T_air::TA
     T_air_reference::TR = T_air
     T_sky::TU
-    T_ground::TG
+    T_ground::TD
     T_substrate::TS
     T_bush::TB = T_air
     T_vegetation::TV = T_air
@@ -45,15 +47,18 @@ Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD} 
     k_substrate::KS
     global_radiation::GR
     diffuse_fraction::FD
+    shade::SD
 end
 
-Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD} <: AbstractEnvironmentalVars
+Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,
+        WS,PA,ZA,KS,GR,FD,SD} <: AbstractEnvironmentalVars
     T_air::Vector{TA}
-    T_sky::Vector{TR}
-    T_ground::Vector{TG}
+    T_air_reference::Vector{TR} = T_air
+    T_sky::Vector{TU}
+    T_ground::Vector{TD}
     T_substrate::Vector{TS}
-    T_bush::Vector{TB}
-    T_vegetation::Vector{TV}
+    T_bush::Vector{TB} = T_air
+    T_vegetation::Vector{TV} = T_air
     rh::Vector{RH}
     wind_speed::Vector{WS}
     P_atmos::Vector{PA}
@@ -61,4 +66,5 @@ Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TG,TS,TB,TV,RH,WS,PA,ZA,KS,GR,F
     k_substrate::Vector{KS}
     global_radiation::Vector{GR}
     diffuse_fraction::Vector{FD}
+    shade::Vector{SD}
 end

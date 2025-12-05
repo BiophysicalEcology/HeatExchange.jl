@@ -5,10 +5,10 @@
     conduction(A_conduction, L, T_surface, T_substrate, k_sub)
 """
 function conduction(;
-    A_conduction=0.001325006u"m^2",
+    A_conduction=0.0u"m^2",
     L=0.025u"m",
-    T_surface=u"K"(25u"°C"),
-    T_substrate=u"K"(10u"°C"),
+    T_surface=u"K"(25.0u"°C"),
+    T_substrate=u"K"(10.0u"°C"),
     k_substrate=0.1u"W/m/K"
 )
     return conduction(A_conduction, L, T_surface, T_substrate, k_substrate)
@@ -249,6 +249,13 @@ end
 """
     evaporation(; kw...)
     evaporation(T_core, T_surface, ψ_org, surface_wetness, A_total, hd, eye_fraction, bare_fraction, T_air, rh, elevation, P_atmos)
+    # this subroutine computes surface evaporation based on the mass transfer
+    # coefficient, fraction of surface of the skin acting as a free water surface
+    # and exposed to the air, and the vapor density gradient between the
+    # surface and the air, each at their own temperature.
+
+	# effective areas for evaporation, partitioned into eye, insulated and bare
+
 """
 function evaporation(;
     T_surface,
@@ -269,12 +276,8 @@ function evaporation(;
     return evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
 end
 function evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
-    # this subroutine computes surface evaporation based on the mass transfer
-    # coefficient, fraction of surface of the skin acting as a free water surface
-    # and exposed to the air, and the vapor density gradient between the
-    # surface and the air, each at their own temperature.
 
-	# effective areas for evaporation, partitioned into eye, insulated and bare
+    # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction
     effective_area_insulated = (area - effective_area_eye) * wetness * (1 - bare_fraction)
     effective_area_bare = (area - effective_area_eye) * wetness * bare_fraction

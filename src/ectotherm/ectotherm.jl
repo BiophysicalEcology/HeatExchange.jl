@@ -8,42 +8,50 @@ Calculate heat balance for an organism at temperature T.
 function ectotherm end
 
 # A method dispatching on a `Model`
-ectotherm(T_x, mod::Model, e_pars, vars) = ectotherm(T_x, stripparams(mod), 
-    stripparams(e_pars), vars)
+#ectotherm(T_x, mod::Model, e) = ectotherm(T_x, stripparams(mod), 
+#    stripparams(e.environment_pars), e.environment_vars)
 # A generic method that expands dispatch to include the insulation
 # this could be <:Ectotherm or <:Endotherm?
-ectotherm(T_x, o::Organism, e_pars, vars) = ectotherm(T_x, insulation(o), o, 
-    integumentpars(o), physiopars(o), thermoregpars(o), thermoregvars(o), e_pars, vars)
+#ectotherm(T_x, o::Organism, e_pars, vars) = ectotherm(T_x, insulation(o), o, 
+#    integumentpars(o), physiopars(o), thermoregpars(o), thermoregvars(o), e_pars, vars)
 # A method for Naked organisms
+ectotherm(T_x, o::Organism, e) = ectotherm(T_x, insulation(o), o, e)
 
-function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars, 
-        thermoregpars, thermoregvars, e_pars, vars)
-    o_vars = vars.organism # TODO make small function to get this, or extract all?
-    e_vars = vars.environment # TODO make small function to get this, or extract all?
-    
+function ectotherm(T_x, insulation::Naked, o, e)
+    e_pars = stripparams(e.environment_pars) # TODO make small function to get this, or extract all?
+    e_vars = e.environment_vars # TODO make small function to get this, or extract all?
+    cond_ex = conductionpars_external(o)
+    cond_in = conductionpars_internal(o)
+    #conv = convectionpars(o)
+    rad = radiationpars(o)
+    evap = evaporationpars(o)
+    hyd = hydraulicpars(o)
+    resp = respirationpars(o)
+    metab = metabolismpars(o)
+
     # compute areas for exchange
     A_total = get_total_area(o.body)
-    A_dorsal = A_total * 0.5 # TODO have 1-ventral fraction parameter here
-    A_ventral = A_total * 0.5 * (1 - thermoregvars.conduction_fraction) # TODO have ventral fraction parameter here
-    A_convection = A_total * (1 - thermoregvars.conduction_fraction)
-    A_conduction = A_total * thermoregvars.conduction_fraction
-    A_silhouette = silhouette_area(o.body.shape, thermoregvars.solar_orientation)
+    A_dorsal = A_total * (1 - rad.ventral_fraction)
+    A_ventral = A_total * rad.ventral_fraction * (1 - cond_ex.conduction_fraction)
+    A_convection = A_total * (1 - cond_ex.conduction_fraction)
+    A_conduction = A_total * cond_ex.conduction_fraction
+    A_silhouette = rad.A_silhouette
 
     # calculate heat fluxes
 
     # metabolism
-    Q_metab = metabolic_rate(AndrewsPough2(), o.body.shape.mass, T_x)
+    Q_metab = metabolic_rate(metab.model, o.body.shape.mass, T_x)
 
     # respiration
     resp_out = respiration(;
         T_lung = T_x, 
         Q_metab, 
-        fO2_extract = physiopars.fO2_extract, 
-        pant = thermoregvars.pant, 
-        rq = physiopars.rq,
+        fO2_extract = resp.fO2_extract, 
+        pant = resp.pant, 
+        rq = resp.rq,
         mass = o.body.shape.mass,
         T_air_exit = T_x,
-        rh_exit = 1.0,         
+        rh_exit = resp.rh_exit,         
         T_air = e_vars.T_air, 
         rh = e_vars.rh, 
         P_atmos = e_vars.P_atmos, 
@@ -61,24 +69,24 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
     # resultant surfanec and lung temperature
     Tsurf_Tlung_out = Tsurf_and_Tlung(;
         body = o.body, 
-        k_flesh = thermoregvars.k_flesh, 
+        k_flesh = cond_in.k_flesh, 
         Q_gen_spec, 
         T_core = T_x,
         )
     T_surface = Tsurf_Tlung_out.T_surface
     T_lung = Tsurf_Tlung_out.T_lung
-    
+
     # solar radiation
     solar_out = solar(; 
-        α_body_dorsal = integumentpars.α_body_dorsal, 
-        α_body_ventral = integumentpars.α_body_ventral, 
+        α_body_dorsal = rad.α_body_dorsal, 
+        α_body_ventral = rad.α_body_ventral, 
         A_silhouette, 
         A_dorsal, 
         A_ventral, 
-        F_ground = integumentpars.F_ground, 
-        F_sky = integumentpars.F_sky, 
+        F_ground = rad.F_ground, 
+        F_sky = rad.F_sky, 
         α_ground = e_pars.α_ground, 
-        shade = thermoregvars.shade, 
+        shade = e_vars.shade, 
         zenith_angle = e_vars.zenith_angle, 
         global_radiation = e_vars.global_radiation, 
         diffuse_fraction = e_vars.diffuse_fraction,
@@ -87,12 +95,12 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
 
     # infrared in
     ir_gain = radin(;
-        A_dorsal, 
-        A_ventral, 
-        integumentpars.F_sky, 
-        integumentpars.F_ground, 
-        integumentpars.ϵ_body_dorsal, 
-        integumentpars.ϵ_body_ventral, 
+        F_sky = rad.F_sky, 
+        F_ground = rad.F_ground, 
+        ϵ_body_dorsal = rad.ϵ_body_dorsal, 
+        ϵ_body_ventral = rad.ϵ_body_ventral,
+        A_dorsal,
+        A_ventral,
         e_pars.ϵ_ground, 
         e_pars.ϵ_sky, 
         e_vars.T_sky, 
@@ -106,21 +114,20 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
         T_ventral = T_surface, 
         A_dorsal, 
         A_ventral,
-        integumentpars.F_sky,
-        integumentpars.F_ground, 
-        integumentpars.ϵ_body_dorsal, 
-        integumentpars.ϵ_body_ventral,
+        F_sky = rad.F_sky,
+        F_ground = rad.F_ground, 
+        ϵ_body_dorsal = rad.ϵ_body_dorsal, 
+        ϵ_body_ventral = rad.ϵ_body_ventral,
         )
     Q_ir_out = ir_loss.Q_ir_out
 
     # conduction
-    Le = 0.025u"m" # TODO make this a parameter
     Q_cond = conduction(;
         A_conduction, 
-        L = Le,
+        L = e_pars.conduction_depth,
         T_surface,
-        e_vars.T_substrate, 
-        e_vars.k_substrate,
+        T_substrate = e_vars.T_substrate, 
+        k_substrate = e_vars.k_substrate,
         )
 
     # convection
@@ -142,12 +149,12 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
     # evaporation
     evap_out = evaporation(;
         T_surface, 
-        ψ_org = o_vars.ψ_org,
-        wetness = thermoregvars.skin_wetness, 
+        ψ_org = hyd.water_potential,
+        wetness = evap.skin_wetness, 
         area = A_convection, 
         hd = conv_out.hd, 
         hd_free = conv_out.hd_free, 
-        eye_fraction = integumentpars.eye_fraction, 
+        eye_fraction = evap.eye_fraction, 
         bare_fraction = 1.0, 
         T_air = e_vars.T_air,
         rh = e_vars.rh, 
@@ -181,7 +188,7 @@ function get_Tb(mod::Model, e_pars, vars)
     ectotherm(T_c, mod, e_pars, vars)
 end
 
-flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
+#flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 
 #function ectotherm(T_x)
 

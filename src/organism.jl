@@ -16,23 +16,25 @@ abstract type AbstractModelParameters end
 abstract type AbstractFunctionalTraits end
 
 struct Traits{
-        IN<:AbstractPhysioParameters,
+        IN<:AbstractMorphoParameters,
         CE<:AbstractMorphoParameters,
-        CI<:AbstractMorphoParameters,
+        CI<:AbstractPhysioParameters,
         RA<:AbstractMorphoParameters,
         CO<:AbstractMorphoParameters,
         EV<:AbstractMorphoParameters,
+        HD<:AbstractPhysioParameters,
         RE<:AbstractPhysioParameters,
         ME<:AbstractPhysioParameters,
  } <: AbstractFunctionalTraits
-    insulationpars::IN
-    conductionpars_external::CE
-    conductionpars_internal::CI
-    radiationpars::RA
-    convectionpars::CO
-    evaporationpars::EV
-    respirationpars::RE
-    metabolicpars::ME
+    insulation_pars::IN
+    conduction_pars_external::CE
+    conduction_pars_internal::CI
+    radiation_pars::RA
+    convection_pars::CO
+    evaporation_pars::EV
+    hydraulic_pars::HD
+    respiration_pars::RE
+    metabolism_pars::ME
 end
 
 """
@@ -44,14 +46,29 @@ abstract type AbstractOrganism end
 
 # With some generic methods to get the params and body
 body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
-#morphopars(o::AbstractOrganism) = o.morphopars # gets the morphological parameter traits from an object of type AbstractOrganism
-radiationpars(o::AbstractOrganism) = o.radiationpars # gets the radiation parameter traits from an object of type AbstractOrganism
-evaporationpars(o::AbstractOrganism) = o.evaporationpars # gets the evaporation parameter traits from an object of type AbstractOrganism
-physiopars(o::AbstractOrganism) = o.physiopars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
-thermoregpars(o::AbstractOrganism) = o.thermoregpars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
-thermoregvars(o::AbstractOrganism) = o.thermoregvars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
+traits(o::AbstractOrganism) = o.traits
 shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
 insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
+
+insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
+conductionpars_external(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_external)
+conductionpars_internal(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_internal)
+convectionpars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
+radiationpars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
+evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
+hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
+respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
+metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
+
+insulationpars(o::AbstractOrganism) = insulationpars(traits(o))
+conductionpars_external(o::AbstractOrganism) = conductionpars_external(traits(o))
+conductionpars_internal(o::AbstractOrganism) = conductionpars_internal(traits(o))
+convectionpars(o::AbstractOrganism) = convectionpars(traits(o))
+radiationpars(o::AbstractOrganism) = radiationpars(traits(o))
+evaporationpars(o::AbstractOrganism) = evaporationpars(traits(o))
+hydraulicpars(o::AbstractOrganism) = hydraulicpars(traits(o))
+respirationpars(o::AbstractOrganism) = respirationpars(traits(o))
+metabolismpars(o::AbstractOrganism) = metabolismpars(traits(o))
 
 """
     Organism <: AbstractOrganism
@@ -63,17 +80,9 @@ A concrete implementation of `AbstractOrganism`, it accepts an
 """
 struct Organism{
         B<:AbstractBody,
-        IN<:AbstractPhysioParameters,
-        CE<:AbstractMorphoParameters,
-        CI<:AbstractMorphoParameters,
-        RA<:AbstractMorphoParameters,
-        CO<:AbstractMorphoParameters,
-        EV<:AbstractMorphoParameters,
-        RE<:AbstractPhysioParameters,
-        ME<:AbstractPhysioParameters,
-        } <: AbstractOrganism
+        T<:AbstractFunctionalTraits} <: AbstractOrganism
     body::B
-
+    traits::T
 end
 
 # TODO use this as a container for outputs? Or remove?

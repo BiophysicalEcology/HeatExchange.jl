@@ -30,6 +30,19 @@ Base.@kwdef struct InternalConductionParameters{FF,FL,FA} <: AbstractPhysioParam
 end
 
 """
+    ConvectionParameters <: AbstractMorphoParameters
+
+Morphological parameters relating to convective heat exchange.
+
+# Parameters
+- `convection_area` — surface area involved in convection.
+
+"""
+Base.@kwdef struct ConvectionParameters{A} <: AbstractMorphoParameters
+    convection_area::A = Param(0.0u"m^2")
+end
+
+"""
     RadiationParameters <: AbstractRadiationParameters
 
 Morphological parameters relating to radiation exchange.
@@ -46,12 +59,15 @@ Morphological parameters relating to radiation exchange.
 - `ventral_fraction::F` — Fraction of total surface area that is ventral (0–1).
 
 """
-Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,FS,FG,FV,FB,
+Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,SA,DA,VA,FS,FG,FV,FB,
   VF} <: AbstractMorphoParameters
     α_body_dorsal::AD     = Param(0.85, bounds=(0.0, 1.0))
     α_body_ventral::AV    = Param(0.85, bounds=(0.0, 1.0))
     ϵ_body_dorsal::ED     = Param(0.95, bounds=(0.0, 1.0))
     ϵ_body_ventral::EV    = Param(0.95, bounds=(0.0, 1.0))
+    A_silhouette::SA    = Param(0.0u"m^2")
+    A_dorsal::DA          = Param(0.0u"m^2")
+    A_ventral::VA         = Param(0.0u"m^2")
     F_sky::FS             = Param(0.5, bounds=(0.0, 1.0))
     F_ground::FG          = Param(0.5, bounds=(0.0, 1.0))
     F_vegetation::FV      = Param(0.0, bounds=(0.0, 1.0))
@@ -212,8 +228,9 @@ A collection of physiological parameters relating to metabolic rate.
 - `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
 
 """
-Base.@kwdef struct MetabolicParameters{TC,QM,QT} <: AbstractPhysioParameters
+Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysioParameters
     T_core::TC       = Param(37u"°C" |> u"K")
     Q_metabolism::QM = Param(0.0u"W")
     q10::QT          = Param(2.0)
+    model            = AndrewsPough2()
 end

@@ -19,12 +19,13 @@ export bird_skin_area, bird_plumage_area, mammal_skin_area, mammal_fur_area
 export get_total_area, get_skin_area, get_evaporation_area, get_r_skin, get_r_insulation, get_r_flesh
 export surface_area, silhouette_area, SolarOrientation, Intermediate, ParallelToSun, NormalToSun
 
-export Organism, EndoModelPars, BodyPars, InsulationPars, IntegumentPars, PhysioPars, 
-    ThermoregulationPars, ThermoregulationVars, OrganismalVars
+export Organism, Traits, EndoModelPars, BodyPars, InsulationParameters, ExternalConductionParameters,
+  InternalConductionParameters, RadiationParameters, ConvectionParameters, EvaporationParameters, 
+  HydraulicParameters, RespirationParameters, MetabolismParameters
 
 export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
-export heat_balance, get_Tb, flip2vectors
+export heat_balance, get_Tb
 
 export solar, radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced 
 

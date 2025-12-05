@@ -97,17 +97,17 @@ end
 pant = 1.0
 
 # geometry
-shape_body = DesertIguana(mass, ρ_flesh) 
-#shape_body = Cylinder(mass, ρ_flesh, shape_b)
-geometric_pars = Body(shape_body, Naked())
-A_total = get_total_area(geometric_pars)
+shape_pars = DesertIguana(mass, ρ_flesh) 
+#shape_pars = Cylinder(mass, ρ_flesh, shape_b)
+geometry = Body(shape_pars, Naked())
+A_total = get_total_area(geometry)
 A_dorsal = A_total * (1 - ventral_fraction)
 A_ventral = A_total * ventral_fraction * (1 - conduction_fraction)
 A_conduction = A_total * conduction_fraction
 A_convection = A_total * (1 - conduction_fraction)
-A_sil_normal = silhouette_area(shape_body, NormalToSun())
-A_sil_parallel = silhouette_area(shape_body, ParallelToSun())
-A_silhouette = silhouette_area(shape_body, solar_orientation)
+A_sil_normal = silhouette_area(shape_pars, NormalToSun())
+A_sil_parallel = silhouette_area(shape_pars, ParallelToSun())
+A_silhouette = silhouette_area(shape_pars, solar_orientation)
 A_eff = A_convection * skin_wetness
 
 # geometry test
@@ -116,9 +116,9 @@ A_eff = A_convection * skin_wetness
 @test A_sil_normal ≈ (ecto_output.ASILN)u"m^2" rtol=1e-9
 @test A_sil_parallel ≈ (ecto_output.ASILP)u"m^2" rtol=1e-9
 @test A_eff ≈ (ecto_output.AEFF)u"m^2" rtol=1e-9
-@test geometric_pars.geometry.characteristic_dimension ≈ (ecto_output.AL)u"m" rtol=1e-9
-@test geometric_pars.geometry.length[1] ≈ (ecto_output.R1)u"m" rtol=1e-9
-@test geometric_pars.geometry.volume ≈ (ecto_output.VOL)u"m^3" rtol=1e-9
+@test geometry.geometry.characteristic_dimension ≈ (ecto_output.AL)u"m" rtol=1e-9
+@test geometry.geometry.length[1] ≈ (ecto_output.R1)u"m" rtol=1e-9
+@test geometry.geometry.volume ≈ (ecto_output.VOL)u"m^3" rtol=1e-9
 
 # organism state
 T_core = u"K"((ecto_output.TC)u"°C")
@@ -162,11 +162,11 @@ Q_resp = resp_out.Q_resp
 
 Q_resp = resp_out.Q_resp
 Q_gen_net = Q_metab - Q_resp
-Q_gen_spec = Q_gen_net / geometric_pars.geometry.volume
+Q_gen_spec = Q_gen_net / geometry.geometry.volume
 
 # compute skin and lung temperature
 T_skin, T_lung = Tsurf_and_Tlung(;
-    body = geometric_pars, 
+    body = geometry, 
     k_flesh, 
     Q_gen_spec, 
     T_core)
@@ -229,7 +229,7 @@ Q_cond = conduction(;
 
 # convection
 conv_out = convection(; 
-            body=geometric_pars, 
+            body=geometry, 
             area=A_convection, 
             T_air, 
             T_surface=T_skin,
@@ -245,11 +245,12 @@ Q_conv = conv_out.Q_conv
 
 # evaporation
 evap_out = evaporation(;
-            T_surface=T_skin,
+            T_surface = T_skin,
             ψ_org,
-            wetness=skin_wetness,
-            area=A_convection,
+            wetness = skin_wetness,
+            area = A_convection,
             hd = conv_out.hd,
+            hd_free = conv_out.hd_free,
             eye_fraction,
             T_air,
             rh,
@@ -279,43 +280,68 @@ Q_in - Q_out
 
 # using structs to pass parameters
 
-# define the integument (skin/scales/cuticle/fur/feather surface properties)
-integument_pars = IntegumentPars(;
+conduction_pars_external = ExternalConductionParameters(;
+    conduction_fraction,
+)
+
+conduction_pars_internal = InternalConductionParameters(;
+    k_flesh,
+)
+
+radiation_pars = RadiationParameters(;
     α_body_dorsal,
     α_body_ventral,
     ϵ_body_dorsal,
     ϵ_body_ventral,
+    A_silhouette,
+    A_dorsal, 
+    A_ventral, 
     F_sky,
     F_ground,
-    eye_fraction,
     ventral_fraction,
 )
 
-# define physiology
-physio_pars = PhysioPars(;
+convection_pars = ConvectionParameters(;
+    convection_area = A_convection,
+)
+
+evaporation_pars = EvaporationParameters(;
+    skin_wetness,
+    eye_fraction,
+)
+
+hydraulic_pars = HydraulicParameters(;
+    water_potential = ψ_org,
+)
+
+respiration_pars = RespirationParameters(;
     fO2_extract,
+    pant,
     rq,
 )
 
-
-thermoreg_pars = ThermoregulationPars(;
+metabolism_pars = MetabolismParameters(;
+    Q_metabolism = Q_metab,
+    model = AndrewsPough2(),
 )
 
-# TODO work out how to treat parameters and variables - Raf to add 'Varam' in addition to Param in ModelParameters?
-thermoreg_vars = ThermoregulationVars(;
-    skin_wetness,
-    conduction_fraction,
-    k_flesh,
-    pant,
-    shade,
-    solar_orientation,
+traits = Traits(
+    InsulationParameters(),
+    conduction_pars_external,
+    conduction_pars_internal,
+    radiation_pars,
+    convection_pars,
+    evaporation_pars,
+    hydraulic_pars,
+    respiration_pars,
+    metabolism_pars
 )
-
 # construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
-lizard = Model(Organism(geometric_pars, integument_pars, physio_pars, thermoreg_pars, thermoreg_vars))
+#lizard = Model(Organism(geometry, traits))
+lizard = Organism(geometry, traits)
 
 # get the environmental parameters
-environmental_params = EnvironmentalPars(;
+environment_pars = EnvironmentalPars(;
     α_ground,
     ϵ_ground,
     ϵ_sky,
@@ -324,17 +350,10 @@ environmental_params = EnvironmentalPars(;
     fN2,
     fO2,
     fCO2,
+
 )
 
-# get the variables for both the organism and environment
-organism=OrganismalVars(;
-    T_core,
-    T_skin,
-    T_lung,
-    ψ_org,
-)
-
-environment=EnvironmentalVars(;
+environment_vars = EnvironmentalVars(;
     T_air,
     T_sky,
     T_ground,
@@ -346,19 +365,20 @@ environment=EnvironmentalVars(;
     zenith_angle,
     global_radiation,
     diffuse_fraction,
+    shade,
 )
-variables = (; organism, environment)
 
+environment = (; environment_pars, environment_vars)
 # define the method 'ectotherm' for passing to find_zero, which dispatches off 'lizard' 
-T_air = environment.T_air
-ectotherm(T_air, lizard, environmental_params, variables)
-T_core_s = find_zero(t -> ectotherm(t, lizard, environmental_params, variables), (T_air - 40u"K", T_air + 100u"K"), Bisection())
+T_air = environment_vars.T_air
+ectotherm(T_air, lizard, environment)
+T_core_s = find_zero(t -> ectotherm(t, lizard, environment), (T_air - 40u"K", T_air + 100u"K"), Bisection())
 T_core_C = (Unitful.ustrip(T_core_s) - 273.15)u"°C"
 
 # test core temperature calculation
 @test T_core_C ≈ (ecto_output.TC)u"°C" rtol=1e-4
 
-heat_balance_out = ectotherm(T_core_s, lizard, environmental_params, variables)
+heat_balance_out = ectotherm(T_core_s, lizard, environment)
 
 @test heat_balance_out.T_core ≈ (ecto_output.TC + 273.15)u"K" rtol=1e-5
 @test heat_balance_out.T_surface ≈ (ecto_output.TSKIN + 273.15)u"K" rtol=1e-5
