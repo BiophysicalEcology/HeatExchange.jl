@@ -1,9 +1,9 @@
 """
-    Cylinder <: Shape
+    Cylinder <: AbstractShape
 
 A cylindrical organism shape.
 """
-mutable struct Cylinder{M,D,B} <: Shape
+mutable struct Cylinder{M,D,B} <: AbstractShape
     mass::M
     density::D
     b::B

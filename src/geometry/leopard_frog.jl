@@ -1,9 +1,9 @@
 """
-    LeopardFrog <: Shape
+    LeopardFrog <: AbstractShape
 
 A frog-shaped organism. Based on the leopard frog (Tracy 1976 Ecol. Monog.).
 """
-struct LeopardFrog{M,D} <: Shape
+struct LeopardFrog{M,D} <: AbstractShape
     mass::M
     density::D
 end

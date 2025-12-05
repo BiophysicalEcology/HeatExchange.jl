@@ -71,6 +71,8 @@ F_ground = ecto_input.fatosb
 ϵ_body_dorsal = ecto_input.epsilon
 ϵ_body_ventral = ecto_input.epsilon
 Le = 0.025u"m"
+#conduction_depth::D =    Param(2.5u"cm") this should be an environmental variable
+
 ventral_fraction = 0.5
 
 # organism physiology
@@ -99,13 +101,13 @@ shape_body = DesertIguana(mass, ρ_flesh)
 #shape_body = Cylinder(mass, ρ_flesh, shape_b)
 geometric_pars = Body(shape_body, Naked())
 A_total = get_total_area(geometric_pars)
+A_dorsal = A_total * (1 - ventral_fraction)
+A_ventral = A_total * ventral_fraction * (1 - conduction_fraction)
 A_conduction = A_total * conduction_fraction
 A_convection = A_total * (1 - conduction_fraction)
 A_sil_normal = silhouette_area(shape_body, NormalToSun())
 A_sil_parallel = silhouette_area(shape_body, ParallelToSun())
 A_silhouette = silhouette_area(shape_body, solar_orientation)
-A_up = A_total / 2
-A_down = A_total / 2
 A_eff = A_convection * skin_wetness
 
 # geometry test
@@ -178,8 +180,8 @@ solar_out = solar(;
     α_body_dorsal,
     α_body_ventral,
     A_silhouette,
-    A_total, 
-    A_conduction, 
+    A_dorsal, 
+    A_ventral, 
     F_ground, 
     F_sky, 
     α_ground, 
@@ -191,9 +193,29 @@ solar_out = solar(;
 Q_solar = solar_out.Q_solar
 
 # longwave radiation
-ir_gain = radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_substrate)
+ir_gain = radin(;
+    A_dorsal,
+    A_ventral, 
+    F_sky, 
+    F_ground, 
+    ϵ_body_dorsal, 
+    ϵ_body_ventral, 
+    ϵ_ground, 
+    ϵ_sky, 
+    T_sky, 
+    T_ground,
+    )
 Q_ir_in = ir_gain.Q_ir_in
-ir_loss = radout(T_skin, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+ir_loss = radout(;
+    T_dorsal = T_skin,
+    T_ventral = T_skin,
+    A_dorsal,
+    A_ventral,
+    F_sky,
+    F_ground,
+    ϵ_body_dorsal,
+    ϵ_body_ventral,
+    )
 Q_ir_out = ir_loss.Q_ir_out
 
 # conduction
@@ -206,13 +228,36 @@ Q_cond = conduction(;
     )
 
 # convection
-conv_out = convection(; body=geometric_pars, area=A_convection, T_air, T_surface=T_skin, 
-    wind_speed, P_atmos, fluid, fO2, fCO2, fN2, convection_enhancement)
+conv_out = convection(; 
+            body=geometric_pars, 
+            area=A_convection, 
+            T_air, 
+            T_surface=T_skin,
+            wind_speed,
+            P_atmos,
+            fluid,
+            fO2,
+            fCO2,
+            fN2,
+            convection_enhancement,
+            )
 Q_conv = conv_out.Q_conv
 
 # evaporation
-evap_out = evaporation(; T_surface=T_skin, ψ_org, wetness=skin_wetness, area=A_convection, 
-    conv_out.hd, eye_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
+evap_out = evaporation(;
+            T_surface=T_skin,
+            ψ_org,
+            wetness=skin_wetness,
+            area=A_convection,
+            hd = conv_out.hd,
+            eye_fraction,
+            T_air,
+            rh,
+            P_atmos,
+            fO2,
+            fCO2,
+            fN2,
+            )
 Q_evap = evap_out.Q_evap
 
 # energy balance test
@@ -233,14 +278,6 @@ Q_in - Q_out
 #@test_broken T_core_C = (Unitful.ustrip(T_core_s) - 273.15)°C
 
 # using structs to pass parameters
-
-# define a body
-bodypars = BodyPars(;
-    mass,
-    ρ_flesh,
-    shape_b,
-    shape_c,
-)
 
 # define the integument (skin/scales/cuticle/fur/feather surface properties)
 integument_pars = IntegumentPars(;

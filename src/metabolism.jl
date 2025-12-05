@@ -1,6 +1,3 @@
-abstract type MetabolicRateEquation end
-abstract type OxygenJoulesConversion end
-
 """
     AndrewsPough2 <: MetabolicRateEquation
 
@@ -108,21 +105,22 @@ TODO - add a ref?
 struct Typical <: OxygenJoulesConversion end
 
 function O2_to_Joules(::Typical, V_O2_STP, rq)
-    Joule_m3_O2 = 20.16u"J/ml"
-    Q_metab = V_O2_STP * Joule_m3_O2
+    Q_ox = 20.1u"J/ml"
+    Q_metab = V_O2_STP * Q_ox
     return (Q_metab)
 end
 
 function Joules_to_O2(::Typical, Q_metab, rq)
-    Joule_m3_O2 = 20.16u"J/ml"
-    V_O2_STP = Q_metab / Joule_m3_O2
+    Q_ox = 20.1u"J/ml"
+    V_O2_STP = Q_metab / Q_ox
     return (V_O2_STP)
 end
 
 """
     Kleiber1961 <: OxygenJoulesConversion
 
-Kleiber's conversion between O₂ consumption and energy use.
+Kleiber's conversion between O₂ consumption and energy use, from
+his Table 7.3.
 
 # Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
 - `Q_metab` — metabolic rate (W).
@@ -135,35 +133,31 @@ Kleiber, M. 1961. The Fire of Life. An Introduction to Animal Energetics.
 struct Kleiber1961 <: OxygenJoulesConversion end
 
 function Joules_to_O2(::Kleiber1961, Q_metab, rq)
+    Q_ox_carbohydrate = u"J/ml"(5.0u"kcal"/1u"L")
+    Q_ox_fat = u"J/ml"(4.7u"kcal"/1u"L")
+    Q_ox_protein = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0
-        # carbohydrate metabolism
-        # carbohydrates ≈ 4193 cal/g
-        # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
-        V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal")
+        V_O2_STP = Q_metab / Q_ox_carbohydrate
     end
     if rq ≤ 0.7
-        # fat metabolism; fats ≈ 9400 cal/g
-        V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal")
+        V_O2_STP = Q_metab / Q_ox_fat
     else
-        # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
-        V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal")
+        V_O2_STP = Q_metab / Q_ox_protein
     end
     return (V_O2_STP)
 end
 
 function O2_to_Joules(::Kleiber1961, V_O2_STP, rq)
+    Q_ox_carbohydrate = u"J/ml"(5.057u"kcal"/1u"L")
+    Q_ox_fat = u"J/ml"(4.7u"kcal"/1u"L")
+    Q_ox_protein = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0
-        # carbohydrate metabolism
-        # carbohydrates ≈ 4193 cal/g
-        # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
-        Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal"))
+        V_O2_STP = V_O2_STP * Q_ox_carbohydrate
     end
     if rq ≤ 0.7
-        # fat metabolism; fats ≈ 9400 cal/g
-        Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal"))
+        V_O2_STP = V_O2_STP * Q_ox_fat
     else
-        # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
-        Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal"))
+        V_O2_STP = V_O2_STP * Q_ox_protein
     end
     return (Q_metab)
 end

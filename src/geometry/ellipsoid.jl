@@ -1,9 +1,9 @@
 """
-    Ellipsoid <: Shape
+    Ellipsoid <: AbstractShape
 
 An ellipsoidal organism shape.
 """
-mutable struct Ellipsoid{M,D,B,C} <: Shape
+mutable struct Ellipsoid{M,D,B,C} <: AbstractShape
     mass::M
     density::D
     b::B

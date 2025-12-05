@@ -1,9 +1,9 @@
 """
-    Plate <: Shape
+    Plate <: AbstractShape
 
 A flat plate-shaped organism shape.
 """
-mutable struct Plate{M,D,B,C} <: Shape
+mutable struct Plate{M,D,B,C} <: AbstractShape
     mass::M
     density::D
     b::B

@@ -1,9 +1,9 @@
 """
-    Sphere <: Shape
+    Sphere <: AbstractShape
 
 A spherical organism shape.
 """
-mutable struct Sphere{M,D} <: Shape
+mutable struct Sphere{M,D} <: AbstractShape
     mass::M
     density::D
 end

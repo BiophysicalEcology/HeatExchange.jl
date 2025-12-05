@@ -1,7 +1,7 @@
 Base.@kwdef struct EndoModelPars{TM,TR,RE,TP,ST,BT} <: AbstractModelParameters
     thermoregulation_mode::TM = Param(1)
     thermoregulate::TR =        Param(true)
-    respire::RE =               Param(trie)
+    respire::RE =               Param(true)
     torpor::TP =                Param(false)
     simulsol_tolerance::ST =    Param(1e-3u"K")
     resp_tolerance::BT =        Param(1e-5u"K")
@@ -101,6 +101,8 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
 
         area_silhouette = silhouette_area(geometry_pars, thermoreg_vars.solar_orientation)        
         area_total = get_total_area(geometry_pars) # total area, m2
+        area_dorsal = area_total * (1 - ventral_fraction)
+        area_ventral = area_total * ventral_fraction * conduction_fraction
         area_skin = get_skin_area(geometry_pars) # total area, m2
         area_conduction = area_total * conduction_fraction # area of skin for convection/evaporation (total skin area - hair area), m2
         area_evaporation = get_evaporation_area(geometry_pars)
@@ -108,7 +110,7 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
 
         (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) = 
             solar(α_body_dorsal, α_body_ventral, area_silhouette, 
-            area_total, area_conduction, F_ground, F_sky, α_ground, shade, 
+            area_dorsal, area_ventral, F_ground, F_sky, α_ground, shade, 
             zenith_angle, global_radiation, diffuse_fraction)
 
         #Q_dorsal = Q_direct + Q_solar_sky

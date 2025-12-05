@@ -1,7 +1,9 @@
 """
-    insulation_thermal_conductivity(fibre_density, fibre_length, insulation_depth, fibre_diameter, air_conductivity, fibre_conductivity)
+    insulation_thermal_conductivity(fibre_density, fibre_length, insulation_depth, 
+    fibre_diameter, air_conductivity, fibre_conductivity)
 
-Compute feasible insulation fibre (hair/feather) spacing and parameters needed for conduction and infrared radiation through insulation.
+Compute feasible insulation fibre (hair/feather) spacing and parameters needed for 
+conduction and infrared radiation through insulation.
 
 This function implements the method described by Conley & Porter (1986) and Kowalski (1983).
 It calculates the effective thermal conductivity, absorption coefficient, and optical thickness
@@ -23,10 +25,12 @@ of an insulation layer (fur or feathers) based on geometric and physical fibre/f
 
 # References
 - Conley, K. E., & Porter, W. P. (1986). Modeling fur insulation. *Journal of Thermal Biology*.
-- Kowalski, K. A. (1983). *A model of heat transfer through mammalian fur*. PhD Thesis, University of Wisconsin.
+- Kowalski, K. A. (1983). *A model of heat transfer through mammalian fur*. PhD Thesis,
+     University of Wisconsin.
 """
-function insulation_thermal_conductivity(; fibre_density::Quantity, fibre_length::Quantity, insulation_depth::Quantity, fibre_diameter::Quantity,
-                  air_conductivity::Quantity, fibre_conductivity::Quantity)
+function insulation_thermal_conductivity(; fibre_density::Quantity, fibre_length::Quantity, 
+    insulation_depth::Quantity, fibre_diameter::Quantity, air_conductivity::Quantity, 
+    fibre_conductivity::Quantity)
 
     w = 1.0  # unused weighting factor
 
@@ -44,7 +48,9 @@ function insulation_thermal_conductivity(; fibre_density::Quantity, fibre_length
     if fibre_spacing > 0.0u"m"
         a_air = (w / 2.0) * (l_unit - fibre_diameter)
         r_air = u"K*m*W^-1"(l_unit / (air_conductivity * a_air))
-        r_fibre = u"K*m*W^-1"(((fibre_diameter * air_conductivity) + (l_unit - fibre_diameter) * fibre_conductivity) / (w * fibre_diameter * fibre_conductivity * air_conductivity))
+        r_fibre = u"K*m*W^-1"(((fibre_diameter * air_conductivity) + 
+            (l_unit - fibre_diameter) * fibre_conductivity) / 
+                (w * fibre_diameter * fibre_conductivity * air_conductivity))
         a_fibre = fibre_density * ((u"cm"(fibre_diameter) / 2.0)^2 * π)
         kx = a_fibre * fibre_conductivity + (1.0 - a_fibre) * air_conductivity
         ky = (2.0 / r_air) + (1.0 / r_fibre)
@@ -58,13 +64,18 @@ function insulation_thermal_conductivity(; fibre_density::Quantity, fibre_length
 
         a_air = (w / 2.0) * (l_unit - fibre_diameter)
         r_air = u"K*m*W^-1"(l_unit / (air_conductivity * a_air))
-        r_fibre = u"K*m*W^-1"(((u"cm"(fibre_diameter) * air_conductivity) + (l_unit - fibre_diameter) * fibre_conductivity) / (w * fibre_diameter * fibre_conductivity * air_conductivity))
+        r_fibre = u"K*m*W^-1"(((u"cm"(fibre_diameter) * air_conductivity) 
+            + (l_unit - fibre_diameter) * fibre_conductivity) / 
+            (w * fibre_diameter * fibre_conductivity * air_conductivity))
         a_fibre = effective_density * ((fibre_diameter / 2.0)^2 * π)
         kx = a_fibre * fibre_conductivity + (1.0 - a_fibre) * air_conductivity
         ky = (2.0 / r_air) + (1.0 / r_fibre)
         fibre_spacing = l_unit - fibre_diameter
-        r_air = 2.0 / (sqrt(effective_density) * air_conductivity * (l_unit - fibre_diameter) * w)
-        r_fibre = (fibre_diameter * air_conductivity + (l_unit - fibre_diameter) * fibre_conductivity) / (w * fibre_diameter * fibre_conductivity * air_conductivity)
+        r_air = 2.0 / (sqrt(effective_density) * air_conductivity * 
+            (l_unit - fibre_diameter) * w)
+        r_fibre = (fibre_diameter * air_conductivity + 
+            (l_unit - fibre_diameter) * fibre_conductivity) / 
+            (w * fibre_diameter * fibre_conductivity * air_conductivity)
         a_air = (w / 2.0) * (l_unit - fibre_diameter)
         ky = (2.0 / r_air) + (1.0 / r_fibre)
     end
@@ -93,18 +104,17 @@ Compute parameters for heat conduction and infrared radiation through insulation
 
 # Arguments
 `insulation`, an InsulationPars struct containing
-- `insulation_temperature` : insulation temperature (°C)
-- `fibre_diameter_dorsal`, `fibre_diameter_ventral` : fibre diameters (m) for dorsal and ventral insulation
-- `fibre_length_dorsal`, `fibre_length_ventral` : fibre lengths (m) for dorsal and ventral insulation
-- `fibre_density_dorsal`, `fibre_density_ventral` : fibre densities (fibres/m²) for dorsal and ventral regions
-- `insulation_reflectance_dorsal`, `insulation_reflectance_ventral` : insulation reflectivities for dorsal and ventral regions
-- `insulation_depth_compressed` : Compressed insulation depth (m) for ventral insulation
-- `ventral_fraction` : Fraction of ventral surface covered by insulation (0–1)
-- `fibre_conductivity` : Thermal conductivity of fibre fibre (W m⁻¹ K⁻¹)
+- `fibre_diameter_dorsal`, `fibre_diameter_ventral` : fibre diameters
+- `fibre_length_dorsal`, `fibre_length_ventral` : fibre lengths
+- `fibre_density_dorsal`, `fibre_density_ventral` : fibre densities (fibres/area)
+- `insulation_reflectance_dorsal`, `insulation_reflectance_ventral` : insulation solar reflectance
+- `insulation_depth_compressed` : Compressed insulation depth for ventral insulation
+- `ventral_fraction` : Fraction of ventral surface covered by insulation
+- `fibre_conductivity` : Thermal conductivity of fibre fibre (energy per time per length per unit temperature)
 
 - `insulation_temperature` : Temperature of insulation
 - `ventral_fraction` : Fraction of body surface that is ventral insulation
-- `insulation_depth_dorsal`, `insulation_depth_ventral` : Insulation depths (m) for dorsal and ventral regions
+- `insulation_depth_dorsal`, `insulation_depth_ventral` : Insulation depths (m)
 
 # Returns
 `effective_conductivity` (avg, dorsal, ventral)  
@@ -213,6 +223,6 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
         end
     end
     return (; effective_conductivities, absorption_coefficients, optical_thickness_factors,
-                fibre_diameters, fibre_lengths, fibre_densities, insulation_depths, insulation_reflectance,
-                insulation_test, insulation_conductivity_compressed)
+                fibre_diameters, fibre_lengths, fibre_densities, insulation_depths, 
+                insulation_reflectance, insulation_test, insulation_conductivity_compressed)
 end

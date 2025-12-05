@@ -25,8 +25,8 @@ function solar(;
     α_body_dorsal,
     α_body_ventral,
     A_silhouette,
-    A_total,
-    A_conduction,
+    A_dorsal,
+    A_ventral,
     F_ground,
     F_sky,
     α_ground,
@@ -35,15 +35,17 @@ function solar(;
     global_radiation,
     diffuse_fraction,
 )
-    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
+    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_dorsal, A_ventral, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
 end
-function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
+function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_dorsal, A_ventral, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
+    F_sky_doubled = F_sky * 2 # because F_sky is for whole body, but computations are for area facing sky
+    F_ground_doubled = F_ground * 2 # because F_ground is for whole body, but computations are for area facing ground
     direct_radiation = global_radiation * (1 - diffuse_fraction)
     diffuse_radiation = global_radiation * diffuse_fraction
     beam_radiation = zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
     Q_direct = α_body_dorsal * A_silhouette * beam_radiation * (1 - shade)
-    Q_solar_sky = α_body_dorsal * F_sky * A_total * diffuse_radiation * (1 - shade)
-    Q_solar_substrate = α_body_ventral * F_ground * (A_total - A_conduction) * (1 - α_ground) * global_radiation * (1 - shade)
+    Q_solar_sky = α_body_dorsal * F_sky_doubled * A_dorsal * diffuse_radiation * (1 - shade)
+    Q_solar_substrate = α_body_ventral * F_ground_doubled * A_ventral * (1 - α_ground) * global_radiation * (1 - shade)
     Q_solar = (Q_direct + Q_solar_substrate + Q_solar_sky)
     return (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate)
 end
@@ -55,8 +57,8 @@ end
 Calculate incoming radiation.
 """
 function radin(;
-    A_total,
-    A_conduction,
+    A_dorsal,
+    A_ventral,
     F_sky,
     F_ground,
     ϵ_body_dorsal,
@@ -66,12 +68,14 @@ function radin(;
     T_sky,
     T_ground,
 )
-    return radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
+    return radin(A_dorsal, A_ventral, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
 end
-function radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
+function radin(A_dorsal, A_ventral, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    Q_ir_sky = ϵ_body_dorsal * F_sky * A_total * ϵ_sky * σ * T_sky^4
-    Q_ir_sub = ϵ_body_ventral * F_ground * (A_total - A_conduction) * ϵ_ground * σ * T_ground^4
+    F_sky_doubled = F_sky * 2 # because F_sky is for whole body, but computations are for area facing sky
+    F_ground_doubled = F_ground * 2 # because F_ground is for whole body, but computations are for area facing ground
+    Q_ir_sky = ϵ_body_dorsal * F_sky_doubled * A_dorsal * ϵ_sky * σ * T_sky^4
+    Q_ir_sub = ϵ_body_ventral * F_ground_doubled * A_ventral * ϵ_ground * σ * T_ground^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
     return (; Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
@@ -83,21 +87,23 @@ end
 Calculate outgoing radiation.
 """
 function radout(;
-    T_surface,
-    A_total,
-    A_conduction,
+    T_dorsal,
+    T_ventral,
+    A_dorsal,
+    A_ventral,
     F_sky,
     F_ground,
     ϵ_body_dorsal,
     ϵ_body_ventral,
 )
-    radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+    radout(T_dorsal, T_ventral, A_dorsal, A_ventral, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
 end
-function radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
-    # computes longwave radiation lost
+function radout(T_dorsal, T_ventral, A_dorsal, A_ventral, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    Q_ir_to_sky = A_total * F_sky * ϵ_body_dorsal * σ * T_surface^4
-    Q_ir_to_sub = (A_total - A_conduction) * F_ground * ϵ_body_ventral * σ * T_surface^4
+    F_sky_doubled = F_sky * 2 # because F_sky is for whole body, but computations are for area facing sky
+    F_ground_doubled = F_ground * 2 # because F_ground is for whole body, but computations are for area facing ground
+    Q_ir_to_sky = A_dorsal * F_sky_doubled * ϵ_body_dorsal * σ * T_dorsal^4
+    Q_ir_to_sub = A_ventral * F_ground_doubled * ϵ_body_ventral * σ * T_ventral^4
     Q_ir_out = Q_ir_to_sky + Q_ir_to_sub
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end

@@ -1,5 +1,3 @@
-using Roots
-
 # ectotherm heat balance
 
 """
@@ -25,6 +23,8 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
     
     # compute areas for exchange
     A_total = get_total_area(o.body)
+    A_dorsal = A_total * 0.5 # TODO have 1-ventral fraction parameter here
+    A_ventral = A_total * 0.5 * (1 - thermoregvars.conduction_fraction) # TODO have ventral fraction parameter here
     A_convection = A_total * (1 - thermoregvars.conduction_fraction)
     A_conduction = A_total * thermoregvars.conduction_fraction
     A_silhouette = silhouette_area(o.body.shape, thermoregvars.solar_orientation)
@@ -73,8 +73,8 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
         α_body_dorsal = integumentpars.α_body_dorsal, 
         α_body_ventral = integumentpars.α_body_ventral, 
         A_silhouette, 
-        A_total, 
-        A_conduction, 
+        A_dorsal, 
+        A_ventral, 
         F_ground = integumentpars.F_ground, 
         F_sky = integumentpars.F_sky, 
         α_ground = e_pars.α_ground, 
@@ -87,8 +87,8 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
 
     # infrared in
     ir_gain = radin(;
-        A_total, 
-        A_conduction, 
+        A_dorsal, 
+        A_ventral, 
         integumentpars.F_sky, 
         integumentpars.F_ground, 
         integumentpars.ϵ_body_dorsal, 
@@ -102,9 +102,10 @@ function ectotherm(T_x, insulation::Naked, o, integumentpars, physiopars,
 
     # infrared out
     ir_loss = radout(;
-        T_surface, 
-        A_total, 
-        A_conduction,
+        T_dorsal = T_surface,
+        T_ventral = T_surface, 
+        A_dorsal, 
+        A_ventral,
         integumentpars.F_sky,
         integumentpars.F_ground, 
         integumentpars.ϵ_body_dorsal, 

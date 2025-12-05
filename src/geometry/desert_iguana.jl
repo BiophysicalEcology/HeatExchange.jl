@@ -1,9 +1,9 @@
 """
-    DesertIguana <: Shape
+    DesertIguana <: AbstractShape
 
 A lizard-shaped organism. Based on the desert iguana (Porter and Tracy 1984).
 """
-struct DesertIguana{M,D} <: Shape
+struct DesertIguana{M,D} <: AbstractShape
     mass::M
     density::D
 end
