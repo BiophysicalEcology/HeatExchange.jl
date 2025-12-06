@@ -89,10 +89,10 @@ endoR_input = list(
     AK2 = 0.23, # conductivity of fat (W/mK)
     
     # evaporation
-    PCTWET = 0.0,#0.5, # part of the skin surface that is wet (%)
-    FURWET = 0.0, # part of the fur/feathers that is wet after rain (%)
+    PCTWET = 0.05,#0.5, # part of the skin surface that is wet (%)
+    FURWET = 0.05, # part of the fur/feathers that is wet after rain (%)
     PCTBAREVAP = 0.0, # surface area for evaporation that is skin, e.g. licking paws (%)
-    PCTEYES = 0.0,#0.03, # surface area made up by the eye (%) - make zero if sleeping
+    PCTEYES = 0.03,#0.03, # surface area made up by the eye (%) - make zero if sleeping
     DELTAR = 100.0, # offset between air temperature and breath (°C)
     RELXIT = 100.0, # relative humidity of exhaled air, %
     

@@ -163,7 +163,8 @@ function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, 
     hc = Nu_comb * (k_fluid / D) # mixed convection heat transfer
     Q_conv = hc * area * (T_surface - T_air) # total convective heat loss
     Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
-    hd = Sh * D_w / D # mass transfer coefficient, combined
+    hd_forc = Sh_forc * D_w / D  # mass transfer coefficient, forced
+    hd = hd_forc + hd_free # mass transfer coefficient, combined
     return (;Q_conv, hc, hd, Sh, Q_free, Q_forc, hc_free, hc_forc, Sh_free, Sh_forc, hd_free, hd_forc)
 end
 

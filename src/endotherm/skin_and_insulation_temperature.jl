@@ -108,7 +108,6 @@ function solve_without_insulation!(T_skin, T_insulation,
                 T_skin = T_skin_calc
                 T_insulation = T_skin_calc
                 ntry += 1
-
                 if ntry == 101
                     if tolerance <= 0.001u"K"
                         tolerance = 0.01u"K"
@@ -143,6 +142,7 @@ function solve_with_insulation!(T_skin, T_insulation,
     area_evaporation = get_evaporation_area(geometry_pars)
     area_total = get_total_area(geometry_pars)
     area_convection = area_total * (1 - conduction_fraction)
+    insulation_test = insulation_out.insulation_test
 
     ntry = 0
     solct = 0
@@ -182,13 +182,15 @@ function solve_with_insulation!(T_skin, T_insulation,
                 fCO2,
                 fN2).Q_evap
             # second from insulation
-            if insulation_wetness > 0
+            if insulation_wetness > 0 && insulation_test > 0.0u"m"
                 Q_evap_insulation = evaporation(; 
                     T_surface = T_insulation,
                     wetness = insulation_wetness,
                     area = area_convection,
                     hd,
-                    eye_fraction,
+                    hd_free = hd,
+                    eye_fraction = 0.0,
+                    bare_fraction = 1.0, #
                     T_air, 
                     rh,
                     P_atmos,
@@ -198,7 +200,7 @@ function solve_with_insulation!(T_skin, T_insulation,
             else
                 Q_evap_insulation = 0.0u"W"
             end
-
+            
             # Radiation properties
             (; effective_conductivities, absorption_coefficients) = insulation_out =
                 insulation_properties(;
@@ -206,6 +208,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3,
                     ventral_fraction,
                 )
+
             absorption_coefficient = absorption_coefficients[side+1]
             k_eff = effective_conductivities[side+1]
 
@@ -289,11 +292,16 @@ function solve_with_insulation!(T_skin, T_insulation,
                         T_substrate,
                         cd,
                         )
+                Q_rad_sky = 0.0u"W"
+                Q_rad_bush = 0.0u"W"
+                Q_rad_vegetation = 0.0u"W"
+                Q_rad_ground = 0.0u"W"        
                 Q_longwave = 0.0u"W"
                 Q_convection = 0.0u"W"
                 Q_evap_insulation = 0.0u"W"
                 Q_solar = 0.0u"W"
                 Q_conduction = cd * (T_ins_compressed - T_substrate)
+                T_insulation_calc = T_ins_compressed
             end
             Q_env = Q_longwave + Q_convection + Q_conduction + Q_evap_insulation - Q_solar
             T_skin_mean, T_skin_calc1 =

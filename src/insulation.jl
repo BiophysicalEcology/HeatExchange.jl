@@ -145,7 +145,7 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
 
     # Physical constants
     air_conductivity = dry_air_properties(insulation_temperature).k_air
-
+    
     # Initialisation
     insulation_conductivity_compressed = 0.0u"W/m/K"
     insulation_test = fibre_density_dorsal * fibre_diameter_dorsal * 

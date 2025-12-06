@@ -162,11 +162,8 @@ function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_e
         1.0
 
     T_radiant = longwave_depth_fraction < 1 ?
-        dv3 / dv4 +
-        (T_ins_compressed * cd2) / dv4 +
-        (T_insulation *
-            ((k_insulation * bl) / (bl - br) *
-            (1 - conduction_fraction))) / dv4 : T_insulation
+        dv3 / dv4 + (T_ins_compressed * cd2) / dv4 + (T_insulation *
+            ((k_insulation * bl) / (bl - br) * (1 - conduction_fraction))) / dv4 : T_insulation
 
     return (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4)
 end

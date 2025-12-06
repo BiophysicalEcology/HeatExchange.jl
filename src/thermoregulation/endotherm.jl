@@ -507,3 +507,46 @@ function endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulati
     return(; thermoregulation, morphology, energy_fluxes, mass_fluxes)
 end
 
+
+# thermoreg_pars = ThermoregulationPars(;
+#     insulation_step = endo_input.PZFUR,
+#     shape_b_step = endo_input.UNCURL,
+#     shape_b_max = endo_input.SHAPE_B_MAX,
+#     T_core_max = u"K"((endo_input.TC_MAX)u"°C"),
+#     T_core_min = u"K"((endo_input.TC_MIN)u"°C"),
+#     T_core_step = (endo_input.TC_INC)u"K",
+#     k_flesh_step = (endo_input.AK1_INC)u"W/m/K",
+#     k_flesh_max = (endo_input.AK1_MAX)u"W/m/K",
+#     pant_step = endo_input.PANT_INC,
+#     pant_multiplier = endo_input.PANT_MULT,
+#     pant_max = endo_input.PANT_MAX,
+#     skin_wetness_step = endo_input.PCTWET_INC / 100.0,
+#     skin_wetness_max = endo_input.PCTWET_MAX / 100.0,
+#     )
+
+
+
+# thermoreg_vars = ThermoregulationVars(;
+#     insulation_depth_dorsal = (endo_input.ZFURD)u"m",
+#     insulation_depth_ventral = (endo_input.ZFURV)u"m",
+#     fat_fraction = endo_input.FATPCT / 100.0,
+#     conduction_fraction = endo_input.PCOND,
+#     k_flesh = (endo_input.AK1)u"W/m/K",
+#     T_core_target = u"K"((endo_input.TC)u"°C"),
+#     pant = endo_input.PANT,
+#     skin_wetness = endo_input.PCTWET / 100.0,
+#     insulation_wetness = endo_input.FURWET / 100.0,
+#     solar_orientation
+#     )
+
+# model_pars = EndoModelPars(
+#     thermoregulation_mode = endo_input.TREGMODE,
+#     thermoregulate = Bool(endo_input.THERMOREG),
+#     respire = Bool(endo_input.RESPIRE),
+#     torpor = Bool(endo_input.TORPOR),
+#     simulsol_tolerance = (endo_input.DIFTOL)u"K",
+#     resp_tolerance = endo_input.BRENTOL,
+#     )
+
+# endotherm_out = endotherm(; model_pars, shape_pars, body_pars, integument_pars, insulation_pars, 
+#     physio_pars, thermoreg_pars, thermoreg_vars, environmental_pars, organism_vars, environmental_vars)

@@ -21,17 +21,27 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     simulsol_out = Vector{NamedTuple}(undef, 2) # TODO preallocate
     respiration_out = Vector{NamedTuple}(undef, 1) # TODO preallocate
     geometry_pars = nothing
-
     simulsol_tolerance = m.simulsol_tolerance
 
     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3
     insulation_out = insulation_properties(; 
                         insulation=ins, insulation_temperature, 
                         ventral_fraction = rad.ventral_fraction)
-
     fibre_diameters = insulation_out.fibre_diameters
     fibre_densities = insulation_out.fibre_densities
     insulation_depths = insulation_out.insulation_depths
+
+    # if no insulation, reset bare_skin_fraction if necessary
+    if insulation_out.insulation_test <= 0.0u"m" && evap.bare_skin_fraction < 1.0
+        evap_temp = EvaporationParameters(
+            skin_wetness        = evap.skin_wetness,
+            insulation_wetness  = evap.insulation_wetness,
+            eye_fraction        = evap.eye_fraction,
+            bare_skin_fraction  = 1.0,
+            insulation_fraction = evap.insulation_fraction,
+        )    
+        evap = evap_temp
+    end
 
     α_body_dorsal = rad.α_body_dorsal
     α_body_ventral = rad.α_body_ventral
@@ -86,16 +96,16 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 F_vegetation = rad.F_vegetation * 2.0 # proportion of upward view that is vegetation (shade)
                 F_ground = 0.0
                 F_bush = 0.0
-                Q_solar = 2.0 * Q_direct + ((Q_solar_sky / rad.F_sky) * F_sky) # direct x 2 because assuming sun in both directions, and unadjusting Q_solar_sky for config factor imposed in SOLAR_ENDO and back to new larger one in both directions
+                Q_sol = 2.0 * Q_direct + ((Q_solar_sky / rad.F_sky) * F_sky) # direct x 2 because assuming sun in both directions, and unadjusting Q_solar_sky for config factor imposed in SOLAR_ENDO and back to new larger one in both directions
             else
                 F_sky = 0.0
                 F_vegetation = 0.0
                 F_ground = rad.F_ground * 2.0
                 F_bush = rad.F_bush * 2.0
-                Q_solar = (Q_ventral / (1.0 - rad.F_sky - rad.F_vegetation)) * (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO to have it coming in both directions, but also cutting down according to fractional area conducting to ground (in both directions)
+                Q_sol = (Q_ventral / (1.0 - rad.F_sky - rad.F_vegetation)) * (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO to have it coming in both directions, but also cutting down according to fractional area conducting to ground (in both directions)
             end
         else
-            Q_solar = 0.0u"W"
+            Q_sol = 0.0u"W"
             if side == 1
                 F_sky = rad.F_sky * 2.0
                 F_vegetation = rad.F_vegetation * 2.0
@@ -173,7 +183,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 rh = e_vars.rh,
                 wind_speed = e_vars.wind_speed,
                 P_atmos = e_vars.P_atmos,
-                Q_solar, 
+                Q_solar = Q_sol, 
                 fO2 = e_pars.fO2,
                 fCO2 = e_pars.fCO2,
                 fN2 = e_pars.fN2,
@@ -191,14 +201,58 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 insulation_conductivity,
                 #ψ_body = hyd.ψ_body,
                 )
-        
+        if side == 1
+            insulation_side = InsulationParameters(;
+            insulation_conductivity_dorsal = ins.insulation_conductivity_dorsal,
+            insulation_conductivity_ventral = ins.insulation_conductivity_dorsal,
+            fibre_diameter_dorsal = ins.fibre_diameter_dorsal,
+            fibre_diameter_ventral = ins.fibre_diameter_dorsal,
+            fibre_length_dorsal = ins.fibre_length_dorsal,
+            fibre_length_ventral = ins.fibre_length_dorsal,
+            insulation_depth_dorsal = ins.insulation_depth_dorsal,
+            insulation_depth_ventral = ins.insulation_depth_dorsal,    
+            max_insulation_depth_dorsal = ins.max_insulation_depth_dorsal,
+            max_insulation_depth_ventral = ins.max_insulation_depth_dorsal,
+            fibre_density_dorsal = ins.fibre_density_dorsal,
+            fibre_density_ventral = ins.fibre_density_dorsal,
+            insulation_reflectance_dorsal = ins.insulation_reflectance_dorsal,
+            insulation_reflectance_ventral = ins.insulation_reflectance_dorsal,
+            insulation_depth_compressed = ins.insulation_depth_compressed,
+            fibre_conductivity = ins.fibre_conductivity,
+            longwave_depth_fraction = ins.longwave_depth_fraction,
+            )
+        else
+            insulation_side = InsulationParameters(;
+            insulation_conductivity_dorsal = ins.insulation_conductivity_ventral,
+            insulation_conductivity_ventral = ins.insulation_conductivity_ventral,
+            fibre_diameter_dorsal = ins.fibre_diameter_ventral,
+            fibre_diameter_ventral = ins.fibre_diameter_ventral,
+            fibre_length_dorsal = ins.fibre_length_ventral,
+            fibre_length_ventral = ins.fibre_length_ventral,
+            insulation_depth_dorsal = ins.insulation_depth_ventral,
+            insulation_depth_ventral = ins.insulation_depth_ventral,    
+            max_insulation_depth_dorsal = ins.max_insulation_depth_ventral,
+            max_insulation_depth_ventral = ins.max_insulation_depth_ventral,
+            fibre_density_dorsal = ins.fibre_density_ventral,
+            fibre_density_ventral = ins.fibre_density_ventral,
+            insulation_reflectance_dorsal = ins.insulation_reflectance_ventral,
+            insulation_reflectance_ventral = ins.insulation_reflectance_ventral,
+            insulation_depth_compressed = ins.insulation_depth_compressed,
+            fibre_conductivity = ins.fibre_conductivity,
+            longwave_depth_fraction = ins.longwave_depth_fraction,
+            )
+        end            
+        insulation_out = insulation_properties(; 
+                        insulation = insulation_side, insulation_temperature = T_insulation, 
+                        ventral_fraction = rad.ventral_fraction)
+
         # call simulsol
         simulsol_out[side,] = simulsol(; 
                                 T_skin, 
                                 T_insulation, 
                                 simulsol_tolerance = m.simulsol_tolerance,
                                 geometry_pars,
-                                insulation_pars = ins, 
+                                insulation_pars = insulation_side, 
                                 insulation_out,
                                 geom_vars,
                                 env_vars,

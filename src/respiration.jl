@@ -120,7 +120,7 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
     (; c_p) = wet_air_properties(T_air, rh, P_atmos; fO2, fCO2, fN2)
     Q_air = c_p * J_air_in * M_a * (T_air - T_lung)
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
-    @show Q_resp, V_O2_STP, resp_gen
+
     Q_net_check = Q_metab - Q_resp
     balance = Q_net_check - Q_sum
     
