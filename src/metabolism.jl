@@ -120,7 +120,7 @@ end
     Kleiber1961 <: OxygenJoulesConversion
 
 Kleiber's conversion between O₂ consumption and energy use, from
-his Table 7.3.
+the bottom of Table 7.3.
 
 # Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
 - `Q_metab` — metabolic rate (W).
@@ -148,7 +148,7 @@ function Joules_to_O2(::Kleiber1961, Q_metab, rq)
 end
 
 function O2_to_Joules(::Kleiber1961, V_O2_STP, rq)
-    Q_ox_carbohydrate = u"J/ml"(5.057u"kcal"/1u"L")
+    Q_ox_carbohydrate = u"J/ml"(5.0u"kcal"/1u"L")
     Q_ox_fat = u"J/ml"(4.7u"kcal"/1u"L")
     Q_ox_protein = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0

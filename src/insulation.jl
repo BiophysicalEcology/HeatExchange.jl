@@ -128,13 +128,14 @@ Compute parameters for heat conduction and infrared radiation through insulation
 `insulation_test` : Bare-skin test parameter  
 `insulation_conductivity_compressed` 
 """
-function insulation_properties(; insulation, insulation_temperature, ventral_fraction, 
-    insulation_depth_dorsal, insulation_depth_ventral)
+function insulation_properties(; insulation, insulation_temperature, ventral_fraction)
 
     (; fibre_diameter_dorsal,
     fibre_diameter_ventral, 
     fibre_length_dorsal, 
     fibre_length_ventral,
+    insulation_depth_dorsal,
+    insulation_depth_ventral,
     fibre_density_dorsal,
     fibre_density_ventral,
     insulation_reflectance_dorsal,

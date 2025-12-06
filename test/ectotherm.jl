@@ -350,7 +350,6 @@ environment_pars = EnvironmentalPars(;
     fN2,
     fO2,
     fCO2,
-
 )
 
 environment_vars = EnvironmentalVars(;

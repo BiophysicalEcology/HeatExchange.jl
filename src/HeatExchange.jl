@@ -25,6 +25,9 @@ export Organism, Traits, EndoModelPars, BodyPars, InsulationParameters, External
 
 export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
+export body, traits, shape, insulation, insulationpars, conductionpars_external, conductionpars_internal, 
+  convectionpars, radiationpars, evaporationpars, hydraulicpars, respirationpars, metabolismpars
+
 export heat_balance, get_Tb
 
 export solar, radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced 
@@ -33,7 +36,7 @@ export ectotherm, Tsurf_and_Tlung, respiration_ectotherm
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
-export endotherm, ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
+export endotherm, solve_metabolic_rate, ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 

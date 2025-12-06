@@ -20,13 +20,14 @@ Morphological parameters relating to conductive heat flow within the organism.
 # Parameters
 - `fat_fraction` — Fraction of body mass that is fat (0–1).
 - `k_flesh::K` — Thermal conductivity of lean tissue (W/m/K).
-- `k_flesh::K` — Thermal conductivity of lean tissue (W/m/K).
+- `k_fat::K` — Thermal conductivity of fat tissue (W/m/K).
 
 """
-Base.@kwdef struct InternalConductionParameters{FF,FL,FA} <: AbstractPhysioParameters
+Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF} <: AbstractPhysioParameters
     fat_fraction::FF = Param(0.0, bounds=(0.0, 1.0))
     k_flesh::FL      = Param(0.9u"W/m/K")
     k_fat::FA        = Param(0.230u"W/m/K")
+    ρ_fat::DF        = Param(901.0u"kg/m^3")
 end
 
 """
@@ -65,7 +66,7 @@ Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,SA,DA,VA,FS,FG,FV,FB,
     α_body_ventral::AV    = Param(0.85, bounds=(0.0, 1.0))
     ϵ_body_dorsal::ED     = Param(0.95, bounds=(0.0, 1.0))
     ϵ_body_ventral::EV    = Param(0.95, bounds=(0.0, 1.0))
-    A_silhouette::SA    = Param(0.0u"m^2")
+    A_silhouette::SA      = Param(0.0u"m^2")
     A_dorsal::DA          = Param(0.0u"m^2")
     A_ventral::VA         = Param(0.0u"m^2")
     F_sky::FS             = Param(0.5, bounds=(0.0, 1.0))
@@ -73,6 +74,7 @@ Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,SA,DA,VA,FS,FG,FV,FB,
     F_vegetation::FV      = Param(0.0, bounds=(0.0, 1.0))
     F_bush::FB            = Param(0.0, bounds=(0.0, 1.0))
     ventral_fraction::VF  = Param(0.5, bounds=(0.0, 1.0))
+    solar_orientation     = Intermediate() 
 end
 
 """

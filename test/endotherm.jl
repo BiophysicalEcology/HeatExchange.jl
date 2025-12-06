@@ -23,33 +23,41 @@ masbal_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endo
 endo_input = (; zip(endo_input_names, endo_input_vec)...)
 
 # define shape
-bodyshape = Ellipsoid((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
-    (endo_input.SHAPE_B), (endo_input.SHAPE_C)) 
-
-#bodyshape = Plate((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+shape_pars = Ellipsoid((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+    (endo_input.SHAPE_B), (endo_input.SHAPE_C))
+#shape_pars = Plate((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
 #    (endo_input.SHAPE_B), (endo_input.SHAPE_C)) # define shape
-#bodyshape = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+#shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
 #    (endo_input.SHAPE_B)) # define shape
-#bodyshape = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3") # define shape
+#shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3") # define shape
 
-environmental_vars = EnvironmentalVars(
-    u"K"((endo_input.TA)u"°C"), # T_air
-    u"K"((endo_input.TAREF)u"°C"), # T_air_reference
-    u"K"((endo_input.TSKY)u"°C"), # T_sky
-    u"K"((endo_input.TGRD)u"°C"), # T_ground
-    u"K"((endo_input.TCONDSB)u"°C"), # T_substrate
-    u"K"((endo_input.TBUSH)u"°C"), # T_bush
-    u"K"((endo_input.TAREF)u"°C"), # T_vegetation
-    endo_input.RH/100.0, # rh
-    (endo_input.VEL)u"m/s", # wind_speed
-    (endo_input.BP)u"Pa", # P_atmos
-    (endo_input.Z)u"°", # zenith_angle
-    (endo_input.KSUB)u"W/m/K", # k_substrate
-    (endo_input.QSOLR)u"W/m^2", # solar_radiation
-    endo_input.PDIF, # diffuse_fraction_radiation
+fat = Fat(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
+mean_insulation_depth = ((endo_input.ZFURD + endo_input.ZFURV) * 0.5)u"m"
+mean_fibre_diameter = ((endo_input.DHAIRD + endo_input.DHAIRV) * 0.5)u"m"
+mean_fibre_density = ((endo_input.RHOD + endo_input.RHOV) * 0.5)u"1/m^2"
+fur = Fur(mean_insulation_depth, mean_fibre_diameter, mean_fibre_density)
+geometry = Body(shape_pars, CompositeInsulation(fur, fat))
+
+
+environment_vars = EnvironmentalVars(;
+    T_air = u"K"((endo_input.TA)u"°C"),
+    T_air_reference = u"K"((endo_input.TAREF)u"°C"),
+    T_sky = u"K"((endo_input.TSKY)u"°C"),
+    T_ground = u"K"((endo_input.TGRD)u"°C"),
+    T_substrate = u"K"((endo_input.TCONDSB)u"°C"),
+    T_bush = u"K"((endo_input.TBUSH)u"°C"),
+    T_vegetation = u"K"((endo_input.TAREF)u"°C"),
+    rh = endo_input.RH/100.0,
+    wind_speed = (endo_input.VEL)u"m/s",
+    P_atmos = (endo_input.BP)u"Pa",
+    zenith_angle = (endo_input.Z)u"°",
+    k_substrate = (endo_input.KSUB)u"W/m/K",
+    global_radiation = (endo_input.QSOLR)u"W/m^2",
+    diffuse_fraction = endo_input.PDIF, 
+    shade = endo_input.SHADE,
 )
 
-environmental_pars = EnvironmentalPars(;
+environment_pars = EnvironmentalPars(;
     α_ground = endo_input.ABSSB,
     ϵ_ground = 1.0,
     ϵ_sky = 1.0,
@@ -61,53 +69,16 @@ environmental_pars = EnvironmentalPars(;
     convection_enhancement = endo_input.CONV_ENHANCE,
     )
 
-body_pars = BodyPars(;
-    mass = (endo_input.AMASS)u"kg",
-    ρ_flesh = (endo_input.ANDENS)u"kg/m^3",
-    ρ_fat = (endo_input.FATDEN)u"kg/m^3",
-    shape_b = endo_input.SHAPE_B,
-    shape_c = endo_input.SHAPE_C,
+conduction_pars_external = ExternalConductionParameters(;
+    conduction_fraction = endo_input.PCOND,
 )
 
-integument_pars = IntegumentPars(;
-    α_body_dorsal = 1 - endo_input.REFLD,
-    α_body_ventral = 1 - endo_input.REFLV,
-    ϵ_body_dorsal = endo_input.EMISAN,
-    ϵ_body_ventral = endo_input.EMISAN,
-    F_sky = endo_input.FSKREF,
-    F_ground = endo_input.FGDREF,
-    F_vegetation = 0.0,
-    F_bush = endo_input.FABUSH,
-    eye_fraction = endo_input.PCTEYES / 100.0,
-    bare_skin_fraction = endo_input.PCTBAREVAP / 100.0,
-    ventral_fraction = endo_input.PVEN,
+conduction_pars_internal = InternalConductionParameters(;
+    fat_fraction = endo_input.FATPCT / 100.0,
+    k_flesh      = (endo_input.AK1)u"W/m/K",
+    k_fat        = (endo_input.AK2)u"W/m/K",
+    ρ_fat        = (endo_input.FATDEN)u"kg/m^3",
 )
-
-physio_pars = PhysioPars(;
-    Q_minimum = (endo_input.QBASAL)u"W",
-    q10 = endo_input.Q10,
-    k_fat = (endo_input.AK2)u"W/m/K",
-    fO2_extract = endo_input.EXTREF / 100,
-    rq = endo_input.RQ,
-    Δ_breath = (endo_input.DELTAR)u"K",
-    rh_exit = endo_input.RELXIT / 100.0,
-)
-
-thermoreg_pars = ThermoregulationPars(;
-    insulation_step = endo_input.PZFUR,
-    shape_b_step = endo_input.UNCURL,
-    shape_b_max = endo_input.SHAPE_B_MAX,
-    T_core_max = u"K"((endo_input.TC_MAX)u"°C"),
-    T_core_min = u"K"((endo_input.TC_MIN)u"°C"),
-    T_core_step = (endo_input.TC_INC)u"K",
-    k_flesh_step = (endo_input.AK1_INC)u"W/m/K",
-    k_flesh_max = (endo_input.AK1_MAX)u"W/m/K",
-    pant_step = endo_input.PANT_INC,
-    pant_multiplier = endo_input.PANT_MULT,
-    pant_max = endo_input.PANT_MAX,
-    skin_wetness_step = endo_input.PCTWET_INC / 100.0,
-    skin_wetness_max = endo_input.PCTWET_MAX / 100.0,
-    )
 
 if endo_input.ORIENT == 0.0
     solar_orientation = Intermedate()
@@ -116,32 +87,58 @@ elseif endo_input.ORIENT == 1.0
 else
     solar_orientation = ParallelToSun()
 end
+radiation_pars = RadiationParameters(;
+    α_body_dorsal = (1 - endo_input.REFLD),
+    α_body_ventral = (1 - endo_input.REFLV),
+    ϵ_body_dorsal = endo_input.EMISAN,
+    ϵ_body_ventral = endo_input.EMISAN,
+    F_sky = endo_input.FSKREF,
+    F_ground = endo_input.FGDREF,
+    F_bush = endo_input.FABUSH,
+    ventral_fraction =  endo_input.PVEN,
+    solar_orientation,
+)
 
-thermoreg_vars = ThermoregulationVars(;
-    insulation_depth_dorsal = (endo_input.ZFURD)u"m",
-    insulation_depth_ventral = (endo_input.ZFURV)u"m",
-    fat_fraction = endo_input.FATPCT / 100.0,
-    conduction_fraction = endo_input.PCOND,
-    k_flesh = (endo_input.AK1)u"W/m/K",
-    T_core_target = u"K"((endo_input.TC)u"°C"),
-    pant = endo_input.PANT,
+evaporation_pars = EvaporationParameters(;
     skin_wetness = endo_input.PCTWET / 100.0,
     insulation_wetness = endo_input.FURWET / 100.0,
-    solar_orientation
+    eye_fraction = endo_input.PCTEYES / 100.0,
+    bare_skin_fraction = endo_input.PCTBAREVAP / 100.0,
+    insulation_fraction = 1.0,
     )
+
+hydraulic_pars = HydraulicParameters(;
+)
+
+respiration_pars = RespirationParameters(;
+    fO2_extract = endo_input.EXTREF / 100.0,
+    pant = endo_input.PANT,
+    rq = endo_input.RQ,
+    Δ_breath = (endo_input.DELTAR)u"K",
+    rh_exit = endo_input.RELXIT / 100.0,
+)
+
+metabolism_pars = MetabolismParameters(;
+    T_core = u"K"((endo_input.TC)u"°C"),
+    Q_metabolism = (endo_input.QBASAL)u"W",
+    q10 = endo_input.Q10,
+    model = Kleiber(),
+)
 
 if endo_input.FURTHRMK == 0.0
     insulation_conductivity = nothing
 else
     insulation_conductivity = (endo_input.FURTHRMK)u"W/m/K"
 end
-insulation_pars = InsulationPars(;
+insulation_pars = InsulationParameters(;
     insulation_conductivity_dorsal = insulation_conductivity,
     insulation_conductivity_ventral = insulation_conductivity,
     fibre_diameter_dorsal = (endo_input.DHAIRD)u"m",
     fibre_diameter_ventral = (endo_input.DHAIRV)u"m",
     fibre_length_dorsal = (endo_input.LHAIRD)u"m",
     fibre_length_ventral = (endo_input.LHAIRV)u"m",
+    insulation_depth_dorsal = (endo_input.ZFURD)u"m",
+    insulation_depth_ventral = (endo_input.ZFURV)u"m",    
     max_insulation_depth_dorsal = (endo_input.ZFURD_MAX)u"m",
     max_insulation_depth_ventral = (endo_input.ZFURV_MAX)u"m",
     fibre_density_dorsal = (endo_input.RHOD)u"1/m^2",
@@ -153,25 +150,36 @@ insulation_pars = InsulationPars(;
     longwave_depth_fraction = endo_input.XR,
 )
 
-organism_vars = OrganismalVars(;
-    T_core = u"K"((endo_input.TC)u"°C"),
-    T_skin = u"K"((endo_input.TS)u"°C"),
-    T_insulation = u"K"((endo_input.TFA)u"°C"),
-    T_lung = u"K"((endo_input.TC)u"°C"),
-    ψ_org = 0.0u"J/kg",
+traits = Traits(
+    insulation_pars,
+    conduction_pars_external,
+    conduction_pars_internal,
+    radiation_pars,
+    ConvectionParameters(),
+    evaporation_pars,
+    hydraulic_pars,
+    respiration_pars,
+    metabolism_pars
 )
 
+mammal = Organism(geometry, traits)
+
+environment = (; environment_pars, environment_vars)
+
 model_pars = EndoModelPars(
-    thermoregulation_mode = endo_input.TREGMODE,
-    thermoregulate = Bool(endo_input.THERMOREG),
     respire = Bool(endo_input.RESPIRE),
-    torpor = Bool(endo_input.TORPOR),
     simulsol_tolerance = (endo_input.DIFTOL)u"K",
     resp_tolerance = endo_input.BRENTOL,
     )
 
-endotherm_out = endotherm(; model_pars, bodyshape, body_pars, integument_pars, insulation_pars, 
-    physio_pars, thermoreg_pars, thermoreg_vars, environmental_pars, organism_vars, environmental_vars)
+# initial conditions
+T_skin = u"K"((endo_input.TS)u"°C")
+T_insulation = u"K"((endo_input.TFA)u"°C")
+
+endotherm_out = solve_metabolic_rate(T_skin, T_insulation, mammal, environment, model_pars)
+
+#endotherm_out = endotherm(; model_pars, shape_pars, body_pars, integument_pars, insulation_pars, 
+#    physio_pars, thermoreg_pars, thermoreg_vars, environmental_pars, organism_vars, environmental_vars)
 
 thermoregulation = endotherm_out.thermoregulation
 morphology = endotherm_out.morphology
@@ -180,9 +188,7 @@ mass_fluxes = endotherm_out.mass_fluxes
 
 (; insulation_test) = insulation_properties(; insulation=insulation_pars, 
     insulation_temperature = thermoregulation.T_insulation, 
-    ventral_fraction = integument_pars.ventral_fraction, 
-    insulation_depth_dorsal = thermoreg_vars.insulation_depth_dorsal, 
-    insulation_depth_ventral = thermoreg_vars.insulation_depth_ventral)
+    ventral_fraction = radiation_pars.ventral_fraction)
 
 rtol = 1e-4
 
@@ -251,8 +257,8 @@ rtol = 1e-4
 end
 
 rtol = 1e-5
-@testset "endotherm mass flux comparisons" begin
-    if model_pars.respire
+#@testset "endotherm mass flux comparisons" begin
+    #if model_pars.respire
         @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_fluxes.V_air) rtol = rtol
         @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_fluxes.V_O2_STP) rtol = rtol
         @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_fluxes.m_resp) rtol = rtol
@@ -267,6 +273,50 @@ rtol = 1e-5
         @test masbal_output_vec.N2_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_N2_out) rtol = rtol     
         @test masbal_output_vec.AIR_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_air_in) rtol = rtol
         @test masbal_output_vec.AIR_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_air_out) rtol = rtol
-    end      
-end
+    #end      
+#end
 
+
+3
+# thermoreg_pars = ThermoregulationPars(;
+#     insulation_step = endo_input.PZFUR,
+#     shape_b_step = endo_input.UNCURL,
+#     shape_b_max = endo_input.SHAPE_B_MAX,
+#     T_core_max = u"K"((endo_input.TC_MAX)u"°C"),
+#     T_core_min = u"K"((endo_input.TC_MIN)u"°C"),
+#     T_core_step = (endo_input.TC_INC)u"K",
+#     k_flesh_step = (endo_input.AK1_INC)u"W/m/K",
+#     k_flesh_max = (endo_input.AK1_MAX)u"W/m/K",
+#     pant_step = endo_input.PANT_INC,
+#     pant_multiplier = endo_input.PANT_MULT,
+#     pant_max = endo_input.PANT_MAX,
+#     skin_wetness_step = endo_input.PCTWET_INC / 100.0,
+#     skin_wetness_max = endo_input.PCTWET_MAX / 100.0,
+#     )
+
+
+
+# thermoreg_vars = ThermoregulationVars(;
+#     insulation_depth_dorsal = (endo_input.ZFURD)u"m",
+#     insulation_depth_ventral = (endo_input.ZFURV)u"m",
+#     fat_fraction = endo_input.FATPCT / 100.0,
+#     conduction_fraction = endo_input.PCOND,
+#     k_flesh = (endo_input.AK1)u"W/m/K",
+#     T_core_target = u"K"((endo_input.TC)u"°C"),
+#     pant = endo_input.PANT,
+#     skin_wetness = endo_input.PCTWET / 100.0,
+#     insulation_wetness = endo_input.FURWET / 100.0,
+#     solar_orientation
+#     )
+
+# model_pars = EndoModelPars(
+#     thermoregulation_mode = endo_input.TREGMODE,
+#     thermoregulate = Bool(endo_input.THERMOREG),
+#     respire = Bool(endo_input.RESPIRE),
+#     torpor = Bool(endo_input.TORPOR),
+#     simulsol_tolerance = (endo_input.DIFTOL)u"K",
+#     resp_tolerance = endo_input.BRENTOL,
+#     )
+
+# endotherm_out = endotherm(; model_pars, shape_pars, body_pars, integument_pars, insulation_pars, 
+#     physio_pars, thermoreg_pars, thermoreg_vars, environmental_pars, organism_vars, environmental_vars)

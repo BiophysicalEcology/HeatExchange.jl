@@ -15,9 +15,10 @@ given gas concentrations, pressure, respiration rate and humidity for an ectothe
 - `rh`: relative humidity, fractional
 - `elevation`: elevation, m
 - `P_atmos`: barometric pressure, Pa
-- `fO2`; fractional O2 concentration in atmosphere, -
-- `fCO2`; fractional CO2 concentration in atmosphere, -
-- `fN2`; fractional N2 concentration in atmosphere, -
+- `fO2`: fractional O2 concentration in atmosphere, -
+- `fCO2`: fractional CO2 concentration in atmosphere, -
+- `fN2`: fractional N2 concentration in atmosphere, -
+- `O2conversion`: model to be used to convert O2 to Watts
 """
 function respiration(;
     Q_metab,
@@ -38,9 +39,11 @@ function respiration(;
     fN2 = 0.7902,
     O2conversion::OxygenJoulesConversion=Typical(),
 )
-    return respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit, rh_exit, T_air, rh, P_atmos, fO2, fCO2, fN2, O2conversion)
+    return respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit, 
+        rh_exit, T_air, rh, P_atmos, fO2, fCO2, fN2, O2conversion)
 end
-function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit, rh_exit, T_air, rh, P_atmos, fO2, fCO2, fN2, O2conversion)
+function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit, 
+        rh_exit, T_air, rh, P_atmos, fO2, fCO2, fN2, O2conversion)
     # adjust O2 to ensure sum to 1
     if fO2 + fCO2 + fN2 != 1
         fO2 = 1 - (fN2 + fCO2)
@@ -117,9 +120,10 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
     (; c_p) = wet_air_properties(T_air, rh, P_atmos; fO2, fCO2, fN2)
     Q_air = c_p * J_air_in * M_a * (T_air - T_lung)
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
-    
+    @show Q_resp, V_O2_STP, resp_gen
     Q_net_check = Q_metab - Q_resp
     balance = Q_net_check - Q_sum
     
-    return (; balance, Q_resp, m_resp, Q_gen = Q_metab, V_air, V_O2_STP, J_air_in, J_air_out, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
+    return (; balance, Q_resp, m_resp, Q_gen = Q_metab, V_air, V_O2_STP, J_air_in, J_air_out, 
+        J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
 end
