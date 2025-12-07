@@ -53,12 +53,12 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     F_ground = rad.F_ground
 
     area_silhouette = silhouette_area(o.body, rad.solar_orientation)
-    area_total = get_total_area(o.body)
+    area_total = total_area(o.body)
     area_dorsal = area_total * (1 - rad.ventral_fraction)
     area_ventral = area_total * rad.ventral_fraction * (1 - cond_ex.conduction_fraction)
-    area_skin = get_skin_area(o.body)
+    area_skin = skin_area(o.body)
     area_conduction = area_total * cond_ex.conduction_fraction
-    area_evaporation = get_evaporation_area(o.body)
+    area_evaporation = evaporation_area(o.body)
     area_convection = area_total * (1 - cond_ex.conduction_fraction)
 
     (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) =
@@ -143,8 +143,8 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             insulation_conductivity = ins.insulation_conductivity_ventral
         end
         geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
-        A_total = get_total_area(geometry_pars)
-        r_skin = get_r_skin(geometry_pars) # body radius (including fat), m
+        A_total = total_area(geometry_pars)
+        r_skin = skin_radius(geometry_pars) # body radius (including fat), m
         r_insulation = r_skin + insulation.thickness # body radius including fur, m
         if geometry_pars.shape isa Cylinder || geometry_pars.shape isa Sphere
             r_compressed = r_skin + ins.insulation_depth_compressed
@@ -420,8 +420,8 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     fat_volume = fat_mass / fat.density
     volume = geometry_pars.geometry.volume
     flesh_volume = volume - fat_volume
-    area_total = get_total_area(geometry_pars)
-    area_skin = get_skin_area(geometry_pars)
+    area_total = total_area(geometry_pars)
+    area_skin = skin_area(geometry_pars)
 
     # radiation outputs
 

@@ -21,17 +21,17 @@ fat = Fat(fat_fraction, fat_density)
 shape = Plate(mass, density, shape_b, shape_c)
 body = Body(shape, Naked())
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -39,17 +39,17 @@ body.geometry.volume
 
 body = Body(shape, fur)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -57,13 +57,13 @@ body.geometry.volume
 
 body = Body(shape, fat)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -71,17 +71,17 @@ body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -91,18 +91,18 @@ body.geometry.volume
 shape = Cylinder(mass, density, shape_b)
 body = Body(shape, Naked())
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -110,18 +110,18 @@ body.geometry.volume
 
 body = Body(shape, fur)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -129,18 +129,18 @@ body.geometry.volume
 
 body = Body(shape, fat)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -148,18 +148,18 @@ body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -169,17 +169,17 @@ body.geometry.volume
 shape = Sphere(mass, density)
 body = Body(shape, Naked())
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -187,17 +187,17 @@ body.geometry.volume
 
 body = Body(shape, fur)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -205,17 +205,17 @@ body.geometry.volume
 
 body = Body(shape, fat)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -223,17 +223,17 @@ body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -243,18 +243,18 @@ body.geometry.volume
 shape = Ellipsoid(mass, density, shape_b, shape_c)
 body = Body(shape, Naked())
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -262,18 +262,18 @@ body.geometry.volume
 
 body = Body(shape, fur)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -281,18 +281,18 @@ body.geometry.volume
 
 body = Body(shape, fat)
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -300,18 +300,18 @@ body.geometry.volume
 
 body = Body(shape, CompositeInsulation(fur, fat))
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(body, 0.0u"°")
 silhouette_area(body, NormalToSun())
 silhouette_area(body, ParallelToSun())
 silhouette_area(body, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -321,15 +321,15 @@ body.geometry.volume
 shape = LeopardFrog(mass, density)
 body = Body(shape, Naked())
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 
 silhouette_area(shape, 45.0u"°")
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length
@@ -339,16 +339,16 @@ body.geometry.volume
 shape = DesertIguana(mass, density)
 body = Body(shape, Naked())
 
-get_total_area(body)
-get_skin_area(body)
-get_evaporation_area(body)
+total_area(body)
+skin_area(body)
+evaporation_area(body)
 silhouette_area(shape, NormalToSun())
 silhouette_area(shape, ParallelToSun())
 silhouette_area(shape, Intermediate())
 
-get_r_skin(body)
-get_r_insulation(body)
-get_r_flesh(body)
+skin_radius(body)
+insulation_radius(body)
+flesh_radius(body)
 
 body.geometry.area
 body.geometry.length

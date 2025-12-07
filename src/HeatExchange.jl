@@ -16,7 +16,7 @@ export Cylinder, Sphere, Ellipsoid, Plate, LeopardFrog, DesertIguana
 export CompositeInsulation, Naked, Fur, Fat
 export geometry, shape, insulation
 export bird_skin_area, bird_plumage_area, mammal_skin_area, mammal_fur_area
-export get_total_area, get_skin_area, get_evaporation_area, get_r_skin, get_r_insulation, get_r_flesh
+export total_area, skin_area, evaporation_area, skin_radius, insulation_radius, flesh_radius
 export surface_area, silhouette_area, SolarOrientation, Intermediate, ParallelToSun, NormalToSun
 
 export Organism, Traits, EndoModelPars, BodyPars, InsulationParameters, ExternalConductionParameters,

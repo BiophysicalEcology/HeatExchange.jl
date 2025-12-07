@@ -33,11 +33,11 @@ function solve_without_insulation!(T_skin, T_insulation,
 
     ntry = 0
 
-    area_total = get_total_area(geometry_pars)
+    area_total = total_area(geometry_pars)
     area_evaporation = area_total
     area_convection = area_total * (1 - conduction_fraction)
     volume = geometry_pars.geometry.volume
-    r_skin = get_r_skin(geometry_pars)
+    r_skin = skin_radius(geometry_pars)
     Q_evap_insulation = 0.0u"W"
     Q_conduction = 0.0u"W"
 
@@ -139,8 +139,8 @@ function solve_with_insulation!(T_skin, T_insulation,
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
-    area_evaporation = get_evaporation_area(geometry_pars)
-    area_total = get_total_area(geometry_pars)
+    area_evaporation = evaporation_area(geometry_pars)
+    area_total = total_area(geometry_pars)
     area_convection = area_total * (1 - conduction_fraction)
     insulation_test = insulation_out.insulation_test
 

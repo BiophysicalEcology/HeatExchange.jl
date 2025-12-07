@@ -137,9 +137,9 @@ surface_area(body::AbstractBody) = surface_area(shape(body), body)
 
 # functions to extract appropriate surface areas from different objects
 
-get_total_area(body::AbstractBody) = get_total_area(shape(body), insulation(body), body)
-get_skin_area(body::AbstractBody) = get_skin_area(shape(body), insulation(body), body)
-get_evaporation_area(body::AbstractBody) = get_evaporation_area(shape(body), insulation(body), body)
+total_area(body::AbstractBody) = total_area(shape(body), insulation(body), body)
+skin_area(body::AbstractBody) = skin_area(shape(body), insulation(body), body)
+evaporation_area(body::AbstractBody) = evaporation_area(shape(body), insulation(body), body)
 
 # for composite insulation cases (fat and fur/feathers)
 outer_insulation(ins::AbstractInsulation) = ins
@@ -154,17 +154,17 @@ outer_insulation(ins::CompositeInsulation) = begin
     end
 end
 
-get_total_area(shape, ins::CompositeInsulation, body) =
-    get_total_area(shape, outer_insulation(ins), body)
-get_skin_area(shape, ins::CompositeInsulation, body) =
-    get_skin_area(shape, outer_insulation(ins), body)
-get_evaporation_area(shape, ins::CompositeInsulation, body) =
-    get_evaporation_area(shape, outer_insulation(ins), body)
+total_area(shape, ins::CompositeInsulation, body) =
+    total_area(shape, outer_insulation(ins), body)
+skin_area(shape, ins::CompositeInsulation, body) =
+    skin_area(shape, outer_insulation(ins), body)
+evaporation_area(shape, ins::CompositeInsulation, body) =
+    evaporation_area(shape, outer_insulation(ins), body)
 
 # functions to get the appropriate radii
-get_r_skin(body::AbstractBody) = get_r_skin(shape(body), insulation(body), body)
-get_r_insulation(body::AbstractBody) = get_r_insulation(shape(body), insulation(body), body)
-get_r_flesh(body::AbstractBody) = get_r_flesh(shape(body), insulation(body), body)
+skin_radius(body::AbstractBody) = skin_radius(shape(body), insulation(body), body)
+insulation_radius(body::AbstractBody) = insulation_radius(shape(body), insulation(body), body)
+flesh_radius(body::AbstractBody) = flesh_radius(shape(body), insulation(body), body)
 
 # functions to compute silhouette area as a function of zenith angle (passive) or 
 # orientation (thermoregulating)
@@ -195,6 +195,6 @@ silhouette_area(body::AbstractBody, ::ParallelToSun) =
 silhouette_area(body::AbstractBody, ::Intermediate) =
     (silhouette_area(body).normal + silhouette_area(body).parallel) * 0.5
 
-function calc_area_hair(fibre_diameter, fibre_density, skin)
+function hair_area(fibre_diameter, fibre_density, skin)
     π * (fibre_diameter / 2) ^ 2 * (fibre_density * skin)
 end

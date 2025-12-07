@@ -30,7 +30,7 @@ function ectotherm(T_x, insulation::Naked, o, e)
     metab = metabolismpars(o)
 
     # compute areas for exchange
-    A_total = get_total_area(o.body)
+    A_total = total_area(o.body)
     A_dorsal = A_total * (1 - rad.ventral_fraction)
     A_ventral = A_total * rad.ventral_fraction * (1 - cond_ex.conduction_fraction)
     A_convection = A_total * (1 - cond_ex.conduction_fraction)

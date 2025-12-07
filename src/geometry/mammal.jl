@@ -15,6 +15,6 @@ Fur area for a mammal based on Stahl (1967)
     Journal of Applied Physiology, 22, 453-460.
 """
 function mammal_fur_area(body::AbstractBody)
-    fur_multiplier = get_total_area(body) / get_skin_area(body)
+    fur_multiplier = total_area(body) / skin_area(body)
     return Unitful.uconvert(u"m^2", (1110.0 * Unitful.ustrip(u"kg", body.shape.mass) ^ 0.65 * fur_multiplier)u"cm^2")
 end

@@ -45,10 +45,10 @@ function silhouette_area(shape::DesertIguana, ::Intermediate)
 end
 
 # surface area and radii functions
-get_total_area(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.area.total
-get_skin_area(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.area.total
-get_evaporation_area(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.area.total
+total_area(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.area.total
+skin_area(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.area.total
+evaporation_area(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.area.total
 
-get_r_skin(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.length.r_skin
-get_r_insulation(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.length.r_skin
-get_r_flesh(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.length.r_skin
+skin_radius(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.length.r_skin
+insulation_radius(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.length.r_skin
+flesh_radius(shape::DesertIguana, insulation::Naked, body::AbstractBody) = body.geometry.length.r_skin
