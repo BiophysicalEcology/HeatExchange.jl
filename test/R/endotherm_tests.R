@@ -65,7 +65,7 @@ endoR_input = list(
     ZFURD_MAX = furmult*23.9E-03, # max fur depth, dorsal (m)
     ZFURV_MAX = furmult*23.9E-03, # max fur depth, ventral (m)
     ZFURD = furmult*23.9E-03, # fur depth, dorsal (m)
-    ZFURV = furmult*23.9E-03, # fur depth, ventral (m)
+    ZFURV = furmult*3.9E-03, # fur depth, ventral (m)
     RHOD = furmult*3000E+04, # hair density, dorsal (1/m2)
     RHOV = furmult*3000E+04, # hair density, ventral (1/m2)
     REFLD = 0.2,  # fur reflectivity dorsal (fractional, 0-1)
@@ -102,7 +102,7 @@ endoR_input = list(
     EXTREF = 20.0, # O2 extraction efficiency (%)
     PANT_MAX = 5.0, # maximum breathing rate multiplier to simulate panting (-)
     AIRVOL_MAX = 1e12, # maximum absolute breathing rate to simulate panting (L/s), can override PANT_MAX
-    PZFUR = 1.0, # # incremental fractional reduction in ZFUR from piloerect state (-) (a value greater than zero triggers piloerection response)
+    PZFUR = 0.0, # # incremental fractional reduction in ZFUR from piloerect state (-) (a value greater than zero triggers piloerection response)
     Q10 = 2.0, # Q10 factor for adjusting BMR for TC
     TC_MIN = 37.0, # minimum core temperature during torpor (TORPOR = 1)
     TORPTOL = 0.05, # allowable tolerance of heat balance as a fraction of torpid metabolic rate

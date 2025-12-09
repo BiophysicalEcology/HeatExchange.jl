@@ -416,13 +416,18 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     end
 
     # geometric outputs
+    insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
+    geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
+        
     fat_mass = geometry_pars.shape.mass * fat.fraction
     fat_volume = fat_mass / fat.density
     volume = geometry_pars.geometry.volume
     flesh_volume = volume - fat_volume
     area_total = total_area(geometry_pars)
     area_skin = skin_area(geometry_pars)
-
+    radius_insulation = insulation_radius(geometry_pars)
+    characteristic_dimension = 2 * radius_insulation
+    @show characteristic_dimension
     # radiation outputs
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
@@ -470,8 +475,10 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     morphology = (;
         area_total, area_skin, area_evaporation, area_convection, area_conduction, area_silhouette,
         F_sky, F_ground, volume, flesh_volume, 
-        characteristic_dimension = geometry_pars.geometry.characteristic_dimension,
-        fat_mass, geometry_pars.geometry.length...
+        # TODO make it so that this is the proper characteristic dimension computed via the geometry functions
+        #characteristic_dimension = geometry_pars.geometry.characteristic_dimension,
+        characteristic_dimension,
+     fat_mass, geometry_pars.geometry.length...
     )
 
     energy_fluxes = (;

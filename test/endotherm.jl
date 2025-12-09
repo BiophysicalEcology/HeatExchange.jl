@@ -190,7 +190,7 @@ mass_fluxes = endotherm_out.mass_fluxes
     insulation_temperature = thermoregulation.T_insulation, 
     ventral_fraction = radiation_pars.ventral_fraction)
 
-rtol = 1e-2
+rtol = 1e-3
 
 @testset "endotherm thermoregulation comparisons" begin
     @test treg_output_vec.TC ≈ ustrip(u"°C", thermoregulation.T_core) rtol = rtol

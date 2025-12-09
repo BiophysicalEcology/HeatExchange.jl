@@ -94,11 +94,12 @@ function solve_without_insulation!(T_skin, T_insulation,
 
             Q_longwave = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
             Q_convection = hc * area_convection * (T_skin_calc - T_air)
-            Q_env = Q_longwave + Q_convection - Q_solar
+            #Q_env = Q_longwave + Q_convection - Q_solar
 
             ΔT_skin = abs(T_skin - T_skin_calc)
 
             if ΔT_skin < tolerance
+                #TODO why is this not shape-specific?
                 Q_gen_net = (4 * k_flesh * volume / r_skin^2) * (T_core - T_skin_calc)
                 success = true
                 return (; T_insulation, T_skin=T_skin_calc, Q_convection, Q_conduction, Q_gen_net,
@@ -209,8 +210,8 @@ function solve_with_insulation!(T_skin, T_insulation,
                     ventral_fraction,
                 )
 
-            absorption_coefficient = absorption_coefficients[side+1]
-            k_eff = effective_conductivities[side+1]
+            absorption_coefficient = absorption_coefficients[side + 1]
+            k_eff = effective_conductivities[side + 1]
 
             # Effective insulation conductivity
             if !isnothing(insulation_conductivity)
@@ -281,7 +282,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 Q_convection = hc * area_convection * (T_insulation_calc - T_air)
                 Q_conduction = cd * (T_ins_compressed - T_substrate)
             else
-                (; cf1, T_ins_compressed) =
+                (; T_ins_compressed) =
                     compressed_radiant_temperature(;
                         body = geometry_pars,
                         insulation = insulation_out,
