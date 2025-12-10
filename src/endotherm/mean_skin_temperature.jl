@@ -2,8 +2,8 @@ mean_skin_temperature(; body::AbstractBody, insulation, insulation_pars, Q_env, 
 
 function mean_skin_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction)
     volume = body.geometry.volume
-    r_skin = get_r_skin(body)
-    r_flesh = get_r_flesh(body)
+    r_skin = skin_radius(body)
+    r_flesh = flesh_radius(body)
     if conduction_fraction < 1
         T_skin_calc1 = T_core - (((Q_env + Q_evap_skin) * r_flesh^2) / (4 * k_flesh * volume)) - (((Q_env + Q_evap_skin) * r_flesh^2) / (2 * k_fat * volume)) * log(r_skin / r_flesh)
         T_skin_calc2 = ((Q_env * r_flesh^2) / (2 * cd1 * volume)) + ((T_ins_compressed * cd2) / cd1) + ((T_insulation_calc * cd3) / cd1)

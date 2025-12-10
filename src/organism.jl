@@ -1,4 +1,4 @@
-abstract type AbstractPhysioModel end
+abstract type AbstractPhysioModel end # TODO spell out fully for all abstract types
 
 abstract type MetabolicRateEquation <: AbstractPhysioModel end
 abstract type OxygenJoulesConversion <: AbstractPhysioModel end

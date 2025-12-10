@@ -21,7 +21,7 @@ temperature (°C). The result is internally converted to watts (0.0056 conversio
 and both results are reported. Predictions are capped betwen 1 °C and 50 °C body temperature.
 """
 struct AndrewsPough2 <: MetabolicRateEquation end
-
+#TODO make it so M1 etc. are in AndrewPough2 struct, make them all take mass or mass and temp
 function metabolic_rate(::AndrewsPough2, mass, T_body; M1=0.013, M2=0.8, M3=0.038, M4=0.0, 
         O2conversion::OxygenJoulesConversion=Typical())
     mass_g = ustrip(u"g", mass)
@@ -226,5 +226,5 @@ The `Typical` formulation is used by default.
 O2_to_Joules(::Missing) = missing
 Joules_to_O2(::Missing) = missing
 
-Joules_to_O2(Q_metab) = Joules_to_O2(Typical(), Q_metab, 1)
-O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, 1)
+Joules_to_O2(Q_metab) = Joules_to_O2(Typical(), Q_metab, one(Q_metab))
+O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(Q_metab))

@@ -195,6 +195,7 @@ silhouette_area(body::AbstractBody, ::ParallelToSun) =
 silhouette_area(body::AbstractBody, ::Intermediate) =
     (silhouette_area(body).normal + silhouette_area(body).parallel) * 0.5
 
+    #TODO make this 'insulation_area'
 function hair_area(fibre_diameter, fibre_density, skin)
     π * (fibre_diameter / 2) ^ 2 * (fibre_density * skin)
 end

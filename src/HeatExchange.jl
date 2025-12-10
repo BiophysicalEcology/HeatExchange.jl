@@ -47,12 +47,12 @@ export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieW
 export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
 include("geometry/geometry.jl")
-include("geometry/plate.jl")
-include("geometry/cylinder.jl")
-include("geometry/sphere.jl")
-include("geometry/ellipsoid.jl")
-include("geometry/desert_iguana.jl")
-include("geometry/leopard_frog.jl")
+include("geometry/shapes/plate.jl")
+include("geometry/shapes/cylinder.jl")
+include("geometry/shapes/sphere.jl")
+include("geometry/shapes/ellipsoid.jl")
+include("geometry/shapes/desert_iguana.jl")
+include("geometry/shapes/leopard_frog.jl")
 
 include("organism.jl")
 include("traits.jl")

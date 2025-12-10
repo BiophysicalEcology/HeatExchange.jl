@@ -427,7 +427,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     area_skin = skin_area(geometry_pars)
     radius_insulation = insulation_radius(geometry_pars)
     characteristic_dimension = 2 * radius_insulation
-    @show characteristic_dimension
+
     # radiation outputs
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)

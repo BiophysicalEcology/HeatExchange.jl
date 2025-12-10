@@ -11,10 +11,10 @@ function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insu
      T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc,
       cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
       dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
-    r_skin = get_r_skin(body)
-    r_insulation = get_r_insulation(body)
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation.insulation_depth_compressed
-    length = body.geometry.length.length
+    r_skin = skin_radius(body)
+    r_insulation = insulation_radius(body)
+    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_pars.insulation_depth_dorsal
+    length = 2 * r_insulation
     if longwave_depth_fraction < 1
         T_ins1 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground - 
             (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) * ((dv3 / dv4) + ((T_ins_compressed * cd2) / dv4))
@@ -43,9 +43,9 @@ function insulation_radiant_temperature(shape::Sphere, body, insulation, insulat
      T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection,
       hc, cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4,
        cd1, cd2, cd3, dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
-    r_skin = get_r_skin(body)
-    r_insulation = get_r_insulation(body)
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation.insulation_depth_compressed
+    r_skin = skin_radius(body)
+    r_insulation = insulation_radius(body)
+    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_pars.insulation_depth_compressed
     if longwave_depth_fraction < 1
         T_ins1 = ((4 * π * r_skin) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground -

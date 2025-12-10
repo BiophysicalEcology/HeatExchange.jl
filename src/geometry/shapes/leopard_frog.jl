@@ -20,6 +20,7 @@ end
 
 function surface_area(shape::LeopardFrog)
     mass_g = Unitful.uconvert(u"g", shape.mass)
+    #TODO explain with comments what's happening with units
     Unitful.uconvert(u"m^2", (12.79 * Unitful.ustrip(mass_g) ^ 0.606)u"cm^2") # eq in Fig. 5
 end
 

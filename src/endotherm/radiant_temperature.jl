@@ -10,11 +10,13 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
 
     volume = body.geometry.volume
     k_compressed = insulation.insulation_conductivity_compressed
-    r_skin = get_r_skin(body)
-    r_insulation = get_r_insulation(body)
-    r_compressed = r_skin + insulation.insulation_depth_compressed
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation.insulation_depth_compressed
-    length = body.geometry.length.length
+    r_skin = skin_radius(body)
+    r_flesh = flesh_radius(body)
+    r_insulation = insulation_radius(body)
+    r_compressed = r_skin + insulation_pars.insulation_depth_compressed
+    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_pars.insulation_depth_dorsal
+    length = 2 * r_insulation
+    fibre_length = insulation_pars.fibre_length_dorsal
     compression_fraction =
         (conduction_fraction * 2 * π * k_compressed * length) /
         log(r_compressed / r_skin)
@@ -52,6 +54,7 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
         (T_insulation *
             ((k_insulation / log(r_insulation / r_radiation)) *
             (1 - conduction_fraction))) / dv4 : T_insulation
+            @show T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4
     return (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4)
 end
 
@@ -61,10 +64,10 @@ function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q
 
     volume = body.geometry.volume
     k_compressed = insulation.insulation_conductivity_compressed
-    r_skin = get_r_skin(body)
-    r_insulation = get_r_insulation(body)
-    r_compressed = r_skin + insulation.insulation_depth_compressed
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation.insulation_depth_compressed
+    r_skin = skin_radius(body)
+    r_insulation = insulation_radius(body)
+    r_compressed = r_skin + insulation_pars.insulation_depth_compressed
+    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_pars.insulation_depth_compressed
 
     compression_fraction =
         (conduction_fraction * 4 * π * k_compressed * r_compressed * r_skin) /
