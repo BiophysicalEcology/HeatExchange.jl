@@ -10,14 +10,8 @@ using FluidProperties
 using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, 
     enthalpy_of_vaporisation, water_properties, atmospheric_pressure
 
-# to go in GeometryOfOrganisms.jl
-export AbstractGeometryModel, AbstractGeometryPars, AbstractShape, AbstractInsulation, Body
-export Cylinder, Sphere, Ellipsoid, Plate, LeopardFrog, DesertIguana
-export CompositeInsulation, Naked, Fur, Fat
-export geometry, shape, insulation
-export bird_skin_area, bird_plumage_area, mammal_skin_area, mammal_fur_area
-export total_area, skin_area, evaporation_area, skin_radius, insulation_radius, flesh_radius
-export surface_area, silhouette_area, SolarOrientation, Intermediate, ParallelToSun, NormalToSun
+using BiophysicalGeometry
+using BiophysicalGeometry: AbstractBody, shape
 
 export Organism, Traits, EndoModelPars, BodyPars, InsulationParameters, ExternalConductionParameters,
   InternalConductionParameters, RadiationParameters, ConvectionParameters, EvaporationParameters, 
@@ -25,7 +19,7 @@ export Organism, Traits, EndoModelPars, BodyPars, InsulationParameters, External
 
 export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
-export body, traits, shape, insulation, insulationpars, conductionpars_external, conductionpars_internal, 
+export body, traits, insulationpars, conductionpars_external, conductionpars_internal, 
   convectionpars, radiationpars, evaporationpars, hydraulicpars, respirationpars, metabolismpars
 
 export heat_balance, get_Tb
@@ -45,14 +39,6 @@ export simulsol, respiration_endotherm, mean_skin_temperature, respiration
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
 
 export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
-
-include("geometry/geometry.jl")
-include("geometry/shapes/plate.jl")
-include("geometry/shapes/cylinder.jl")
-include("geometry/shapes/sphere.jl")
-include("geometry/shapes/ellipsoid.jl")
-include("geometry/shapes/desert_iguana.jl")
-include("geometry/shapes/leopard_frog.jl")
 
 include("organism.jl")
 include("traits.jl")

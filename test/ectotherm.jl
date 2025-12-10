@@ -1,4 +1,5 @@
 using HeatExchange
+using BiophysicalGeometry
 using FluidProperties
 using ModelParameters
 using Unitful, UnitfulMoles
@@ -371,6 +372,7 @@ environment = (; environment_pars, environment_vars)
 # define the method 'ectotherm' for passing to find_zero, which dispatches off 'lizard' 
 T_air = environment_vars.T_air
 ectotherm(T_air, lizard, environment)
+
 T_core_s = find_zero(t -> ectotherm(t, lizard, environment), (T_air - 40u"K", T_air + 100u"K"), Bisection())
 T_core_C = (Unitful.ustrip(T_core_s) - 273.15)u"°C"
 

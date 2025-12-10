@@ -1,4 +1,5 @@
 using HeatExchange
+using BiophysicalGeometry
 using ModelParameters
 using Unitful, UnitfulMoles
 using FluidProperties
@@ -27,8 +28,8 @@ shape_pars = Ellipsoid((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3",
     (endo_input.SHAPE_B), (endo_input.SHAPE_C))
 #shape_pars = Plate((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
 #    (endo_input.SHAPE_B), (endo_input.SHAPE_C)) # define shape
-shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
-    (endo_input.SHAPE_B)) # define shape
+#shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+#    (endo_input.SHAPE_B)) # define shape
 #shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3") # define shape
 
 fat = Fat(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")

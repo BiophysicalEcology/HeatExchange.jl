@@ -15,7 +15,7 @@ function ectotherm end
 #ectotherm(T_x, o::Organism, e_pars, vars) = ectotherm(T_x, insulation(o), o, 
 #    integumentpars(o), physiopars(o), thermoregpars(o), thermoregvars(o), e_pars, vars)
 # A method for Naked organisms
-ectotherm(T_x, o::Organism, e) = ectotherm(T_x, insulation(o), o, e)
+ectotherm(T_x, o::Organism, e) = ectotherm(T_x, insulation(body(o)), o, e)
 
 function ectotherm(T_x, insulation::Naked, o, e)
     e_pars = stripparams(e.environment_pars) # TODO make small function to get this, or extract all?

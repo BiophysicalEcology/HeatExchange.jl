@@ -47,8 +47,8 @@ abstract type AbstractOrganism end
 # With some generic methods to get the params and body
 body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
 traits(o::AbstractOrganism) = o.traits
-shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
-insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
+#shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
+#insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
 
 insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
 conductionpars_external(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_external)

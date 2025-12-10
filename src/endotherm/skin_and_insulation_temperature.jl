@@ -168,7 +168,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 fCO2,
                 fN2,
                 convection_enhancement)
-                @show T_skin, hd
+                
             Q_evap_skin = evaporation(;
                 T_surface = T_skin,
                 wetness = skin_wetness,
