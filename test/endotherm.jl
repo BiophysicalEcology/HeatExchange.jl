@@ -28,8 +28,8 @@ shape_pars = Ellipsoid((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3",
     (endo_input.SHAPE_B), (endo_input.SHAPE_C))
 #shape_pars = Plate((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
 #    (endo_input.SHAPE_B), (endo_input.SHAPE_C)) # define shape
-#shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
-#    (endo_input.SHAPE_B)) # define shape
+shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+    (endo_input.SHAPE_B)) # define shape
 #shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3") # define shape
 
 fat = Fat(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
@@ -191,7 +191,7 @@ mass_fluxes = endotherm_out.mass_fluxes
     insulation_temperature = thermoregulation.T_insulation, 
     ventral_fraction = radiation_pars.ventral_fraction)
 
-rtol = 1e-3
+rtol = 1e-4
 
 @testset "endotherm thermoregulation comparisons" begin
     @test treg_output_vec.TC ≈ ustrip(u"°C", thermoregulation.T_core) rtol = rtol
@@ -232,9 +232,15 @@ rtol = 1e-7
     @test morph_output_vec.FLESH_VOL ≈ ustrip(u"m^3", morphology.flesh_volume) rtol = rtol
     @test morph_output_vec.CHAR_DIM ≈ ustrip(u"m", morphology.characteristic_dimension) rtol = rtol
     @test morph_output_vec.MASS_FAT ≈ ustrip(u"kg", morphology.fat_mass) rtol = rtol
-    @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.a_semi_major * 2) rtol = rtol
-    @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor * 2) rtol = rtol
-    @test morph_output_vec.HEIGHT ≈ ustrip(u"m", morphology.c_semi_minor * 2) rtol = rtol
+    if mammal.body.shape isa Cylinder 
+        @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.length_fur) rtol = rtol
+        @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.radius_fur * 2) rtol = rtol
+    end
+    if mammal.body.shape isa Ellipsoid
+        @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.a_semi_major * 2) rtol = rtol
+        @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor * 2) rtol = rtol
+        @test morph_output_vec.HEIGHT ≈ ustrip(u"m", morphology.c_semi_minor * 2) rtol = rtol
+    end
     @test morph_output_vec.FAT_THICK ≈ ustrip(u"m", fat) rtol = rtol
 end
 

@@ -127,15 +127,15 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
 
         # set fur depth and conductivity
         # index for effective_conductivities, is the average (1), front/dorsal (2), back/ventral(3) of the body part
-        if Q_solar > 0.0u"W" || (insulation_depths[2] != insulation_depths[3])
+        #if Q_solar > 0.0u"W" || (insulation_depths[2] != insulation_depths[3])
             if side == 1
                 insulation = Fur(insulation_depths[2], fibre_diameters[2], fibre_densities[2])
             else
                 insulation = Fur(insulation_depths[3], fibre_diameters[3], fibre_densities[3])
             end
-        else
-            insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
-        end
+        #else
+        #    insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
+        #end
 
         if side == 1
             insulation_conductivity = ins.insulation_conductivity_dorsal
@@ -425,6 +425,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     flesh_volume = volume - fat_volume
     area_total = total_area(geometry_pars)
     area_skin = skin_area(geometry_pars)
+    area_silhouette = silhouette_area(geometry_pars, rad.solar_orientation)
     radius_insulation = insulation_radius(geometry_pars)
     characteristic_dimension = 2 * radius_insulation
 

@@ -142,6 +142,7 @@ function solve_with_insulation!(T_skin, T_insulation,
 
     area_evaporation = evaporation_area(geometry_pars)
     area_total = total_area(geometry_pars)
+    area_skin = skin_area(geometry_pars)
     area_convection = area_total * (1 - conduction_fraction)
     insulation_test = insulation_out.insulation_test
 
@@ -168,7 +169,6 @@ function solve_with_insulation!(T_skin, T_insulation,
                 fCO2,
                 fN2,
                 convection_enhancement)
-                
             Q_evap_skin = evaporation(;
                 T_surface = T_skin,
                 wetness = skin_wetness,

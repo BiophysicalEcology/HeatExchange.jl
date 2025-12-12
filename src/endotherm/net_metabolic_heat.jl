@@ -3,16 +3,16 @@ net_metabolic_heat(; body::AbstractBody, T_core, T_skin, k_flesh, k_fat) =
 
 function net_metabolic_heat(shape::Union{Cylinder,Plate}, body, T_core, T_skin, k_flesh, k_fat)
     volume = body.geometry.volume
-    r_skin = get_r_skin(body)
-    r_flesh = get_r_flesh(body)    
+    r_skin = skin_radius(body)
+    r_flesh = flesh_radius(body)    
     Q_gen_net = (T_core - T_skin) / ((r_flesh ^ 2 / (4 * k_flesh * volume)) + 
         ((r_flesh^2 / (2 * k_fat * volume)) * log(r_skin / r_flesh)))
     return Q_gen_net
 end
 function net_metabolic_heat(shape::Sphere, body, T_core, T_skin, k_flesh, k_fat)
     volume = body.geometry.volume
-    r_skin = get_r_skin(body)
-    r_flesh = get_r_flesh(body)
+    r_skin = skin_radius(body)
+    r_flesh = flesh_radius(body)
     Q_gen_net = (T_core - T_skin) / ((r_flesh ^ 2 / (6 * k_flesh * volume)) + 
         ((r_flesh^3 / (4 * k_fat * volume)) * ((r_skin - r_flesh)/(r_flesh * r_skin))))
     return Q_gen_net

@@ -2,7 +2,7 @@
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "eb5509f4ad8e434e590001610796e4aff94d3863"
+project_hash = "5574c93a39f424691924e64c34a4c427b87f6dc1"
 
 [[deps.AbstractNumbers]]
 deps = ["SpecialFunctions"]
@@ -41,6 +41,12 @@ version = "1.11.0"
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
+
+[[deps.BiophysicalGeometry]]
+deps = ["DataFrames", "DataStructures", "FluidProperties", "ModelParameters", "Roots", "Unitful", "UnitfulMoles"]
+path = "c:\\git\\BiophysicalGeometry.jl\\"
+uuid = "06c61620-4f66-4020-a018-07befe374221"
+version = "0.1.0"
 
 [[deps.CommonSolve]]
 git-tree-sha1 = "0eee5eb66b1cf62cd6ad1b460238e60e4b09400c"
