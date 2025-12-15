@@ -60,7 +60,6 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     area_conduction = area_total * cond_ex.conduction_fraction
     area_evaporation = evaporation_area(o.body)
     area_convection = area_total * (1 - cond_ex.conduction_fraction)
-
     (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) =
         solar(
             α_body_dorsal,
@@ -128,11 +127,11 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         # set fur depth and conductivity
         # index for effective_conductivities, is the average (1), front/dorsal (2), back/ventral(3) of the body part
         #if Q_solar > 0.0u"W" || (insulation_depths[2] != insulation_depths[3])
-            if side == 1
-                insulation = Fur(insulation_depths[2], fibre_diameters[2], fibre_densities[2])
-            else
-                insulation = Fur(insulation_depths[3], fibre_diameters[3], fibre_densities[3])
-            end
+        if side == 1
+            insulation = Fur(insulation_depths[2], fibre_diameters[2], fibre_densities[2])
+        else
+            insulation = Fur(insulation_depths[3], fibre_diameters[3], fibre_densities[3])
+        end
         #else
         #    insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
         #end
@@ -466,9 +465,14 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     T_skin = T_skin_dorsal * dmult + T_skin_ventral * vmult
     T_insulation = T_insulation_dorsal * dmult + T_insulation_ventral * vmult
 
+    if o.body.shape isa Sphere
+        shape_b = 1.0
+    else
+        shape_b = o.body.shape.b
+    end
     thermoregulation = (;
         metab.T_core, T_skin, T_insulation, T_lung, T_skin_dorsal, T_skin_ventral, T_insulation_dorsal, 
-        T_insulation_ventral, shape_b=o.body.shape.b, pant=resp.pant, skin_wetness=evap.skin_wetness, 
+        T_insulation_ventral, shape_b, pant=resp.pant, skin_wetness=evap.skin_wetness, 
         k_flesh=cond_in.k_flesh, k_insulation_effective, k_insulation_dorsal, k_insulation_ventral, 
         k_insulation_compressed, ins.insulation_depth_dorsal, ins.insulation_depth_ventral, metab.q10
     )

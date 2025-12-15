@@ -19,9 +19,9 @@ function net_metabolic_heat(shape::Sphere, body, T_core, T_skin, k_flesh, k_fat)
 end
 function net_metabolic_heat(shape::Ellipsoid, body, T_core, T_skin, k_flesh, k_fat)
     volume = body.geometry.volume
-    a_semi_major = body.geometry.length.a_semi_major
-    b_semi_minor = body.geometry.length.b_semi_minor
-    c_semi_minor = body.geometry.length.c_semi_minor
+    a_semi_major = body.geometry.length.a_semi_major_skin
+    b_semi_minor = body.geometry.length.b_semi_minor_skin
+    c_semi_minor = body.geometry.length.c_semi_minor_skin
     fat = body.geometry.length.fat
     a_semi_major_flesh = a_semi_major - fat
     b_semi_minor_flesh = b_semi_minor - fat

@@ -199,10 +199,11 @@ function nusselt_free(shape::Union{Cylinder, DesertIguana, LeopardFrog}, Gr, Pr)
 end
 function nusselt_free(shape::Plate, Gr, Pr)
    Ra = Gr * Pr
-   Nu_free = 0.55 * Ra ^ 0.25
+   #Nu_free = 0.55 * Ra ^ 0.25
+   Nu_free = 0.13 * Ra ^ (1 / 3) # Gates 1980 eq. 9.77
    return Nu_free
 end
-function nusselt_free(shape::Ellipsoid, Gr, Pr)
+function nusselt_free(shape::Union{Sphere, Ellipsoid}, Gr, Pr)
     #  sphere free convection
     #  from p.413 Bird et all (1960) Transport Phenomena
     Ra = (Gr ^ (1 / 4)) * (Pr ^ (1 / 3))
@@ -240,7 +241,8 @@ function nusselt_forced(shape::Cylinder, Re)
 end
 function nusselt_forced(shape::Plate, Re)
     # forced convection of a plate
-    0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
+    #0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
+    0.032 * Re ^ 0.8
 end
 function nusselt_forced(shape::Union{Ellipsoid, Sphere, DesertIguana, LeopardFrog}, Re)
     #  forced convection of a sphere

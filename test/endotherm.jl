@@ -24,12 +24,26 @@ masbal_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endo
 endo_input = (; zip(endo_input_names, endo_input_vec)...)
 
 # define shape
-shape_pars = Ellipsoid((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
-    (endo_input.SHAPE_B), (endo_input.SHAPE_C))
+if endo_input.SHAPE == 1
+    shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+        (endo_input.SHAPE_B)) # define shape
+end
+if endo_input.SHAPE == 2
+    shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3")
+end
+if endo_input.SHAPE == 3
+    shape_pars = Plate((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+        (endo_input.SHAPE_B), (endo_input.SHAPE_C))
+end
+if endo_input.SHAPE == 4
+    shape_pars = Ellipsoid((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+        (endo_input.SHAPE_B), (endo_input.SHAPE_C))
+end
+
 #shape_pars = Plate((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
 #    (endo_input.SHAPE_B), (endo_input.SHAPE_C)) # define shape
-shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
-    (endo_input.SHAPE_B)) # define shape
+#shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
+#    (endo_input.SHAPE_B)) # define shape
 #shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3") # define shape
 
 fat = Fat(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
@@ -200,7 +214,9 @@ rtol = 1e-4
     @test treg_output_vec.TSKIN_V ≈ ustrip(u"°C", thermoregulation.T_skin_ventral) rtol = rtol
     @test treg_output_vec.TFA_D ≈ ustrip(u"°C", thermoregulation.T_insulation_dorsal) rtol = rtol
     @test treg_output_vec.TFA_V ≈ ustrip(u"°C", thermoregulation.T_insulation_ventral) rtol = rtol
-    @test treg_output_vec.SHAPE_B ≈ thermoregulation.shape_b rtol = rtol
+    if endo_input.SHAPE != 2
+        @test treg_output_vec.SHAPE_B ≈ thermoregulation.shape_b rtol = rtol
+    end
     @test treg_output_vec.PANT ≈ thermoregulation.pant rtol = rtol
     @test treg_output_vec.PCTWET / 100.0 ≈ thermoregulation.skin_wetness rtol = rtol
     @test treg_output_vec.K_FLESH ≈ ustrip(u"W/m/K", thermoregulation.k_flesh) rtol = rtol
@@ -237,9 +253,9 @@ rtol = 1e-7
         @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.radius_fur * 2) rtol = rtol
     end
     if mammal.body.shape isa Ellipsoid
-        @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.a_semi_major * 2) rtol = rtol
-        @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor * 2) rtol = rtol
-        @test morph_output_vec.HEIGHT ≈ ustrip(u"m", morphology.c_semi_minor * 2) rtol = rtol
+        @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.a_semi_major_fur * 2) rtol = rtol
+        @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor_fur * 2) rtol = rtol
+        @test morph_output_vec.HEIGHT ≈ ustrip(u"m", morphology.c_semi_minor_fur * 2) rtol = rtol
     end
     @test morph_output_vec.FAT_THICK ≈ ustrip(u"m", fat) rtol = rtol
 end

@@ -17,8 +17,8 @@ end
 
 function mean_skin_temperature(shape::Sphere, body, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction)
     volume = body.geometry.volume
-    r_skin = get_r_skin(body)
-    r_flesh = get_r_flesh(body)
+    r_skin = skin_radius(body)
+    r_flesh = flesh_radius(body)
     if conduction_fraction < 1
         T_skin_calc1 = T_core - (((Q_env + Q_evap_skin) * r_flesh^2) / (6 * k_flesh * volume)) - (((Q_env + Q_evap_skin) * r_flesh^3.) / (3 * k_fat * volume)) * ((r_skin - r_flesh) / (r_skin * r_flesh))
         T_skin_calc2 = ((Q_env * r_flesh^3) / (3 * cd1 * volume * r_skin)) + ((T_ins_compressed * cd2) / cd1) + ((T_insulation_calc * cd3) / cd1)
@@ -33,9 +33,9 @@ end
 function mean_skin_temperature(shape::Ellipsoid, body, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction)
     volume = body.geometry.volume
     k_compressed = insulation.insulation_conductivity_compressed
-    a_semi_major = body.geometry.length.a_semi_major
-    b_semi_minor = body.geometry.length.b_semi_minor
-    c_semi_minor = body.geometry.length.c_semi_minor
+    a_semi_major = body.geometry.length.a_semi_major_skin
+    b_semi_minor = body.geometry.length.b_semi_minor_skin
+    c_semi_minor = body.geometry.length.c_semi_minor_skin
     fat = body.geometry.length.fat
     a_semi_major_flesh = a_semi_major - fat
     b_semi_minor_flesh = b_semi_minor - fat

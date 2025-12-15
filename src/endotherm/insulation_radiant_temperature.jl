@@ -42,10 +42,10 @@ function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insu
     return(; T_insulation_calc, T_radiant2)
 end
 
-function insulation_radiant_temperature(shape::Sphere, body, insulation, insulation_pars, T_core, T_insulation,
-     T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection,
-      hc, cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4,
-       cd1, cd2, cd3, dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
+function insulation_radiant_temperature(shape::Sphere, body, insulation, insulation_pars,
+     T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc,
+      cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
+      dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
     r_skin = skin_radius(body)
     r_insulation = insulation_radius(body)
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_pars.insulation_depth_compressed
@@ -65,7 +65,7 @@ function insulation_radiant_temperature(shape::Sphere, body, insulation, insulat
     else
         T_ins1 = ((4 * π * r_skin) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins2 = Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
-        T_ins3 = hc * area_convection * T_ins_compressed - cd * T_ins_compressed + cd * T_substrate - 
+        T_ins3 = hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate - 
          Q_evap_insulation + Q_solar
         T_ins4 = (4 * π * r_skin * cd3) / dv1 + (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) + hc * area_convection
         T_insulation_calc = u"K"((T_ins1 + T_ins2 + T_ins3) / T_ins4)
@@ -82,9 +82,9 @@ function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insu
     volume = body.geometry.volume
 
     insulation_depth = insulation.insulation_depths[1]
-    a_semi_major = body.geometry.length.a_semi_major
-    b_semi_minor = body.geometry.length.b_semi_minor
-    c_semi_minor = body.geometry.length.c_semi_minor
+    a_semi_major = body.geometry.length.a_semi_major_skin
+    b_semi_minor = body.geometry.length.b_semi_minor_skin
+    c_semi_minor = body.geometry.length.c_semi_minor_skin
 
     fat = body.geometry.length.fat
     a_semi_major_flesh = a_semi_major - fat

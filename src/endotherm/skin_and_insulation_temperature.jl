@@ -142,7 +142,6 @@ function solve_with_insulation!(T_skin, T_insulation,
 
     area_evaporation = evaporation_area(geometry_pars)
     area_total = total_area(geometry_pars)
-    area_skin = skin_area(geometry_pars)
     area_convection = area_total * (1 - conduction_fraction)
     insulation_test = insulation_out.insulation_test
 
@@ -172,7 +171,7 @@ function solve_with_insulation!(T_skin, T_insulation,
             Q_evap_skin = evaporation(;
                 T_surface = T_skin,
                 wetness = skin_wetness,
-                area=area_evaporation,
+                area = area_evaporation,
                 hd,
                 hd_free,
                 eye_fraction,
@@ -240,13 +239,11 @@ function solve_with_insulation!(T_skin, T_insulation,
                     cd,
                     longwave_depth_fraction, 
                     conduction_fraction)
-
             # Radiative heat fluxes
             Q_rad1 = area_convection * F_sky * 4 * ϵ_body * σ * ((T_radiant + T_sky) / 2)^3
             Q_rad2 = area_convection * F_bush * 4 * ϵ_body * σ * ((T_radiant + T_bush) / 2)^3
             Q_rad3 = area_convection * F_vegetation * 4 * ϵ_body * σ * ((T_radiant + T_vegetation) / 2)^3
             Q_rad4 = area_convection * F_ground * 4 * ϵ_body * σ * ((T_radiant + T_ground) / 2)^3
-
             if conduction_fraction < 1
                 # These calculations are for when there is less than 100% conduction.
                 # The term Q_evap_insulation is included for heat lost due to evaporation from
