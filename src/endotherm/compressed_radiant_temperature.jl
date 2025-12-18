@@ -27,7 +27,7 @@ function compressed_radiant_temperature(shape::Sphere, body, insulation, insulat
 end
 
 function compressed_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars, k_flesh, k_fat, T_core, T_substrate, cd)
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
     k_compressed = insulation.insulation_conductivity_compressed
 
     insulation_depth = insulation.insulation_depths[1]

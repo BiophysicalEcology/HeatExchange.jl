@@ -36,7 +36,6 @@ function solve_without_insulation!(T_skin, T_insulation,
     area_total = total_area(geometry_pars)
     area_evaporation = area_total
     area_convection = area_total * (1 - conduction_fraction)
-    volume = geometry_pars.geometry.volume
     r_skin = skin_radius(geometry_pars)
     Q_evap_insulation = 0.0u"W"
     Q_conduction = 0.0u"W"
@@ -207,7 +206,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 insulation_properties(;
                     insulation = insulation_pars,
                     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3,
-                    ventral_fraction,
+                    ventral_fraction = 0.5, # TODO check if this should be 0.5
                 )
 
             absorption_coefficient = absorption_coefficients[side + 1]
@@ -339,12 +338,8 @@ function solve_with_insulation!(T_skin, T_insulation,
                         T_skin = T_skin_calc1
                         continue
                     else
-                        success_ref[] = 0
-                        Q_gen_net = compute_qgennet(
-                            ipt, tc, tskcalcav,
-                            rflesh, rskin, ak1, ak2, vol,
-                            ssqg, bs, bg
-                        )
+                        success = false
+                        Q_gen_net = net_metabolic_heat(; body = geometry_pars, T_core, T_skin, k_flesh, k_fat)
                         return (; T_insulation, T_skin_mean, Q_convection, Q_conduction, Q_gen_net,
                             Q_evap_skin, Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation, Q_rad_ground,
                             Q_evap_insulation, k_insulation, tolerance, success, ntry)

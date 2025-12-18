@@ -25,8 +25,7 @@ function solar(;
     α_body_dorsal,
     α_body_ventral,
     A_silhouette,
-    A_dorsal,
-    A_ventral,
+    A_total,
     F_ground,
     F_sky,
     α_ground,
@@ -35,17 +34,15 @@ function solar(;
     global_radiation,
     diffuse_fraction,
 )
-    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_dorsal, A_ventral, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
+    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
 end
-function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_dorsal, A_ventral, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
-    F_sky_doubled = F_sky * 2 # because F_sky is for whole body, but computations are for area facing sky
-    F_ground_doubled = F_ground * 2 # because F_ground is for whole body, but computations are for area facing ground
+function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, F_ground, F_sky, α_ground, shade, zenith_angle, global_radiation, diffuse_fraction)
     direct_radiation = global_radiation * (1 - diffuse_fraction)
     diffuse_radiation = global_radiation * diffuse_fraction
     beam_radiation = zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
     Q_direct = α_body_dorsal * A_silhouette * beam_radiation * (1 - shade)
-    Q_solar_sky = α_body_dorsal * F_sky_doubled * A_dorsal * diffuse_radiation * (1 - shade)
-    Q_solar_substrate = α_body_ventral * F_ground_doubled * A_ventral * (1 - α_ground) * global_radiation * (1 - shade)
+    Q_solar_sky = α_body_dorsal * F_sky * A_total * diffuse_radiation * (1 - shade)
+    Q_solar_substrate = α_body_ventral * F_ground * A_total * (1 - α_ground) * global_radiation * (1 - shade)
     Q_solar = (Q_direct + Q_solar_substrate + Q_solar_sky)
     return (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate)
 end
@@ -57,8 +54,7 @@ end
 Calculate incoming radiation.
 """
 function radin(;
-    A_dorsal,
-    A_ventral,
+    A_total,
     F_sky,
     F_ground,
     ϵ_body_dorsal,
@@ -68,14 +64,12 @@ function radin(;
     T_sky,
     T_ground,
 )
-    return radin(A_dorsal, A_ventral, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
+    return radin(A_total, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
 end
-function radin(A_dorsal, A_ventral, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
+function radin(A_total, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    F_sky_doubled = F_sky * 2 # because F_sky is for whole body, but computations are for area facing sky
-    F_ground_doubled = F_ground * 2 # because F_ground is for whole body, but computations are for area facing ground
-    Q_ir_sky = ϵ_body_dorsal * F_sky_doubled * A_dorsal * ϵ_sky * σ * T_sky^4
-    Q_ir_sub = ϵ_body_ventral * F_ground_doubled * A_ventral * ϵ_ground * σ * T_ground^4
+    Q_ir_sky = ϵ_body_dorsal * F_sky * A_total * ϵ_sky * σ * T_sky^4
+    Q_ir_sub = ϵ_body_ventral * F_ground * A_total * ϵ_ground * σ * T_ground^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
     return (; Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
@@ -165,7 +159,7 @@ function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, 
     Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
     hd_forc = Sh_forc * D_w / D  # mass transfer coefficient, forced
     hd = Sh * D_w / D # mass transfer coefficient, combined
-    return (;Q_conv, hc, hd, Sh, Q_free, Q_forc, hc_free, hc_forc, Sh_free, Sh_forc, hd_free, hd_forc)
+    return (; Q_conv, hc, hd, Sh, Q_free, Q_forc, hc_free, hc_forc, Sh_free, Sh_forc, hd_free, hd_forc)
 end
 
 function nusselt_free(shape::Union{Cylinder, DesertIguana, LeopardFrog}, Gr, Pr)

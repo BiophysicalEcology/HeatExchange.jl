@@ -2,15 +2,15 @@ net_metabolic_heat(; body::AbstractBody, T_core, T_skin, k_flesh, k_fat) =
     net_metabolic_heat(shape(body), body, T_core, T_skin, k_flesh, k_fat)
 
 function net_metabolic_heat(shape::Union{Cylinder,Plate}, body, T_core, T_skin, k_flesh, k_fat)
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
     r_skin = skin_radius(body)
-    r_flesh = flesh_radius(body)    
+    r_flesh = flesh_radius(body)
     Q_gen_net = (T_core - T_skin) / ((r_flesh ^ 2 / (4 * k_flesh * volume)) + 
         ((r_flesh^2 / (2 * k_fat * volume)) * log(r_skin / r_flesh)))
     return Q_gen_net
 end
 function net_metabolic_heat(shape::Sphere, body, T_core, T_skin, k_flesh, k_fat)
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     Q_gen_net = (T_core - T_skin) / ((r_flesh ^ 2 / (6 * k_flesh * volume)) + 
@@ -18,7 +18,7 @@ function net_metabolic_heat(shape::Sphere, body, T_core, T_skin, k_flesh, k_fat)
     return Q_gen_net
 end
 function net_metabolic_heat(shape::Ellipsoid, body, T_core, T_skin, k_flesh, k_fat)
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
     a_semi_major = body.geometry.length.a_semi_major_skin
     b_semi_minor = body.geometry.length.b_semi_minor_skin
     c_semi_minor = body.geometry.length.c_semi_minor_skin

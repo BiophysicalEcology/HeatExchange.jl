@@ -8,7 +8,7 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
     Q_evap, T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation,
      cd, longwave_depth_fraction, conduction_fraction)
 
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
     k_compressed = insulation.insulation_conductivity_compressed
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
@@ -60,7 +60,7 @@ function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q
      T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
      conduction_fraction)
 
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
     k_compressed = insulation.insulation_conductivity_compressed
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
@@ -113,9 +113,8 @@ function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_e
      T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, 
       longwave_depth_fraction, conduction_fraction)
 
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
     k_compressed = insulation.insulation_conductivity_compressed
-
     insulation_depth = insulation.insulation_depths[1]
     a_semi_major = body.geometry.length.a_semi_major_skin
     b_semi_minor = body.geometry.length.b_semi_minor_skin

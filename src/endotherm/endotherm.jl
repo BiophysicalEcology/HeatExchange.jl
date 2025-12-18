@@ -54,8 +54,6 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
 
     area_silhouette = silhouette_area(o.body, rad.solar_orientation)
     area_total = total_area(o.body)
-    area_dorsal = area_total * (1 - rad.ventral_fraction)
-    area_ventral = area_total * rad.ventral_fraction * (1 - cond_ex.conduction_fraction)
     area_skin = skin_area(o.body)
     area_conduction = area_total * cond_ex.conduction_fraction
     area_evaporation = evaporation_area(o.body)
@@ -65,8 +63,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             α_body_dorsal,
             α_body_ventral, 
             area_silhouette,
-            area_dorsal, 
-            area_ventral, 
+            area_total, 
             F_ground, 
             F_sky, 
             e_pars.α_ground, 
@@ -114,7 +111,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 F_sky = 0.0
                 F_vegetation = 0.0
                 F_ground = rad.F_ground * 2.0
-                F_bush = rad.F_bush
+                F_bush = rad.F_bush * 2
             end
         end
 
@@ -164,7 +161,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         geom_vars = (; 
                 side,
                 cd,
-                ventral_fraction = rad.ventral_fraction,
+                rad.ventral_fraction,
                 conduction_fraction = cond_ex.conduction_fraction,
                 longwave_depth_fraction = ins.longwave_depth_fraction)
         env_vars = (; 
@@ -243,7 +240,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         end            
         insulation_out = insulation_properties(; 
                         insulation = insulation_side, insulation_temperature = T_insulation, 
-                        ventral_fraction = rad.ventral_fraction)
+                        rad.ventral_fraction)
 
         # call simulsol
         simulsol_out[side,] = simulsol(; 
@@ -418,15 +415,11 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
     geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
         
-    fat_mass = geometry_pars.shape.mass * fat.fraction
-    fat_volume = fat_mass / fat.density
     volume = geometry_pars.geometry.volume
-    flesh_volume = volume - fat_volume
+    flesh_volume = flesh_volume(geometry_pars)
     area_total = total_area(geometry_pars)
     area_skin = skin_area(geometry_pars)
     area_silhouette = silhouette_area(geometry_pars, rad.solar_orientation)
-    radius_insulation = insulation_radius(geometry_pars)
-    characteristic_dimension = 2 * radius_insulation
 
     # radiation outputs
 
@@ -480,9 +473,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     morphology = (;
         area_total, area_skin, area_evaporation, area_convection, area_conduction, area_silhouette,
         F_sky, F_ground, volume, flesh_volume, 
-        # TODO make it so that this is the proper characteristic dimension computed via the geometry functions
-        #characteristic_dimension = geometry_pars.geometry.characteristic_dimension,
-        characteristic_dimension,
+        characteristic_dimension = geometry_pars.geometry.characteristic_dimension,
      fat_mass, geometry_pars.geometry.length...
     )
 

@@ -79,7 +79,7 @@ function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insu
     hc, cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
     dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction)
     
-    volume = body.geometry.volume
+    volume = flesh_volume(body)
 
     insulation_depth = insulation.insulation_depths[1]
     a_semi_major = body.geometry.length.a_semi_major_skin
