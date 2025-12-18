@@ -415,8 +415,9 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
     geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
         
+    fat_mass = geometry_pars.shape.mass * fat.fraction
     volume = geometry_pars.geometry.volume
-    flesh_volume = flesh_volume(geometry_pars)
+    volume_flesh = flesh_volume(geometry_pars)
     area_total = total_area(geometry_pars)
     area_skin = skin_area(geometry_pars)
     area_silhouette = silhouette_area(geometry_pars, rad.solar_orientation)
@@ -472,7 +473,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
 
     morphology = (;
         area_total, area_skin, area_evaporation, area_convection, area_conduction, area_silhouette,
-        F_sky, F_ground, volume, flesh_volume, 
+        F_sky, F_ground, volume, volume_flesh, 
         characteristic_dimension = geometry_pars.geometry.characteristic_dimension,
      fat_mass, geometry_pars.geometry.length...
     )

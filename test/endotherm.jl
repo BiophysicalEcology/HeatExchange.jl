@@ -245,7 +245,7 @@ rtol = 1e-7
     @test morph_output_vec.F_SKY ≈ morphology.F_sky rtol = rtol
     @test morph_output_vec.F_GROUND ≈ morphology.F_ground rtol = rtol
     @test morph_output_vec.VOLUME ≈ ustrip(u"m^3", morphology.volume) rtol = rtol
-    @test morph_output_vec.FLESH_VOL ≈ ustrip(u"m^3", morphology.flesh_volume) rtol = rtol
+    @test morph_output_vec.FLESH_VOL ≈ ustrip(u"m^3", morphology.volume_flesh) rtol = rtol
     @test morph_output_vec.CHAR_DIM ≈ ustrip(u"m", morphology.characteristic_dimension) rtol = rtol
     @test morph_output_vec.MASS_FAT ≈ ustrip(u"kg", morphology.fat_mass) rtol = rtol
     if mammal.body.shape isa Cylinder 
