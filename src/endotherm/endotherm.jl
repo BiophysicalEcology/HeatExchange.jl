@@ -271,7 +271,6 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     vmult = 1 - dmult # assume that reflectivity of veg below equals reflectivity of soil so vmult left as 1 - dmult
     x = gen_d * dmult + gen_v * vmult # weighted estimate of metabolic heat generation
     Q_sum = x
-    @show gen_d, gen_v, Q_sum
     # reset configuration factors
     F_bush = rad.F_bush # nearby bush
     F_sky = rad.F_sky # sky
