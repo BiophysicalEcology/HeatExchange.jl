@@ -14,25 +14,25 @@ function simulsol(; T_skin, T_insulation, simulsol_tolerance, geometry_pars, ins
         return (; T_insulation, T_skin, Q_convection, Q_conduction, Q_gen_net, Q_evap_skin,
             Q_longwave, Q_solar, Q_rad_sky, Q_rad_bush, Q_rad_vegetation,
             Q_rad_ground, Q_evap_insulation, k_insulation, success, ntry) = solve_without_insulation!(T_skin, T_insulation,
-            geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits,
+            geometry_pars, geom_vars, env_vars, traits,
             simulsol_tolerance)        
     end
 end
 
 function solve_without_insulation!(T_skin, T_insulation,
-    geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits,
+    geometry_pars, geom_vars, env_vars, traits,
     simulsol_tolerance
 )
-    (; side, cd, conduction_fraction, longwave_depth_fraction) = geom_vars
-    (; fluid, T_air, T_bush, T_vegetation, T_ground, T_sky, T_substrate, rh, wind_speed, P_atmos, 
+    (; conduction_fraction) = geom_vars
+    (; fluid, T_air, T_bush, T_vegetation, T_ground, T_sky, rh, wind_speed, P_atmos, 
         F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2, convection_enhancement) = env_vars
-    (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness, bare_skin_fraction,
+    (; T_core, k_flesh, ϵ_body, skin_wetness, bare_skin_fraction,
         eye_fraction) = traits
     tolerance = simulsol_tolerance
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
     ntry = 0
-
+    volume = flesh_volume(geometry_pars)
     area_total = total_area(geometry_pars)
     area_evaporation = area_total
     area_convection = area_total * (1 - conduction_fraction)
@@ -206,7 +206,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 insulation_properties(;
                     insulation = insulation_pars,
                     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3,
-                    ventral_fraction = 0.5, # TODO check if this should be 0.5
+                    ventral_fraction = 0.5, # ventral_fraction TODO check if this should be 0.5
                 )
 
             absorption_coefficient = absorption_coefficients[side + 1]
