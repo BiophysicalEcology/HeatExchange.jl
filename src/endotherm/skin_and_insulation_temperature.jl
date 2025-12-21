@@ -35,7 +35,7 @@ function solve_without_insulation!(T_skin, T_insulation,
     volume = flesh_volume(geometry_pars)
     area_total = total_area(geometry_pars)
     area_evaporation = area_total
-    area_convection = area_total * (1 - conduction_fraction)
+    area_convection = area_total #* (1 - conduction_fraction)
     r_skin = skin_radius(geometry_pars)
     Q_evap_insulation = 0.0u"W"
     Q_conduction = 0.0u"W"
@@ -208,10 +208,8 @@ function solve_with_insulation!(T_skin, T_insulation,
                     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3,
                     ventral_fraction = 0.5, # ventral_fraction TODO check if this should be 0.5
                 )
-
             absorption_coefficient = absorption_coefficients[side + 1]
             k_eff = effective_conductivities[side + 1]
-
             # Effective insulation conductivity
             if !isnothing(insulation_conductivity)
                 k_insulation = insulation_conductivity
@@ -277,7 +275,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 Q_rad_ground = Q_rad4 * (T_radiant2 - T_ground)
                 Q_longwave = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
                 Q_convection = hc * area_convection * (T_insulation_calc - T_air)
-                Q_conduction = cd * (T_ins_compressed - T_substrate)
+                Q_conduction = u"W"(cd * (T_ins_compressed - T_substrate))
             else
                 (; T_ins_compressed) =
                     compressed_radiant_temperature(;

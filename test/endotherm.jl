@@ -193,9 +193,6 @@ T_insulation = u"K"((endo_input.TFA)u"°C")
 
 endotherm_out = solve_metabolic_rate(T_skin, T_insulation, mammal, environment, model_pars)
 
-#endotherm_out = endotherm(; model_pars, shape_pars, body_pars, integument_pars, insulation_pars, 
-#    physio_pars, thermoreg_pars, thermoreg_vars, environmental_pars, organism_vars, environmental_vars)
-
 thermoregulation = endotherm_out.thermoregulation
 morphology = endotherm_out.morphology
 energy_fluxes = endotherm_out.energy_fluxes
@@ -221,12 +218,12 @@ rtol = 1e-4
     @test treg_output_vec.PCTWET / 100.0 ≈ thermoregulation.skin_wetness rtol = rtol
     @test treg_output_vec.K_FLESH ≈ ustrip(u"W/m/K", thermoregulation.k_flesh) rtol = rtol
     if insulation_test > 0.0u"m"
-        @test treg_output_vec.K_FUR_D ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_dorsal) rtol = rtol * 10 # TODO check this is not a problem
-        @test treg_output_vec.K_FUR_V ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_ventral) rtol = rtol * 10 # TODO check this is not a problem
+        @test treg_output_vec.K_FUR_D ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_dorsal) rtol = rtol
+        @test treg_output_vec.K_FUR_V ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_ventral) rtol = rtol
     end
     if isnothing(insulation_conductivity)
-        @test treg_output_vec.K_FUR_EFF ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_effective) rtol = rtol * 10 # TODO check this is not a problem
-        @test treg_output_vec.K_COMPFUR ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_compressed) rtol = rtol * 10 # TODO check this is not a problem
+        @test treg_output_vec.K_FUR_EFF ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_effective) rtol = rtol
+        @test treg_output_vec.K_COMPFUR ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_compressed) rtol = rtol
     end
     @test treg_output_vec.Z_FUR_D ≈ ustrip(u"m", thermoregulation.insulation_depth_dorsal) rtol = rtol
     @test treg_output_vec.Z_FUR_V ≈ ustrip(u"m", thermoregulation.insulation_depth_ventral) rtol = rtol
@@ -278,7 +275,7 @@ rtol = 1e-4
     @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_fluxes.Q_gen) rtol = rtol * 10 # TODO check this is not a problem
     @test QEVAP ≈ ustrip(u"W", energy_fluxes.Q_evaporation) rtol = rtol * 10 # TODO check this is not a problem
     @test enbal_output_vec.QIROUT ≈ ustrip(u"W", energy_fluxes.Q_longwave_out) rtol = rtol
-    @test enbal_output_vec.QCONV ≈ ustrip(u"W", energy_fluxes.Q_convection) rtol = rtol * 10
+    @test enbal_output_vec.QCONV ≈ ustrip(u"W", energy_fluxes.Q_convection) rtol = rtol
     @test enbal_output_vec.QCOND ≈ ustrip(u"W", energy_fluxes.Q_conduction) rtol = rtol
     if !isnothing(energy_fluxes.balance)
         @test enbal_output_vec.ENB ≈ ustrip(u"W", energy_fluxes.balance) atol = 1e-3
