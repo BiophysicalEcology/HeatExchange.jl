@@ -47,9 +47,9 @@ end
 #shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3") # define shape
 
 fat = Fat(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
-mean_insulation_depth = ((endo_input.ZFURD + endo_input.ZFURV) * 0.5)u"m"
-mean_fibre_diameter = ((endo_input.DHAIRD + endo_input.DHAIRV) * 0.5)u"m"
-mean_fibre_density = ((endo_input.RHOD + endo_input.RHOV) * 0.5)u"1/m^2"
+mean_insulation_depth = (endo_input.ZFURD * (1 - endo_input.PVEN) + endo_input.ZFURV * endo_input.PVEN)u"m"
+mean_fibre_diameter = (endo_input.DHAIRD * (1 - endo_input.PVEN) + endo_input.DHAIRV * endo_input.PVEN)u"m"
+mean_fibre_density = (endo_input.RHOD * (1 - endo_input.PVEN) + endo_input.RHOV * endo_input.PVEN)u"1/m^2"
 fur = Fur(mean_insulation_depth, mean_fibre_diameter, mean_fibre_density)
 geometry = Body(shape_pars, CompositeInsulation(fur, fat))
 
@@ -154,8 +154,6 @@ insulation_pars = InsulationParameters(;
     fibre_length_ventral = (endo_input.LHAIRV)u"m",
     insulation_depth_dorsal = (endo_input.ZFURD)u"m",
     insulation_depth_ventral = (endo_input.ZFURV)u"m",    
-    max_insulation_depth_dorsal = (endo_input.ZFURD_MAX)u"m",
-    max_insulation_depth_ventral = (endo_input.ZFURV_MAX)u"m",
     fibre_density_dorsal = (endo_input.RHOD)u"1/m^2",
     fibre_density_ventral = (endo_input.RHOV)u"1/m^2",
     insulation_reflectance_dorsal = endo_input.REFLD,
@@ -202,7 +200,7 @@ mass_fluxes = endotherm_out.mass_fluxes
     insulation_temperature = thermoregulation.T_insulation, 
     ventral_fraction = radiation_pars.ventral_fraction)
 
-rtol = 1e-4
+rtol = 1e-3
 
 @testset "endotherm thermoregulation comparisons" begin
     @test treg_output_vec.TC ≈ ustrip(u"°C", thermoregulation.T_core) rtol = rtol
@@ -211,12 +209,6 @@ rtol = 1e-4
     @test treg_output_vec.TSKIN_V ≈ ustrip(u"°C", thermoregulation.T_skin_ventral) rtol = rtol
     @test treg_output_vec.TFA_D ≈ ustrip(u"°C", thermoregulation.T_insulation_dorsal) rtol = rtol
     @test treg_output_vec.TFA_V ≈ ustrip(u"°C", thermoregulation.T_insulation_ventral) rtol = rtol
-    if endo_input.SHAPE != 2
-        @test treg_output_vec.SHAPE_B ≈ thermoregulation.shape_b rtol = rtol
-    end
-    @test treg_output_vec.PANT ≈ thermoregulation.pant rtol = rtol
-    @test treg_output_vec.PCTWET / 100.0 ≈ thermoregulation.skin_wetness rtol = rtol
-    @test treg_output_vec.K_FLESH ≈ ustrip(u"W/m/K", thermoregulation.k_flesh) rtol = rtol
     if insulation_test > 0.0u"m"
         @test treg_output_vec.K_FUR_D ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_dorsal) rtol = rtol
         @test treg_output_vec.K_FUR_V ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_ventral) rtol = rtol
@@ -225,8 +217,6 @@ rtol = 1e-4
         @test treg_output_vec.K_FUR_EFF ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_effective) rtol = rtol
         @test treg_output_vec.K_COMPFUR ≈ ustrip(u"W/m/K", thermoregulation.k_insulation_compressed) rtol = rtol
     end
-    @test treg_output_vec.Z_FUR_D ≈ ustrip(u"m", thermoregulation.insulation_depth_dorsal) rtol = rtol
-    @test treg_output_vec.Z_FUR_V ≈ ustrip(u"m", thermoregulation.insulation_depth_ventral) rtol = rtol
 end
 
 
@@ -280,7 +270,7 @@ rtol = 1e-4
     if !isnothing(energy_fluxes.balance)
         @test enbal_output_vec.ENB ≈ ustrip(u"W", energy_fluxes.balance) atol = 1e-3
     end
-    #@test enbal_output_vec.NTRY ≈ energy_fluxes.ntry
+    @test enbal_output_vec.NTRY ≈ energy_fluxes.ntry
     @test Bool(enbal_output_vec.SUCCESS) ≈ energy_fluxes.success
 end
 

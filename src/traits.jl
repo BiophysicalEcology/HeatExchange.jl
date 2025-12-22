@@ -199,7 +199,7 @@ typical small-mammal pelage properties.
   allowing asymmetric fur properties.
 """
 Base.@kwdef struct InsulationParameters{ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,
-    MID,MIV,FRD,FRV,IRD,IRV,IDC,FCN,LDF} <: AbstractMorphoParameters
+    FRD,FRV,IRD,IRV,IDC,FCN,LDF} <: AbstractMorphoParameters
     insulation_conductivity_dorsal::ICD     = nothing
     insulation_conductivity_ventral::ICV    = nothing
     fibre_diameter_dorsal::FDD              = Param(30.0u"μm")
@@ -208,8 +208,6 @@ Base.@kwdef struct InsulationParameters{ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,
     fibre_length_ventral::FLV               = Param(23.9u"mm")
     insulation_depth_dorsal::IDD             = Param(2.0u"mm")
     insulation_depth_ventral::IDV            = Param(2.0u"mm")    
-    max_insulation_depth_dorsal::MID        = Param(2.0u"mm")
-    max_insulation_depth_ventral::MIV       = Param(2.0u"mm")
     fibre_density_dorsal::FRD               = Param(3000.0u"cm^-2")
     fibre_density_ventral::FRV              = Param(3000.0u"cm^-2") 
     insulation_reflectance_dorsal::IRD      = Param(0.301, bounds=(0.0, 1.0))

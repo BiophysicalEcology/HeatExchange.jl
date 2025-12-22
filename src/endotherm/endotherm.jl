@@ -30,7 +30,6 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     fibre_diameters = insulation_out.fibre_diameters
     fibre_densities = insulation_out.fibre_densities
     insulation_depths = insulation_out.insulation_depths
-
     # if no insulation, reset bare_skin_fraction if necessary
     if insulation_out.insulation_test <= 0.0u"m" && evap.bare_skin_fraction < 1.0
         evap_temp = EvaporationParameters(
@@ -50,12 +49,12 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     # correct F_sky for vegetaion overhead
     F_vegetation = rad.F_sky * e_vars.shade
     F_sky = rad.F_sky - F_vegetation
-    F_ground = rad.F_ground
+    F_ground = F_sky - F_vegetation
 
     area_silhouette = silhouette_area(o.body, rad.solar_orientation)
     area_total = total_area(o.body)
     area_skin = skin_area(o.body)
-    area_conduction = area_total * cond_ex.conduction_fraction
+    area_conduction = area_total * cond_ex.conduction_fraction # not used but initialised for output
     area_evaporation = evaporation_area(o.body)
     area_convection = area_total * (1 - cond_ex.conduction_fraction)
     (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) =
@@ -122,17 +121,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         end
 
         # set fur depth and conductivity
-        # index for effective_conductivities, is the average (1), front/dorsal (2), back/ventral(3) of the body part
-        #if Q_solar > 0.0u"W" || (insulation_depths[2] != insulation_depths[3])
-        if side == 1
-            insulation = Fur(insulation_depths[2], fibre_diameters[2], fibre_densities[2])
-        else
-            insulation = Fur(insulation_depths[3], fibre_diameters[3], fibre_densities[3])
-        end
-        #else
-        #    insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
-        #end
-
+        insulation = Fur(insulation_depths[side + 1], fibre_diameters[side + 1], fibre_densities[side + 1])
         if side == 1
             insulation_conductivity = ins.insulation_conductivity_dorsal
         else
@@ -150,10 +139,10 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
 
         # Calculating the "cd" variable: Qcond = cd(Tskin-Tsub), where cd = Conduction area*ksub/subdepth
         if side == 2 # doing ventral side, add conduction
-            A_conduction = A_total * (cond_ex.conduction_fraction * 2)
-            cd = (A_conduction * e_vars.k_substrate) / e_pars.conduction_depth # assume conduction happens from 2.5 cm depth
+            area_conduction = A_total * cond_ex.conduction_fraction * 2
+            cd = (area_conduction * e_vars.k_substrate) / e_pars.conduction_depth # assume conduction happens from 2.5 cm depth
         else  # doing dorsal side, no conduction. No need to adjust areas used for convection.
-            A_conduction = 0.0u"m^2"
+            area_conduction = 0.0u"m^2"
             cd = 0.0u"W/K"
         end
 
@@ -197,58 +186,58 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 insulation_conductivity,
                 #ψ_body = hyd.ψ_body,
                 )
-        if side == 1
-            insulation_side = InsulationParameters(;
-            insulation_conductivity_dorsal = ins.insulation_conductivity_dorsal,
-            insulation_conductivity_ventral = ins.insulation_conductivity_dorsal,
-            fibre_diameter_dorsal = ins.fibre_diameter_dorsal,
-            fibre_diameter_ventral = ins.fibre_diameter_dorsal,
-            fibre_length_dorsal = ins.fibre_length_dorsal,
-            fibre_length_ventral = ins.fibre_length_dorsal,
-            insulation_depth_dorsal = ins.insulation_depth_dorsal,
-            insulation_depth_ventral = ins.insulation_depth_dorsal,    
-            max_insulation_depth_dorsal = ins.max_insulation_depth_dorsal,
-            max_insulation_depth_ventral = ins.max_insulation_depth_dorsal,
-            fibre_density_dorsal = ins.fibre_density_dorsal,
-            fibre_density_ventral = ins.fibre_density_dorsal,
-            insulation_reflectance_dorsal = ins.insulation_reflectance_dorsal,
-            insulation_reflectance_ventral = ins.insulation_reflectance_dorsal,
-            insulation_depth_compressed = ins.insulation_depth_compressed,
-            fibre_conductivity = ins.fibre_conductivity,
-            longwave_depth_fraction = ins.longwave_depth_fraction,
-            )
-        else
-            insulation_side = InsulationParameters(;
-            insulation_conductivity_dorsal = ins.insulation_conductivity_ventral,
-            insulation_conductivity_ventral = ins.insulation_conductivity_ventral,
-            fibre_diameter_dorsal = ins.fibre_diameter_ventral,
-            fibre_diameter_ventral = ins.fibre_diameter_ventral,
-            fibre_length_dorsal = ins.fibre_length_ventral,
-            fibre_length_ventral = ins.fibre_length_ventral,
-            insulation_depth_dorsal = ins.insulation_depth_ventral,
-            insulation_depth_ventral = ins.insulation_depth_ventral,    
-            max_insulation_depth_dorsal = ins.max_insulation_depth_ventral,
-            max_insulation_depth_ventral = ins.max_insulation_depth_ventral,
-            fibre_density_dorsal = ins.fibre_density_ventral,
-            fibre_density_ventral = ins.fibre_density_ventral,
-            insulation_reflectance_dorsal = ins.insulation_reflectance_ventral,
-            insulation_reflectance_ventral = ins.insulation_reflectance_ventral,
-            insulation_depth_compressed = ins.insulation_depth_compressed,
-            fibre_conductivity = ins.fibre_conductivity,
-            longwave_depth_fraction = ins.longwave_depth_fraction,
-            )
-        end            
+           
+        # if side == 1
+        #     insulation_side = InsulationParameters(;
+        #     insulation_conductivity_dorsal = ins.insulation_conductivity_dorsal,
+        #     insulation_conductivity_ventral = ins.insulation_conductivity_dorsal,
+        #     fibre_diameter_dorsal = ins.fibre_diameter_dorsal,
+        #     fibre_diameter_ventral = ins.fibre_diameter_dorsal,
+        #     fibre_length_dorsal = ins.fibre_length_dorsal,
+        #     fibre_length_ventral = ins.fibre_length_dorsal,
+        #     insulation_depth_dorsal = ins.insulation_depth_dorsal,
+        #     insulation_depth_ventral = ins.insulation_depth_dorsal,    
+        #     max_insulation_depth_dorsal = ins.max_insulation_depth_dorsal,
+        #     max_insulation_depth_ventral = ins.max_insulation_depth_dorsal,
+        #     fibre_density_dorsal = ins.fibre_density_dorsal,
+        #     fibre_density_ventral = ins.fibre_density_dorsal,
+        #     insulation_reflectance_dorsal = ins.insulation_reflectance_dorsal,
+        #     insulation_reflectance_ventral = ins.insulation_reflectance_dorsal,
+        #     insulation_depth_compressed = ins.insulation_depth_compressed,
+        #     fibre_conductivity = ins.fibre_conductivity,
+        #     longwave_depth_fraction = ins.longwave_depth_fraction,
+        #     )
+        # else
+        #     insulation_side = InsulationParameters(;
+        #     insulation_conductivity_dorsal = ins.insulation_conductivity_ventral,
+        #     insulation_conductivity_ventral = ins.insulation_conductivity_ventral,
+        #     fibre_diameter_dorsal = ins.fibre_diameter_ventral,
+        #     fibre_diameter_ventral = ins.fibre_diameter_ventral,
+        #     fibre_length_dorsal = ins.fibre_length_ventral,
+        #     fibre_length_ventral = ins.fibre_length_ventral,
+        #     insulation_depth_dorsal = ins.insulation_depth_ventral,
+        #     insulation_depth_ventral = ins.insulation_depth_ventral,    
+        #     max_insulation_depth_dorsal = ins.max_insulation_depth_ventral,
+        #     max_insulation_depth_ventral = ins.max_insulation_depth_ventral,
+        #     fibre_density_dorsal = ins.fibre_density_ventral,
+        #     fibre_density_ventral = ins.fibre_density_ventral,
+        #     insulation_reflectance_dorsal = ins.insulation_reflectance_ventral,
+        #     insulation_reflectance_ventral = ins.insulation_reflectance_ventral,
+        #     insulation_depth_compressed = ins.insulation_depth_compressed,
+        #     fibre_conductivity = ins.fibre_conductivity,
+        #     longwave_depth_fraction = ins.longwave_depth_fraction,
+        #     )
+        # end            
         insulation_out = insulation_properties(; 
-                        insulation = insulation_side, insulation_temperature = T_insulation, 
+                        insulation = ins, insulation_temperature = T_insulation * 0.7 + T_skin * 0.3, 
                         rad.ventral_fraction)
-
         # call simulsol
         simulsol_out[side,] = simulsol(; 
                                 T_skin, 
                                 T_insulation, 
                                 simulsol_tolerance = m.simulsol_tolerance,
                                 geometry_pars,
-                                insulation_pars = insulation_side, 
+                                insulation_pars = ins, 
                                 insulation_out,
                                 geom_vars,
                                 env_vars,
@@ -284,11 +273,10 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     T_air_exit = min(e_vars.T_air + resp.Δ_breath, T_lung) # temperature of exhaled air, deg C
 
     if m.respire
-        # now guess for metabolic rate that balances the heat budget while allowing metabolic rate
-        # to remain at or above Q_basal, via root-finder ZBRENT
+        # now guess for metabolic rate that balances the heat budget via root-finder ZBRENT
         Q_min = metab.Q_metabolism
-        Q_m1 = metab.Q_metabolism * (-2.)
-        Q_m2 = metab.Q_metabolism * 10.
+        Q_m1 = metab.Q_metabolism * (-2.0)
+        Q_m2 = metab.Q_metabolism * 10.0
         if T_skin_max >= metab.T_core
             Q_m2 = metab.Q_metabolism * 1.01
         end
@@ -317,23 +305,23 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                                 )
 
         respiration_out = respiration(;
-            Q_metab=Q_gen,
+            Q_metab = Q_gen,
             Q_min,
             Q_sum,
             T_lung,
-            mass=geometry_pars.shape.mass,
-            rq=resp.rq,
-            fO2_extract=resp.fO2_extract,
-            rh_exit=resp.rh_exit,
+            mass = geometry_pars.shape.mass,
+            rq = resp.rq,
+            fO2_extract = resp.fO2_extract,
+            rh_exit = resp.rh_exit,
             T_air_exit,
-            pant=resp.pant,
-            T_air=e_vars.T_air,
-            P_atmos=e_vars.P_atmos,
-            rh=e_vars.rh,
-            fO2=e_pars.fO2,
-            fN2=e_pars.fN2,
-            fCO2=e_pars.fCO2,
-            O2conversion=Kleiber1961(),
+            pant = resp.pant,
+            T_air = e_vars.T_air,
+            P_atmos = e_vars.P_atmos,
+            rh = e_vars.rh,
+            fO2 = e_pars.fO2,
+            fN2 = e_pars.fN2,
+            fCO2 = e_pars.fCO2,
+            O2conversion = Kleiber1961(),
         )
         Q_gen = respiration_out.Q_gen # Q_gen_net
     else
@@ -366,7 +354,6 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     ntry_ventral = simulsol_out[2].ntry  # attempts
     success_ventral = simulsol_out[2].success  # success?
     k_insulation_ventral = simulsol_out[2].k_insulation  # fur conductivity? (same as FORTRAN)
-
     # respiration outputs
     if m.respire
         balance = respiration_out.balance
@@ -451,13 +438,12 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     Q_convection = Q_convection_dorsal * dmult + Q_convection_ventral * vmult
     Q_conduction = Q_conduction_dorsal * dmult + Q_conduction_ventral * vmult
 
-    insulation_out = insulation_properties(; insulation=ins,
-        insulation_temperature=T_insulation * 0.7 + T_skin * 0.3, rad.ventral_fraction)
+    insulation_out = insulation_properties(; insulation = ins,
+        insulation_temperature = T_insulation * 0.7 + T_skin * 0.3, rad.ventral_fraction)
     k_insulation_effective = insulation_out.effective_conductivities[1]
     k_insulation_compressed = insulation_out.insulation_conductivity_compressed
     T_skin = T_skin_dorsal * dmult + T_skin_ventral * vmult
     T_insulation = T_insulation_dorsal * dmult + T_insulation_ventral * vmult
-
     if o.body.shape isa Sphere
         shape_b = 1.0
     else
@@ -471,7 +457,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     )
 
     morphology = (;
-        area_total, area_skin, area_evaporation, area_convection, area_conduction, area_silhouette,
+        area_total, area_skin, area_evaporation, area_convection, area_conduction = area_conduction / 2, area_silhouette,
         F_sky, F_ground, volume, volume_flesh, 
         characteristic_dimension = geometry_pars.geometry.characteristic_dimension,
      fat_mass, geometry_pars.geometry.length...

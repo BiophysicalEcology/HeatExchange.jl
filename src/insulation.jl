@@ -149,7 +149,7 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
     # Initialisation
     insulation_conductivity_compressed = 0.0u"W/m/K"
     insulation_test = fibre_density_dorsal * fibre_diameter_dorsal * 
-        fibre_length_dorsal * insulation_depth_dorsal  # bare-skin test
+        fibre_length_dorsal * insulation_depth_dorsal  # bare-skin test, TODO note this is dorsal only
 
     # Weighted averages
     fibre_density = fibre_density_dorsal * (1 - ventral_fraction) + 
@@ -195,7 +195,6 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
     insulation_depths[3] = insulation_depth_dorsal * (1 - pven_v) + insulation_depth_ventral * pven_v
     insulation_reflectances[3] = insulation_reflectance_dorsal * (1 - pven_v) + 
         insulation_reflectance_ventral * pven_v
-
     # Compute insulation thermal parameters
     for i in 1:3
         if insulation_test <= 0.0u"m"
@@ -223,7 +222,8 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
             end
         end
     end
+
     return (; effective_conductivities, absorption_coefficients, optical_thickness_factors,
                 fibre_diameters, fibre_lengths, fibre_densities, insulation_depths, 
-                insulation_reflectance, insulation_test, insulation_conductivity_compressed)
+                insulation_reflectances, insulation_test, insulation_conductivity_compressed)
 end

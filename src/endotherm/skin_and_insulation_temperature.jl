@@ -23,7 +23,7 @@ function solve_without_insulation!(T_skin, T_insulation,
     geometry_pars, geom_vars, env_vars, traits,
     simulsol_tolerance
 )
-    (; conduction_fraction) = geom_vars
+    #(; conduction_fraction) = geom_vars
     (; fluid, T_air, T_bush, T_vegetation, T_ground, T_sky, rh, wind_speed, P_atmos, 
         F_sky, F_ground, F_bush, F_vegetation, Q_solar, fO2, fCO2, fN2, convection_enhancement) = env_vars
     (; T_core, k_flesh, ϵ_body, skin_wetness, bare_skin_fraction,
@@ -126,7 +126,7 @@ function solve_without_insulation!(T_skin, T_insulation,
 end
 
 function solve_with_insulation!(T_skin, T_insulation,
-    geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits,
+    geometry_pars, ins, insulation_out, geom_vars, env_vars, traits,
     simulsol_tolerance
 )
     (; side, cd, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geom_vars
@@ -156,10 +156,10 @@ function solve_with_insulation!(T_skin, T_insulation,
             # Evaporative heat loss
             # first from the skin
             (; hc, hd, hd_free) = convection(;
-                body=geometry_pars,
-                area=area_convection,
+                body = geometry_pars,
+                area = area_convection,
                 T_air,
-                T_surface=T_insulation,
+                T_surface = T_insulation,
                 wind_speed,
                 P_atmos,
                 fluid,
@@ -200,16 +200,56 @@ function solve_with_insulation!(T_skin, T_insulation,
             else
                 Q_evap_insulation = 0.0u"W"
             end
-            
-            # Radiation properties
-            (; effective_conductivities, absorption_coefficients) = insulation_out =
-                insulation_properties(;
-                    insulation = insulation_pars,
-                    insulation_temperature = T_insulation * 0.7 + T_skin * 0.3,
-                    ventral_fraction = 0.5, # ventral_fraction TODO check if this should be 0.5
+            if side == 1
+                insulation_side = InsulationParameters(;
+                insulation_conductivity_dorsal = ins.insulation_conductivity_dorsal,
+                insulation_conductivity_ventral = ins.insulation_conductivity_dorsal,
+                fibre_diameter_dorsal = ins.fibre_diameter_dorsal,
+                fibre_diameter_ventral = ins.fibre_diameter_dorsal,
+                fibre_length_dorsal = ins.fibre_length_dorsal,
+                fibre_length_ventral = ins.fibre_length_dorsal,
+                insulation_depth_dorsal = insulation_out.insulation_depths[2],
+                insulation_depth_ventral = insulation_out.insulation_depths[2],    
+                fibre_density_dorsal = ins.fibre_density_dorsal,
+                fibre_density_ventral = ins.fibre_density_dorsal,
+                insulation_reflectance_dorsal = ins.insulation_reflectance_dorsal,
+                insulation_reflectance_ventral = ins.insulation_reflectance_dorsal,
+                insulation_depth_compressed = insulation_out.insulation_depths[2],
+                fibre_conductivity = ins.fibre_conductivity,
+                longwave_depth_fraction = ins.longwave_depth_fraction,
                 )
-            absorption_coefficient = absorption_coefficients[side + 1]
+            else
+                insulation_side = InsulationParameters(;
+                insulation_conductivity_dorsal = ins.insulation_conductivity_ventral,
+                insulation_conductivity_ventral = ins.insulation_conductivity_ventral,
+                fibre_diameter_dorsal = ins.fibre_diameter_ventral,
+                fibre_diameter_ventral = ins.fibre_diameter_ventral,
+                fibre_length_dorsal = ins.fibre_length_ventral,
+                fibre_length_ventral = ins.fibre_length_ventral,
+                insulation_depth_dorsal = insulation_out.insulation_depths[3],
+                insulation_depth_ventral = insulation_out.insulation_depths[3],    
+                fibre_density_dorsal = ins.fibre_density_ventral,
+                fibre_density_ventral = ins.fibre_density_ventral,
+                insulation_reflectance_dorsal = ins.insulation_reflectance_ventral,
+                insulation_reflectance_ventral = ins.insulation_reflectance_ventral,
+                insulation_depth_compressed = insulation_out.insulation_depths[3], # TODO this should be ins.insulation_depth_compressed here and in Fortran
+                fibre_conductivity = ins.fibre_conductivity,
+                longwave_depth_fraction = ins.longwave_depth_fraction,
+                )
+            end 
+
+            # recompute insulation radiation properties
+            (; effective_conductivities, insulation_conductivity_compressed) = 
+                insulation_properties(;
+                    insulation = insulation_side,
+                    insulation_temperature = T_insulation * 0.7 + T_skin * 0.3,
+                    ventral_fraction,
+                )
+            absorption_coefficient = insulation_out.absorption_coefficients[side + 1]
             k_eff = effective_conductivities[side + 1]
+            # update thermally sensitive insulation parameters for current skin/insulation temperature
+            insulation_out = (; insulation_out..., insulation_conductivity_compressed = 
+                insulation_conductivity_compressed, effective_conductivities = effective_conductivities)
             # Effective insulation conductivity
             if !isnothing(insulation_conductivity)
                 k_insulation = insulation_conductivity
@@ -219,12 +259,11 @@ function solve_with_insulation!(T_skin, T_insulation,
                 k_rad = (16 * σ * T_rad_approx^3) / (3 * absorption_coefficient)
                 k_insulation = k_eff + k_rad
             end
-
             (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4) =
                 radiant_temperature(; 
                     body = geometry_pars,
                     insulation = insulation_out,
-                    insulation_pars,
+                    insulation_pars = ins,
                     Q_evap = Q_evap_skin,
                     T_core,
                     T_skin,
@@ -235,7 +274,9 @@ function solve_with_insulation!(T_skin, T_insulation,
                     k_insulation,
                     cd,
                     longwave_depth_fraction, 
-                    conduction_fraction)
+                    conduction_fraction,
+                    side,
+                    )
             # Radiative heat fluxes
             Q_rad1 = area_convection * F_sky * 4 * ϵ_body * σ * ((T_radiant + T_sky) / 2)^3
             Q_rad2 = area_convection * F_bush * 4 * ϵ_body * σ * ((T_radiant + T_bush) / 2)^3
@@ -248,8 +289,8 @@ function solve_with_insulation!(T_skin, T_insulation,
                 (; T_insulation_calc, T_radiant2) =
                     insulation_radiant_temperature(;
                         body = geometry_pars,
-                        insulation=insulation_out,
-                        insulation_pars,
+                        insulation = insulation_out,
+                        insulation_pars = ins,
                         T_core,
                         T_ins_compressed, 
                         T_air,
@@ -267,7 +308,9 @@ function solve_with_insulation!(T_skin, T_insulation,
                         Q_rad1, Q_rad2, Q_rad3, Q_rad4,
                         cd1, cd2, cd3, dv1, dv2, dv3, dv4,
                         longwave_depth_fraction,
-                        conduction_fraction)
+                        conduction_fraction, 
+                        side,
+                        )
 
                 Q_rad_sky = Q_rad1 * (T_radiant2 - T_sky)
                 Q_rad_bush = Q_rad2 * (T_radiant2 - T_bush)
@@ -281,12 +324,14 @@ function solve_with_insulation!(T_skin, T_insulation,
                     compressed_radiant_temperature(;
                         body = geometry_pars,
                         insulation = insulation_out,
-                        insulation_pars,
+                        insulation_pars = ins,
                         k_flesh,
                         k_fat,
+                        k_insulation,
                         T_core,
                         T_substrate,
                         cd,
+                        side,
                         )
                 Q_rad_sky = 0.0u"W"
                 Q_rad_bush = 0.0u"W"
@@ -303,8 +348,8 @@ function solve_with_insulation!(T_skin, T_insulation,
             T_skin_mean, T_skin_calc1 =
                 mean_skin_temperature(; 
                     body = geometry_pars,
-                    insulation=insulation_out,
-                    insulation_pars,
+                    insulation = insulation_out,
+                    insulation_pars = ins,
                     Q_env,
                     Q_evap_skin,
                     k_flesh,

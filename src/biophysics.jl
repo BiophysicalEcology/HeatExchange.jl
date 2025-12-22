@@ -270,9 +270,11 @@ function evaporation(;
     fCO2 = 0.000412,
     fN2 = 0.7902,
 )
-    return evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
+    return evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, 
+        bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
 end
-function evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
+function evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, 
+        bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
 
     # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction

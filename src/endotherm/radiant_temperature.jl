@@ -1,32 +1,31 @@
 radiant_temperature(; body::AbstractBody, insulation, insulation_pars, Q_evap, T_core, T_skin, 
  T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
- conduction_fraction) = radiant_temperature(shape(body), body, insulation, insulation_pars, 
+ conduction_fraction, side) = radiant_temperature(shape(body), body, insulation, insulation_pars, 
  Q_evap, T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, 
- longwave_depth_fraction, conduction_fraction)
+ longwave_depth_fraction, conduction_fraction, side)
 
 function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, insulation_pars, 
     Q_evap, T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation,
-     cd, longwave_depth_fraction, conduction_fraction)
+     cd, longwave_depth_fraction, conduction_fraction, side)
 
     volume = flesh_volume(body)
-    k_compressed = insulation.insulation_conductivity_compressed
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
-    r_insulation = insulation_radius(body)
+    r_insulation = insulation_radius(body) 
+    insulation_depth = insulation.insulation_depths[side + 1]
+    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
+    k_compressed = insulation.insulation_conductivity_compressed
     r_compressed = r_skin + insulation_pars.insulation_depth_compressed
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_pars.insulation_depth_dorsal
     length = body.geometry.length.length_skin
     compression_fraction =
         (conduction_fraction * 2 * π * k_compressed * length) /
         log(r_compressed / r_skin)
-
     T_ins_compressed = conduction_fraction > 0 ?
         (compression_fraction * T_skin + cd * T_substrate) / (cd + compression_fraction) :
         0.0u"K"
 
     cd1 = (k_compressed / log(r_compressed / r_skin)) * conduction_fraction +
           (k_insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
-
     cd2 = (k_compressed / log(r_compressed / r_skin)) * conduction_fraction
     cd3 = (k_insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
 
@@ -48,9 +47,7 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
         1.0
 
     T_radiant = longwave_depth_fraction < 1 ?
-        dv3 / dv4 +
-        (T_ins_compressed * cd2) / dv4 +
-        (T_insulation *
+        dv3 / dv4 + (T_ins_compressed * cd2) / dv4 + (T_insulation *
             ((k_insulation / log(r_insulation / r_radiation)) *
             (1 - conduction_fraction))) / dv4 : T_insulation
     return (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4)
@@ -58,15 +55,16 @@ end
 
 function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q_evap, T_core, T_skin,
      T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
-     conduction_fraction)
+     conduction_fraction, side)
 
     volume = flesh_volume(body)
-    k_compressed = insulation.insulation_conductivity_compressed
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
+    insulation_depth = insulation.insulation_depths[side + 1]
+    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
+    k_compressed = insulation.insulation_conductivity_compressed
     r_compressed = r_skin + insulation_pars.insulation_depth_compressed
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_pars.insulation_depth_compressed
 
     compression_fraction =
         (conduction_fraction * 4 * π * k_compressed * r_compressed * r_skin) /
@@ -111,19 +109,21 @@ end
 
 function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_evap,
      T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, 
-      longwave_depth_fraction, conduction_fraction)
+      longwave_depth_fraction, conduction_fraction, side)
 
     volume = flesh_volume(body)
-    k_compressed = insulation.insulation_conductivity_compressed
-    insulation_depth = insulation.insulation_depths[1]
+   
     a_semi_major = body.geometry.length.a_semi_major_skin
     b_semi_minor = body.geometry.length.b_semi_minor_skin
     c_semi_minor = body.geometry.length.c_semi_minor_skin
-    bl_compressed = b_semi_minor + insulation_pars.insulation_depth_compressed
     fat =  body.geometry.length.fat
     a_semi_major_flesh = a_semi_major - fat
     b_semi_minor_flesh = b_semi_minor - fat
     c_semi_minor_flesh = c_semi_minor - fat
+
+    insulation_depth = insulation.insulation_depths[side + 1]
+    k_compressed = insulation.insulation_conductivity_compressed
+    bl_compressed = b_semi_minor + insulation_pars.insulation_depth_compressed
 
     a_square = min(a_semi_major_flesh^2, a_semi_major^2)
     b_square = min(b_semi_minor_flesh^2, b_semi_minor^2)
@@ -146,7 +146,6 @@ function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_e
 
     cd1 = ((k_compressed * bl_compressed) / (bl_compressed - bs)) * conduction_fraction +
           ((k_insulation * bl) / (bl - bs)) * (1 - conduction_fraction)
-
     cd2 = ((k_compressed * bl_compressed) / (bl_compressed - bs)) * conduction_fraction
     cd3 = ((k_insulation * bl) / (bl - bs)) * (1 - conduction_fraction)
     dv1 = 1 + (3 * bs * ssqg * cd1) / (2 * k_flesh * (sqrt(3 * ssqg)^3)) +
