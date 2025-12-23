@@ -31,8 +31,6 @@ function ectotherm(T_x, insulation::Naked, o, e)
 
     # compute areas for exchange
     A_total = total_area(o.body)
-    A_dorsal = A_total * (1 - rad.ventral_fraction)
-    A_ventral = A_total * rad.ventral_fraction * (1 - cond_ex.conduction_fraction)
     A_convection = A_total * (1 - cond_ex.conduction_fraction)
     A_conduction = A_total * cond_ex.conduction_fraction
     A_silhouette = rad.A_silhouette
@@ -81,8 +79,8 @@ function ectotherm(T_x, insulation::Naked, o, e)
         α_body_dorsal = rad.α_body_dorsal, 
         α_body_ventral = rad.α_body_ventral, 
         A_silhouette, 
-        A_dorsal, 
-        A_ventral, 
+        A_total, 
+        A_conduction,
         F_ground = rad.F_ground, 
         F_sky = rad.F_sky, 
         α_ground = e_pars.α_ground, 
@@ -99,8 +97,8 @@ function ectotherm(T_x, insulation::Naked, o, e)
         F_ground = rad.F_ground, 
         ϵ_body_dorsal = rad.ϵ_body_dorsal, 
         ϵ_body_ventral = rad.ϵ_body_ventral,
-        A_dorsal,
-        A_ventral,
+        A_total,
+        A_conduction,
         e_pars.ϵ_ground, 
         e_pars.ϵ_sky, 
         e_vars.T_sky, 
@@ -112,8 +110,8 @@ function ectotherm(T_x, insulation::Naked, o, e)
     ir_loss = radout(;
         T_dorsal = T_surface,
         T_ventral = T_surface, 
-        A_dorsal, 
-        A_ventral,
+        A_total, 
+        A_conduction,
         F_sky = rad.F_sky,
         F_ground = rad.F_ground, 
         ϵ_body_dorsal = rad.ϵ_body_dorsal, 

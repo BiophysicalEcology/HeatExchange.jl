@@ -17,6 +17,7 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
     k_compressed = insulation.insulation_conductivity_compressed
     r_compressed = r_skin + insulation_pars.insulation_depth_compressed
     length = body.geometry.length.length_skin
+    
     compression_fraction =
         (conduction_fraction * 2 * π * k_compressed * length) /
         log(r_compressed / r_skin)

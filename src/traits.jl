@@ -60,15 +60,15 @@ Morphological parameters relating to radiation exchange.
 - `ventral_fraction::F` — Fraction of total surface area that is ventral (0–1).
 
 """
-Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,SA,DA,VA,FS,FG,FV,FB,
+Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,
   VF} <: AbstractMorphoParameters
     α_body_dorsal::AD     = Param(0.85, bounds=(0.0, 1.0))
     α_body_ventral::AV    = Param(0.85, bounds=(0.0, 1.0))
     ϵ_body_dorsal::ED     = Param(0.95, bounds=(0.0, 1.0))
     ϵ_body_ventral::EV    = Param(0.95, bounds=(0.0, 1.0))
-    A_silhouette::SA      = Param(0.0u"m^2")
-    A_dorsal::DA          = Param(0.0u"m^2")
-    A_ventral::VA         = Param(0.0u"m^2")
+    A_silhouette::AS      = Param(0.0u"m^2")
+    A_total::AT          = Param(0.0u"m^2")
+    A_conduction::AC         = Param(0.0u"m^2")
     F_sky::FS             = Param(0.5, bounds=(0.0, 1.0))
     F_ground::FG          = Param(0.5, bounds=(0.0, 1.0))
     F_vegetation::FV      = Param(0.0, bounds=(0.0, 1.0))

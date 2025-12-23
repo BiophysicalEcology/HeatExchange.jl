@@ -62,7 +62,8 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             α_body_dorsal,
             α_body_ventral, 
             area_silhouette,
-            area_total, 
+            area_total,
+            area_conduction, 
             F_ground, 
             F_sky, 
             e_pars.α_ground, 
@@ -187,47 +188,6 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 #ψ_body = hyd.ψ_body,
                 )
            
-        # if side == 1
-        #     insulation_side = InsulationParameters(;
-        #     insulation_conductivity_dorsal = ins.insulation_conductivity_dorsal,
-        #     insulation_conductivity_ventral = ins.insulation_conductivity_dorsal,
-        #     fibre_diameter_dorsal = ins.fibre_diameter_dorsal,
-        #     fibre_diameter_ventral = ins.fibre_diameter_dorsal,
-        #     fibre_length_dorsal = ins.fibre_length_dorsal,
-        #     fibre_length_ventral = ins.fibre_length_dorsal,
-        #     insulation_depth_dorsal = ins.insulation_depth_dorsal,
-        #     insulation_depth_ventral = ins.insulation_depth_dorsal,    
-        #     max_insulation_depth_dorsal = ins.max_insulation_depth_dorsal,
-        #     max_insulation_depth_ventral = ins.max_insulation_depth_dorsal,
-        #     fibre_density_dorsal = ins.fibre_density_dorsal,
-        #     fibre_density_ventral = ins.fibre_density_dorsal,
-        #     insulation_reflectance_dorsal = ins.insulation_reflectance_dorsal,
-        #     insulation_reflectance_ventral = ins.insulation_reflectance_dorsal,
-        #     insulation_depth_compressed = ins.insulation_depth_compressed,
-        #     fibre_conductivity = ins.fibre_conductivity,
-        #     longwave_depth_fraction = ins.longwave_depth_fraction,
-        #     )
-        # else
-        #     insulation_side = InsulationParameters(;
-        #     insulation_conductivity_dorsal = ins.insulation_conductivity_ventral,
-        #     insulation_conductivity_ventral = ins.insulation_conductivity_ventral,
-        #     fibre_diameter_dorsal = ins.fibre_diameter_ventral,
-        #     fibre_diameter_ventral = ins.fibre_diameter_ventral,
-        #     fibre_length_dorsal = ins.fibre_length_ventral,
-        #     fibre_length_ventral = ins.fibre_length_ventral,
-        #     insulation_depth_dorsal = ins.insulation_depth_ventral,
-        #     insulation_depth_ventral = ins.insulation_depth_ventral,    
-        #     max_insulation_depth_dorsal = ins.max_insulation_depth_ventral,
-        #     max_insulation_depth_ventral = ins.max_insulation_depth_ventral,
-        #     fibre_density_dorsal = ins.fibre_density_ventral,
-        #     fibre_density_ventral = ins.fibre_density_ventral,
-        #     insulation_reflectance_dorsal = ins.insulation_reflectance_ventral,
-        #     insulation_reflectance_ventral = ins.insulation_reflectance_ventral,
-        #     insulation_depth_compressed = ins.insulation_depth_compressed,
-        #     fibre_conductivity = ins.fibre_conductivity,
-        #     longwave_depth_fraction = ins.longwave_depth_fraction,
-        #     )
-        # end            
         insulation_out = insulation_properties(; 
                         insulation = ins, insulation_temperature = T_insulation * 0.7 + T_skin * 0.3, 
                         rad.ventral_fraction)
