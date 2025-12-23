@@ -5,9 +5,7 @@ using Unitful, UnitfulMoles
 using FluidProperties
 using Test
 using DataFrames, CSV
-#using Plots
 
-# solvendo
 testdir = realpath(joinpath(dirname(pathof(HeatExchange)), "../test"))
 
 endo_input_names = Symbol.(DataFrame(CSV.File("$testdir/data/endoR_input_names.csv"))[:, 2])
@@ -40,19 +38,12 @@ for shape in 1:4
                 (endo_input.SHAPE_B), (endo_input.SHAPE_C))
         end
 
-        #shape_pars = Plate((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
-        #    (endo_input.SHAPE_B), (endo_input.SHAPE_C)) # define shape
-        #shape_pars = Cylinder((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", 
-        #    (endo_input.SHAPE_B)) # define shape
-        #shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3") # define shape
-
         fat = Fat(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
         mean_insulation_depth = (endo_input.ZFURD * (1 - endo_input.PVEN) + endo_input.ZFURV * endo_input.PVEN)u"m"
         mean_fibre_diameter = (endo_input.DHAIRD * (1 - endo_input.PVEN) + endo_input.DHAIRV * endo_input.PVEN)u"m"
         mean_fibre_density = (endo_input.RHOD * (1 - endo_input.PVEN) + endo_input.RHOV * endo_input.PVEN)u"1/m^2"
         fur = Fur(mean_insulation_depth, mean_fibre_diameter, mean_fibre_density)
         geometry = Body(shape_pars, CompositeInsulation(fur, fat))
-
 
         environment_vars = EnvironmentalVars(;
             T_air=u"K"((endo_input.TA)u"°C"),
