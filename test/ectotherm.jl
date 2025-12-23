@@ -49,7 +49,7 @@ fluid = ecto_input.fluid
 zenith_angle = (ecto_input.Z)u"°"
 global_radiation = (ecto_input.QSOLR)u"W/m^2"
 α_ground = ecto_input.alpha_sub
-shade = ecto_input.SHADE
+shade = ecto_input.SHADE / 100
 ϵ_ground = ecto_input.epsilon_sub
 ϵ_sky = ecto_input.epsilon_sky
 fO2 = ecto_input.O2gas / 100
@@ -102,11 +102,11 @@ shape_pars = DesertIguana(mass, ρ_flesh)
 #shape_pars = Cylinder(mass, ρ_flesh, shape_b)
 geometry = Body(shape_pars, Naked())
 A_total = total_area(geometry)
-A_conduction = A_total * conduction_fraction
-A_convection = A_total * (1 - conduction_fraction)
 A_sil_normal = silhouette_area(shape_pars, NormalToSun())
 A_sil_parallel = silhouette_area(shape_pars, ParallelToSun())
 A_silhouette = silhouette_area(shape_pars, solar_orientation)
+A_conduction = A_total * conduction_fraction
+A_convection = A_total * (1 - conduction_fraction)
 A_eff = A_convection * skin_wetness
 
 # geometry test
@@ -388,21 +388,21 @@ heat_balance_out = ectotherm(T_core_s, lizard, environment)
 @test heat_balance_out.enbal.Q_cond ≈ (ecto_output.QCOND)u"W" rtol=1e-3 # TODO make better?
 @test heat_balance_out.enbal.Q_conv ≈ (ecto_output.QCONV)u"W" rtol=1e-4
 @test heat_balance_out.enbal.Q_evap ≈ (ecto_output.QEVAP)u"W" rtol=1e-4
-@test heat_balance_out.enbal.Q_metab ≈ (ecto_output.QMET)u"W" rtol=1e-3 # TODO make better?
+@test heat_balance_out.enbal.Q_metab ≈ (ecto_output.QMET)u"W" rtol=1e-4 # TODO make better?
 @test heat_balance_out.enbal.Q_resp ≈ (ecto_output.QRESP)u"W" rtol=1e-3 # TODO make better?
 
-@test heat_balance_out.masbal.V_O2 ≈ (ecto_output.O2_ml)u"ml/hr" rtol=1e-3 # TODO make better?
-@test heat_balance_out.masbal.m_cut ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-3 # TODO make better?
-@test heat_balance_out.masbal.m_eye ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-3 # TODO make better?
+@test heat_balance_out.masbal.V_O2 ≈ (ecto_output.O2_ml)u"ml/hr" rtol=1e-4 # TODO make better?
+@test heat_balance_out.masbal.m_cut ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
+@test heat_balance_out.masbal.m_eye ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 
-@test u"mol/s"(heat_balance_out.resp_out.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-3
-@test u"mol/s"(heat_balance_out.resp_out.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-3
-@test u"mol/s"(heat_balance_out.resp_out.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-3
+@test u"mol/s"(heat_balance_out.resp_out.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(heat_balance_out.resp_out.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(heat_balance_out.resp_out.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
 @test u"mol/s"(heat_balance_out.resp_out.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-3
-@test u"mol/s"(heat_balance_out.resp_out.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-3
-@test u"mol/s"(heat_balance_out.resp_out.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-3
-@test u"mol/s"(heat_balance_out.resp_out.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-3
-@test u"mol/s"(heat_balance_out.resp_out.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-3
+@test u"mol/s"(heat_balance_out.resp_out.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(heat_balance_out.resp_out.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(heat_balance_out.resp_out.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
+@test u"mol/s"(heat_balance_out.resp_out.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
 @test heat_balance_out.resp_out.Q_resp ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test heat_balance_out.resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 

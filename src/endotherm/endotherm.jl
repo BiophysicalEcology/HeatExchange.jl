@@ -49,7 +49,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     # correct F_sky for vegetaion overhead
     F_vegetation = rad.F_sky * e_vars.shade
     F_sky = rad.F_sky - F_vegetation
-    F_ground = F_sky - F_vegetation
+    F_ground = 1 - F_sky - F_vegetation
 
     area_silhouette = silhouette_area(o.body, rad.solar_orientation)
     area_total = total_area(o.body)
@@ -58,25 +58,28 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     area_evaporation = evaporation_area(o.body)
     area_convection = area_total * (1 - cond_ex.conduction_fraction)
     (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) =
-        solar(
+        solar(;
             α_body_dorsal,
             α_body_ventral, 
-            area_silhouette,
-            area_total,
-            area_conduction, 
+            A_silhouette = area_silhouette,
+            A_total = area_total,
+            A_conduction = area_conduction, 
             F_ground, 
-            F_sky, 
-            e_pars.α_ground, 
-            e_vars.shade,
-            e_vars.zenith_angle, 
-            e_vars.global_radiation, 
-            e_vars.diffuse_fraction
+            F_sky,
+            α_ground = e_pars.α_ground,
+            shade = e_vars.shade,
+            zenith_angle = e_vars.zenith_angle, 
+            global_radiation = e_vars.global_radiation,
+            diffuse_fraction = e_vars.diffuse_fraction, 
             )
-
     Q_ventral = Q_solar_substrate
 
     # set infrared environment
     T_vegetation = e_vars.T_air_reference # assume vegetation casting shade is at reference (e.g. 1.2m or 2m) air temperature (deg C)
+    F_bush_ref = rad.F_bush # nearby bush
+    F_sky_ref = F_sky # sky
+    F_ground_ref = F_ground # ground
+    F_vegetation_ref = F_vegetation # vegetation
 
     for side in 1:2
 
@@ -88,30 +91,30 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         # ventral side (side=2) is being estimated.
         if Q_solar > 0.0u"W"
             if side == 1
-                F_sky = rad.F_sky * 2.0 # proportion of upward view that is sky
-                F_vegetation = rad.F_vegetation * 2.0 # proportion of upward view that is vegetation (shade)
+                F_sky = F_sky_ref * 2.0 # proportion of upward view that is sky
+                F_vegetation = F_vegetation_ref * 2.0 # proportion of upward view that is vegetation (shade)
                 F_ground = 0.0
                 F_bush = 0.0
-                Q_sol = 2.0 * Q_direct + ((Q_solar_sky / rad.F_sky) * F_sky) # direct x 2 because assuming sun in both directions, and unadjusting Q_solar_sky for config factor imposed in SOLAR_ENDO and back to new larger one in both directions
+                Q_sol = 2.0 * Q_direct + ((Q_solar_sky / F_sky_ref) * F_sky) # direct x 2 because assuming sun in both directions, and unadjusting Q_solar_sky for config factor imposed in SOLAR_ENDO and back to new larger one in both directions
             else
                 F_sky = 0.0
                 F_vegetation = 0.0
-                F_ground = rad.F_ground * 2.0
-                F_bush = rad.F_bush * 2.0
-                Q_sol = (Q_ventral / (1.0 - rad.F_sky - rad.F_vegetation)) * (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO to have it coming in both directions, but also cutting down according to fractional area conducting to ground (in both directions)
+                F_ground = F_ground_ref * 2.0
+                F_bush = F_bush_ref * 2.0
+                Q_sol = (Q_ventral / (1.0 - F_sky_ref - F_vegetation_ref)) * (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO to have it coming in both directions, but also cutting down according to fractional area conducting to ground (in both directions)
             end
         else
             Q_sol = 0.0u"W"
             if side == 1
-                F_sky = rad.F_sky * 2.0
-                F_vegetation = rad.F_vegetation * 2.0
+                F_sky = F_sky_ref * 2.0
+                F_vegetation = F_vegetation_ref * 2.0
                 F_ground = 0.0
                 F_bush = 0.0
             else
                 F_sky = 0.0
                 F_vegetation = 0.0
-                F_ground = rad.F_ground * 2.0
-                F_bush = rad.F_bush * 2
+                F_ground = F_ground_ref * 2.0
+                F_bush = F_bush_ref * 2
             end
         end
 
@@ -216,15 +219,16 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     # Now compute a weighted mean heat generation for all the parts/components = (dorsal value *(F_sky+F_vegetation))+(ventral value*F_ground)
     gen_d = simulsol_out[1].Q_gen_net
     gen_v = simulsol_out[2].Q_gen_net
-    dmult = rad.F_sky + rad.F_vegetation
+    dmult = F_sky_ref + F_vegetation_ref
     vmult = 1 - dmult # assume that reflectivity of veg below equals reflectivity of soil so vmult left as 1 - dmult
     x = gen_d * dmult + gen_v * vmult # weighted estimate of metabolic heat generation
     Q_sum = x
+
     # reset configuration factors
-    F_bush = rad.F_bush # nearby bush
-    F_sky = rad.F_sky # sky
-    F_ground = rad.F_ground # ground
-    F_vegetation = rad.F_vegetation # vegetation
+    F_bush = F_bush_ref # nearby bush
+    F_sky = F_sky_ref # sky
+    F_ground = F_ground_ref # ground
+    F_vegetation = F_vegetation_ref # vegetation
 
     # lung temperature and temperature of exhaled air
     T_skin = (simulsol_out[1].T_skin + simulsol_out[2].T_skin) * 0.5 # TODO weight it by dorsal/ventral fractions?
@@ -383,11 +387,11 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         area_radiant_ventral = area_skin #* (1 - cond_ex.conduction_fraction) TODO make conduction occur when no insulation
     end
     # infrared dorsal
-    Q_rad_out_dorsal = 2 * rad.F_sky * σ * rad.ϵ_body_dorsal * area_radiant_dorsal * T_surface_dorsal^4
+    Q_rad_out_dorsal = 2 * F_sky * σ * rad.ϵ_body_dorsal * area_radiant_dorsal * T_surface_dorsal^4
     Q_rad_in_dorsal = -Q_longwave_dorsal + Q_rad_out_dorsal
 
     # infrared ventral
-    Q_rad_out_ventral = 2 * rad.F_ground * σ * rad.ϵ_body_ventral * area_radiant_ventral * T_surface_ventral^4
+    Q_rad_out_ventral = 2 * F_ground * σ * rad.ϵ_body_ventral * area_radiant_ventral * T_surface_ventral^4
     Q_rad_in_ventral = -Q_longwave_ventral + Q_rad_out_ventral
     # energy flows
     Q_solar = Q_solar_dorsal * dmult + Q_solar_ventral * vmult
