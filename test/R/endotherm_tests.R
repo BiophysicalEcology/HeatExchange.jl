@@ -1,9 +1,11 @@
 library(NicheMapR)
-furmult <- 1
+for(shape in 1:4){
+  for(furmult in 0:1){
+#furmult <- 1
 endoR_input = list(
     TA = 20.0, # air temperature at local height (°C)
     TAREF = 20.0, # air temperature at reference height (°C)
-    TGRD = 30.0, # ground temperature (°C)
+    TGRD = 40.0, # ground temperature (°C)
     TSKY = 10.0, # sky temperature (°C)
     VEL = 1.0, # wind speed (m/s)
     RH = 5.0, # relative humidity (%)
@@ -14,7 +16,7 @@ endoR_input = list(
     
     # other environmental variables
     FLTYPE = 0, # fluid type: 0 = air; 1 = fresh water; 2 = salt water
-    TCONDSB = 10.0, # surface temperature for conduction (°C)
+    TCONDSB = 30.0, # surface temperature for conduction (°C)
     KSUB = 2.79, # substrate thermal conductivity (W/m°C)
     TBUSH = 10.0, # bush temperature (°C)
     BP = 101325.0, # Pa, negative means elevation is used
@@ -27,7 +29,7 @@ endoR_input = list(
     
     # BEHAVIOUR
     
-    SHADE = 0.0, # shade level (%)
+    SHADE = 10.0, # shade level (%)
     FLYHR = 0, # is flight occurring this hour? (imposes forced evaporative loss)
     UNCURL = 0.1, # allows the animal to uncurl to SHAPE_B_MAX, the value being the increment SHAPE_B is increased per iteration
     TC_INC = 0.1, # turns on core temperature elevation, the value being the increment by which TC is increased per iteration
@@ -45,32 +47,32 @@ endoR_input = list(
     AMASS = 65.0, # kg
     ANDENS = 1000.0, # kg/m3
     FATDEN = 901.0, # kg/m3
-    SUBQFAT = 0, # is subcutaneous fat present? (0 is no, 1 is yes)
-    FATPCT = 0.0, # % body fat
-    SHAPE = 4, # shape, 1 is cylinder, 2 is sphere, 3 is plate, 4 is ellipsoid
+    SUBQFAT = 1, # is subcutaneous fat present? (0 is no, 1 is yes)
+    FATPCT = 10.0, # % body fat
+    SHAPE = shape, # shape, 1 is cylinder, 2 is sphere, 3 is plate, 4 is ellipsoid
     SHAPE_B = 1.1, # current ratio between long and short axis, must be > 1 (-)
     SHAPE_B_MAX = 5.0, # max possible ratio between long and short axis, must be > 1 (-)
     SHAPE_C = 1.1, # current ratio of length:height (plate)
-    PVEN = 0.5, # fraction of surface area that is ventral fur (fractional, 0-1)
-    PCOND = 0.0, # fraction of surface area that is touching the substrate (fractional, 0-1)
+    PVEN = 0.4, # fraction of surface area that is ventral fur (fractional, 0-1)
+    PCOND = 0.3, # fraction of surface area that is touching the substrate (fractional, 0-1)
     SAMODE = 0.0, # if 0, uses surface area for SHAPE parameter geometry, if 1, uses bird skin surface area allometry from Walsberg & King. 1978. JEB 76:185–189, if 2 uses mammal surface area from Stahl 1967.J. App. Physiol. 22, 453–460.
     ORIENT = 1, # if 1 = normal to sun's rays (heat maximising), if 2 = parallel to sun's rays (heat minimising), 3 = vertical and changing with solar altitude, or 0 = average
     
     # fur properties
     FURTHRMK = 0.0,#4, # user-specified fur thermal conductivity (W/mK), not used if 0
     DHAIRD = furmult*30E-06, # hair diameter, dorsal (m)
-    DHAIRV = furmult*30E-06, # hair diameter, ventral (m)
+    DHAIRV = furmult*10E-06, # hair diameter, ventral (m)
     LHAIRD = furmult*23.9E-03, # hair length, dorsal (m)
-    LHAIRV = furmult*23.9E-03, # hair length, ventral (m)
+    LHAIRV = furmult*13.9E-03, # hair length, ventral (m)
     ZFURD_MAX = furmult*23.9E-03, # max fur depth, dorsal (m)
     ZFURV_MAX = furmult*23.9E-03, # max fur depth, ventral (m)
     ZFURD = furmult*23.9E-03, # fur depth, dorsal (m)
-    ZFURV = furmult*23.9E-03, # fur depth, ventral (m)
+    ZFURV = furmult*13.9E-03, # fur depth, ventral (m)
     RHOD = furmult*3000E+04, # hair density, dorsal (1/m2)
-    RHOV = furmult*3000E+04, # hair density, ventral (1/m2)
+    RHOV = furmult*1000E+04, # hair density, ventral (1/m2)
     REFLD = 0.2,  # fur reflectivity dorsal (fractional, 0-1)
     REFLV = 0.2,  # fur reflectivity ventral (fractional, 0-1)
-    ZFURCOMP = furmult*23.9E-03, # depth of compressed fur (for conduction) (m)
+    ZFURCOMP = furmult*13.9E-03, # depth of compressed fur (for conduction) (m)
     KHAIR = 0.209, # hair thermal conductivity (W/m°C)
     XR = 1.0, # fractional depth of fur at which longwave radiation is exchanged (0-1)
     
@@ -257,13 +259,14 @@ colnames(enbal) <- gsub(colnames(enbal), pattern = "enbal.", replacement = "")
 masbal <- endoR_out1[, grep(pattern = "masbal", colnames(endoR_out1))]
 colnames(masbal) <- gsub(colnames(masbal), pattern = "masbal.", replacement = "")
 
-write.csv(unlist(endoR_input), file = '../data/endoR_input.csv')
-write.csv(names(endoR_input), file = '../data/endoR_input_names.csv')
-write.csv(treg, file = '../data/endoR_treg.csv')
-write.csv(morph, file = '../data/endoR_morph.csv')
-write.csv(enbal, file = '../data/endoR_enbal.csv')
-write.csv(masbal, file = '../data/endoR_masbal.csv')
-
+write.csv(unlist(endoR_input), file = paste0('../data/endoR_input_',shape,'_',furmult,'.csv'))
+write.csv(names(endoR_input), file = paste0('../data/endoR_input_names.csv'))
+write.csv(treg, file = paste0('../data/endoR_treg_',shape,'_',furmult,'.csv'))
+write.csv(morph, file = paste0('../data/endoR_morph_',shape,'_',furmult,'.csv'))
+write.csv(enbal, file = paste0('../data/endoR_enbal_',shape,'_',furmult,'.csv'))
+write.csv(masbal, file = paste0('../data/endoR_masbal_',shape,'_',furmult,'.csv'))
+  }
+}
 file.copy("SOLVENDO.input.csv", to = "C:\\Users\\mrke\\Dropbox\\NicheMapR_Debug\\endo_source\\SOLVENDO.input.csv", overwrite = TRUE)
 file.remove("SOLVENDO.input.csv")
-masbal
+treg
