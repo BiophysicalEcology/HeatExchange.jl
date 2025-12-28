@@ -244,6 +244,27 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         if T_skin_max >= metab.T_core
             Q_m2 = metab.Q_metabolism * 1.01
         end
+        f = x -> respiration(;
+            Q_metab = x,
+            Q_min,
+            Q_sum,
+            T_lung,
+            mass = geometry_pars.shape.mass,
+            rq = resp.rq,
+            fO2_extract = resp.fO2_extract,
+            rh_exit = resp.rh_exit,
+            T_air_exit,
+            pant = resp.pant,                                
+            T_air = e_vars.T_air,
+            P_atmos = e_vars.P_atmos,                                
+            rh = e_vars.rh,
+            fO2 = e_pars.fO2,
+            fN2 = e_pars.fN2,
+            fCO2 = e_pars.fCO2,                                
+            O2conversion = Kleiber1961()
+        ).balance
+
+        a, b = bracket_root(f, Q_m1, Q_m2)
 
         Q_gen = find_zero(x -> respiration(; 
                                 Q_metab = x,
@@ -263,7 +284,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                                 fN2 = e_pars.fN2,
                                 fCO2 = e_pars.fCO2,                                
                                 O2conversion = Kleiber1961()).balance,
-                                (Q_m1, Q_m2),
+                                (a, b),
                                 Roots.Brent(),
                                 atol = m.resp_tolerance * metab.Q_metabolism,
                                 )
@@ -436,4 +457,17 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         J_CO2_in, J_CO2_out, J_N2_in, J_N2_out, J_air_in, J_air_out
     )
     return (; thermoregulation, morphology, energy_fluxes, mass_fluxes)
+end
+
+function bracket_root(f, a, b; factor=2, maxiter=20)
+    fa = f(a)
+    fb = f(b)
+    for _ in 1:maxiter
+        fa * fb < 0u"W^2" && return (a, b)
+        a -= factor * (b - a)
+        b += factor * (b - a)
+        fa = f(a)
+        fb = f(b)
+    end
+    error("Failed to bracket root")
 end
