@@ -264,31 +264,36 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             O2conversion = Kleiber1961()
         ).balance
 
-        a, b = bracket_root(f, Q_m1, Q_m2)
+        # a, b = bracket_root(f, Q_m1, Q_m2)
 
-        Q_gen = find_zero(x -> respiration(; 
-                                Q_metab = x,
-                                Q_min,
-                                Q_sum,
-                                T_lung,
-                                mass = geometry_pars.shape.mass,
-                                rq = resp.rq,
-                                fO2_extract = resp.fO2_extract,
-                                rh_exit = resp.rh_exit,
-                                T_air_exit,
-                                pant = resp.pant,                                
-                                T_air = e_vars.T_air,
-                                P_atmos = e_vars.P_atmos,                                
-                                rh = e_vars.rh,
-                                fO2 = e_pars.fO2,
-                                fN2 = e_pars.fN2,
-                                fCO2 = e_pars.fCO2,                                
-                                O2conversion = Kleiber1961()).balance,
-                                (a, b),
-                                Roots.Brent(),
-                                atol = m.resp_tolerance * metab.Q_metabolism,
-                                )
-
+        # Q_gen = find_zero(x -> respiration(; 
+        #                         Q_metab = x,
+        #                         Q_min,
+        #                         Q_sum,
+        #                         T_lung,
+        #                         mass = geometry_pars.shape.mass,
+        #                         rq = resp.rq,
+        #                         fO2_extract = resp.fO2_extract,
+        #                         rh_exit = resp.rh_exit,
+        #                         T_air_exit,
+        #                         pant = resp.pant,                                
+        #                         T_air = e_vars.T_air,
+        #                         P_atmos = e_vars.P_atmos,                                
+        #                         rh = e_vars.rh,
+        #                         fO2 = e_pars.fO2,
+        #                         fN2 = e_pars.fN2,
+        #                         fCO2 = e_pars.fCO2,                                
+        #                         O2conversion = Kleiber1961()).balance,
+        #                         (a, b),
+        #                         Roots.Brent(),
+        #                         atol = m.resp_tolerance * metab.Q_metabolism,
+        #                         )
+        Q_gen = zbrent(
+            f,
+            ustrip(u"W", Q_m1),
+            ustrip(u"W", Q_m2),
+            m.resp_tolerance * ustrip(u"W", metab.Q_metabolism)
+        )
         respiration_out = respiration(;
             Q_metab = Q_gen,
             Q_min,
@@ -471,3 +476,81 @@ function bracket_root(f, a, b; factor=2, maxiter=20)
     end
     error("Failed to bracket root")
 end
+
+function zbrent(f, a, b, tol;
+                maxiter = 300,
+                eps = 3e-8)
+
+    qa = ustrip(u"W", f(a * u"W"))
+    qb = ustrip(u"W", f(b * u"W"))
+    c = 0.
+    e = 0.
+    d = 0.
+
+    qc = qb
+
+    @inbounds for i in 1:maxiter
+
+        if qb * qc > 0.0
+            c  = a
+            qc = qa
+            d  = b - a
+            e  = d
+        end
+        if abs(qc) < abs(qb)
+            a = b
+            b = c
+            c = a
+            qa = qb
+            qb = qc
+            qc = qa
+        end
+
+        tol1 = 2eps * abs(b) + tol/2
+        xm   = (c - b) / 2
+
+        if abs(xm) ≤ tol1 || qb == 0.0
+            return b * u"W"
+        end
+        if abs(qb) ≤ tol1 && i > 1
+            return b * u"W"
+        end
+        if abs(e) ≥ tol1 && abs(qa) > abs(qb)
+            s = qb / qa
+            if a == c
+                p = 2xm * s
+                q = 1 - s
+            else
+                q = qa / qc
+                r = qb / qc
+                p = s * (2xm*q*(q - r) - (b - a)*(r - 1))
+                q = (q - 1)*(r - 1)*(s - 1)
+            end
+
+            if p > 0
+                q = -q
+            end
+            p = abs(p)
+
+            if 2p < min(3xm*q - abs(tol1*q), abs(e*q))
+                e = d
+                d = p / q
+            else
+                d = xm
+                e = d
+            end
+        else
+            d = xm
+            e = d
+        end
+
+        a  = b
+        qa = qb
+
+        b += abs(d) > tol1 ? d : sign(xm)*tol1
+        qb = ustrip(u"W", f(b * u"W"))
+    end
+
+    return b * u"W"
+end
+

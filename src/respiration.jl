@@ -82,6 +82,7 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
     wet_air_out = wet_air_properties(T_air_exit, rh_exit, P_atmos; fO2, fCO2, fN2)
     P_vap_exit = wet_air_out.P_vap
     J_H2O_out = J_air_out * (P_vap_exit / (P_atmos - P_vap_exit))
+
     #P_vap_sat = vapour_pressure(T_lung)
     #J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
     # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 
@@ -123,7 +124,6 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
 
     Q_net_check = Q_metab - Q_resp
     balance = Q_net_check - Q_sum
-    
     return (; balance, Q_resp, m_resp, Q_gen = Q_metab, V_air, V_O2_STP, J_air_in, J_air_out, 
         J_H2O_in, J_H2O_out, J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
 end

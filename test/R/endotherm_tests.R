@@ -1,4 +1,6 @@
 library(NicheMapR)
+shape=4
+furmult=0
 for(shape in 1:4){
   for(furmult in 0:1){
 #furmult <- 1
