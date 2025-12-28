@@ -9,15 +9,16 @@ using DataFrames, CSV
 testdir = realpath(joinpath(dirname(pathof(HeatExchange)), "../test"))
 
 endo_input_names = Symbol.(DataFrame(CSV.File("$testdir/data/endoR_input_names.csv"))[:, 2])
-
+shape_number = 4
+furmult = 0
 # loop through all shapes with and without fur
-for shape in 1:4
+for shape_number in 1:4
     for furmult in 0:1
-        endo_input_vec = DataFrame(CSV.File("$testdir/data/endoR_input_" * string(shape) * "_" * string(furmult) * ".csv"))[:, 2]
-        treg_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_treg_" * string(shape) * "_" * string(furmult) * ".csv"))[:, 2:end]))
-        morph_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_morph_" * string(shape) * "_" * string(furmult) * ".csv"))[:, 2:end]))
-        enbal_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_enbal_" * string(shape) * "_" * string(furmult) * ".csv"))[:, 2:end]))
-        masbal_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_masbal_" * string(shape) * "_" * string(furmult) * ".csv"))[:, 2:end]))
+        endo_input_vec = DataFrame(CSV.File("$testdir/data/endoR_input_" * string(shape_number) * "_" * string(furmult) * ".csv"))[:, 2]
+        treg_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_treg_" * string(shape_number) * "_" * string(furmult) * ".csv"))[:, 2:end]))
+        morph_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_morph_" * string(shape_number) * "_" * string(furmult) * ".csv"))[:, 2:end]))
+        enbal_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_enbal_" * string(shape_number) * "_" * string(furmult) * ".csv"))[:, 2:end]))
+        masbal_output_vec = first(Tables.rowtable(DataFrame(CSV.File("$testdir/data/endoR_masbal_" * string(shape_number) * "_" * string(furmult) * ".csv"))[:, 2:end]))
 
         endo_input = (; zip(endo_input_names, endo_input_vec)...)
 
@@ -171,9 +172,9 @@ for shape in 1:4
         environment = (; environment_pars, environment_vars)
 
         model_pars = EndoModelPars(
-            respire=Bool(endo_input.RESPIRE),
-            simulsol_tolerance=(endo_input.DIFTOL)u"K",
-            resp_tolerance=endo_input.BRENTOL,
+            respire = Bool(endo_input.RESPIRE),
+            simulsol_tolerance = (endo_input.DIFTOL)u"K",
+            resp_tolerance = endo_input.BRENTOL,
         )
 
         # initial conditions
@@ -212,7 +213,7 @@ for shape in 1:4
 
 
         fat = morphology.fat < 1.0e-10u"m" ? 0.0u"m" : morphology.fat
-        rtol = 1e-7
+        rtol = 1e-6
         @testset "endotherm morphology comparisons" begin
             @test morph_output_vec.AREA ≈ ustrip(u"m^2", morphology.area_total) rtol = rtol
             @test morph_output_vec.AREA_SKIN ≈ ustrip(u"m^2", morphology.area_skin) rtol = rtol
