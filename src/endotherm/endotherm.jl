@@ -294,6 +294,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             ustrip(u"W", Q_m2),
             m.resp_tolerance * ustrip(u"W", metab.Q_metabolism)
         )
+
         respiration_out = respiration(;
             Q_metab = Q_gen,
             Q_min,
@@ -483,6 +484,7 @@ function zbrent(f, a, b, tol;
 
     qa = ustrip(u"W", f(a * u"W"))
     qb = ustrip(u"W", f(b * u"W"))
+
     c = 0.
     e = 0.
     d = 0.
