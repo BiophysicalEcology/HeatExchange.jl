@@ -15,7 +15,7 @@ UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [sources]
 FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
-BiophysicalGeometry = {rev = "main", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
+BiophysicalGeometry = {rev = "endotherm-model", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
 
 [compat]
 BiophysicalGeometry = "0.1.0"
