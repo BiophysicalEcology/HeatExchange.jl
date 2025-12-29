@@ -46,7 +46,8 @@ function ellipsoid_endotherm(;
     density,
     core_temperature,
     insulation_depth,
-    k_insulation,
+    insulation_conductivity,
+    emissivity,
     oxygen_extraction_efficiency,
     stress_factor,
     air_temperature,
@@ -63,6 +64,8 @@ function ellipsoid_endotherm(;
     # refinition of variables and parameters to match Porter & Kearney 2009 formulae
     T_f = air_temperature |> u"K" # fluid temperature
     T_c = core_temperature |> u"K" # core body temperature
+    k_insulation = insulation_conductivity
+    ϵ = emissivity
     v = wind_speed
     Q_gen_min = minimum_metabolic_rate
 
@@ -71,7 +74,7 @@ function ellipsoid_endotherm(;
 
     # estimate basal metabolism if not provided
     if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
-        allometric_estimate = metabolic_rate(mrate_equation, mass).Q_metab * metabolic_multiplier
+        allometric_estimate = metabolic_rate(mrate_equation, mass) * metabolic_multiplier
         Q_gen_min = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
     end
 
@@ -123,7 +126,7 @@ function ellipsoid_endotherm(;
     Nu_total = (Nu_free^3 + Nu_forced^3)^(1 / 3) #  Eq. 24
     h_cv = Nu_total * k_air / L_c # Eq. 25
     R_cv = 1 / (h_cv * A_o)
-    R_rad = u"K/W"(1 / (4 * A_o * 0.95 * Unitful.σ * T_f^3)) # Eq. 39
+    R_rad = u"K/W"(1 / (4 * A_o * ϵ * Unitful.σ * T_f^3)) # Eq. 39
     R_total = R_b + R_ins + (R_cv * R_rad) / (R_cv + R_rad)
 
     upper_critical_air_temperature = T_c - (Q_gen_min * stress_factor * R_total)
@@ -132,10 +135,9 @@ function ellipsoid_endotherm(;
     Q_gen_required = (T_c - T_f) / R_total
     Q_gen_final = max(Q_gen_required, Q_gen_min)
 
-    # TODO make general function to convert metabolic rate to O2
-    O2_consumption_rate = u"ml/hr"(Q_gen_final / 20.1u"J/mL")
-    ρ_vap_c = wet_air_properties(T_c, 1.0, P_atmos).ρ_vap
-    ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).ρ_vap
+    O2_consumption_rate = u"ml/hr"(Joules_to_O2(Q_gen_final))
+    ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).ρ_vap # inhaled air
+    ρ_vap_c = wet_air_properties(T_c, 1, P_atmos).ρ_vap # exhaled air (saturated)
 
     respiratory_water_loss_rate = u"g/hr"((O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) *
                                   (ρ_vap_c - ρ_vap_f))
@@ -146,7 +148,7 @@ function ellipsoid_endotherm(;
 
     Q_evap = -Q_gen_required + Q_gen_min
     total_water_loss_rate = u"g/hr"(max((u"J/hr"(Q_evap) / latent_heat), 0.0u"kg/hr"))
-    fractional_mass_loss = total_water_loss_rate / mass
+    fractional_mass_loss = u"kg/hr"(total_water_loss_rate) / mass
 
     return (;
         skin_temperature=u"°C"(T_s),

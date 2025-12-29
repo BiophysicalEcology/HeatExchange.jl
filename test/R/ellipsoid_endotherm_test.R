@@ -13,8 +13,8 @@ windspd = 0.1,
 rh = 50,
 Q10 = 3,
 basal = NA,
-basmult = 1,
-airT = seq(5,45))
+basmult = 1)
+airT <- seq(5, 45)
 
 endo <- ellipsoid(posture = ellipsoid_input$posture,
                 mass = ellipsoid_input$mass,
@@ -24,7 +24,7 @@ endo <- ellipsoid(posture = ellipsoid_input$posture,
                 furcond = ellipsoid_input$furcond,
                 O2eff = ellipsoid_input$O2eff,
                 stress = ellipsoid_input$stress,
-                airT = ellipsoid_input$airT,
+                airT = airT,
                 windspd = ellipsoid_input$windspd,
                 rh = ellipsoid_input$rh,
                 Q10 = ellipsoid_input$Q10,
@@ -35,4 +35,5 @@ ellipsoid_output <- as.data.frame(endo)
 ellipsoid_input$basal <- 0.0
 
 write.csv(unlist(ellipsoid_input), file = '../data/ellipsoid_input.csv')
+write.csv(airT, file = '../data/ellipsoid_air_temperature.csv')
 write.csv(ellipsoid_output, file = '../data/ellipsoid_output.csv')
