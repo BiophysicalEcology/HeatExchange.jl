@@ -43,6 +43,13 @@ Porter, W. P., & Kearney, M. R. (2009). *Size, shape, and the thermal niche of e
 PNAS, 106(46), 19666–19672.
 """
 ellipsoid_endotherm(
+    ::Missing,
+    ::Missing,
+    ::Missing,
+    ::Missing;
+    kwargs...
+) = missing
+ellipsoid_endotherm(
     air_temperature::Quantity,
     wind_speed::Quantity,
     relative_humidity::Real,
@@ -56,7 +63,7 @@ ellipsoid_endotherm(
     core_temperature::Quantity,
     minimum_metabolic_rate=missing,
     metabolic_rate_equation::MetabolicRateEquation = Kleiber(),
-    metabolic_multiplier=1.0,
+    metabolic_multiplier::Real=1.0,
     q10::Real,
     f_O2::Real,
     oxygen_extraction_efficiency::Real,
