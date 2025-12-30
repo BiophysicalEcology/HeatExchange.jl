@@ -152,12 +152,12 @@ function O2_to_Joules(::Kleiber1961, V_O2_STP, rq)
     Q_ox_fat = u"J/ml"(4.7u"kcal"/1u"L")
     Q_ox_protein = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0
-        V_O2_STP = V_O2_STP * Q_ox_carbohydrate
+        Q_metab = V_O2_STP * Q_ox_carbohydrate
     end
     if rq ≤ 0.7
-        V_O2_STP = V_O2_STP * Q_ox_fat
+        Q_metab = V_O2_STP * Q_ox_fat
     else
-        V_O2_STP = V_O2_STP * Q_ox_protein
+        Q_metab = V_O2_STP * Q_ox_protein
     end
     return (Q_metab)
 end
@@ -227,4 +227,4 @@ O2_to_Joules(::Missing) = missing
 Joules_to_O2(::Missing) = missing
 
 Joules_to_O2(Q_metab) = Joules_to_O2(Typical(), Q_metab, one(Q_metab))
-O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(Q_metab))
+O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(V_O2_STP))
