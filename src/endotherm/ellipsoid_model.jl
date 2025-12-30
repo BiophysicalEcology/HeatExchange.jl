@@ -11,22 +11,25 @@ with rough water loss estimates. Valid for conditions without solar radiation an
 where air, ground, and sky temperatures are equal.
 
 # Arguments
-- `posture`: Ratio of long to short axis of a prolate ellipsoid.
-- `mass`: Body mass (mass).
-- `density`: Body density (mass/volume).
-- `core_temperature`: Core temperature.
-- `insulation_depth`: Insulation depth (length).
-- `k_insulation`: Insulation conductivity (energy/time/length/temperature).
-- `oxygen_extraction_efficiency`: Oxygen extraction efficiency (fraction).
-- `stress_factor`: Fraction of basal metabolism at which evaporative water loss begins.
 - `air_temperature`: Air temperature.
 - `wind_speed`: Wind speed (length/time).
-- `relative_humidity`: Relative humidity (%).
+- `relative_humidity`: Relative humidity (fractional).
 - `P_atmos`: Atmospheric_pressue (pressure).
-- `q10`: Temperature dependence factor for metabolism.
+- `mass`: Body mass (mass).
+- `density`: Body density (mass/volume).
+- `posture`: Ratio of long to short axis of a prolate ellipsoid.
+- `insulation_depth`: Insulation depth (length).
+- `k_insulation`: Insulation conductivity (energy/time/length/temperature).
+- `emissivity`: Insulation emissivity (-)
+- `core_temperature`: Core temperature.
 - `minimum_metabolic_rate`: Optional user-specified minimum metabolic rate (energy/time).
+- `metabolic_rate_equation`: Allometric function to compute metabolic rate (default: Kleiber())
+- `metabolic_multiplier`: Scaling factor for the metabolic_rate_equation, 
+    e.g. to adjust to a field metabolic rate.
+- `q10`: Temperature dependence factor for metabolism.
 - `f_O2`: Fractional oxygen in the atmosphere (-).
-- `metabolic_multiplier`: Scaling factor for the mouse–elephant basal rate.
+- `oxygen_extraction_efficiency`: Oxygen extraction efficiency (fraction).
+- `stress_factor`: Fraction of basal metabolism at which evaporative water loss begins.
 
 # Returns
 A `NamedTuple` with:
@@ -39,31 +42,70 @@ A `NamedTuple` with:
 Porter, W. P., & Kearney, M. R. (2009). *Size, shape, and the thermal niche of endotherms*.  
 PNAS, 106(46), 19666–19672.
 """
-function ellipsoid_endotherm(;
-    mrate_equation::MetabolicRateEquation = Kleiber(),
-    posture,
-    mass,
-    density,
-    core_temperature,
-    insulation_depth,
-    insulation_conductivity,
-    emissivity,
-    oxygen_extraction_efficiency,
-    stress_factor,
+ellipsoid_endotherm(
+    air_temperature::Quantity,
+    wind_speed::Quantity,
+    relative_humidity::Real,
+    P_atmos::Quantity;
+    mass::Quantity,
+    density::Quantity,
+    posture::Real,
+    insulation_depth::Quantity,
+    insulation_conductivity::Quantity,
+    emissivity::Real,
+    core_temperature::Quantity,
+    minimum_metabolic_rate=missing,
+    metabolic_rate_equation::MetabolicRateEquation = Kleiber(),
+    metabolic_multiplier=1.0,
+    q10::Real,
+    f_O2::Real,
+    oxygen_extraction_efficiency::Real,
+    stress_factor::Real,
+    ) = ellipsoid_endotherm(
     air_temperature,
     wind_speed,
     relative_humidity,
     P_atmos,
+    mass,
+    density,
+    posture,
+    insulation_depth,
+    insulation_conductivity,
+    emissivity,
+    core_temperature,
+    minimum_metabolic_rate,
+    metabolic_rate_equation,
+    metabolic_multiplier,
     q10,
-    minimum_metabolic_rate=missing,
-    metabolic_multiplier=1,
-    lethal_desiccation,
     f_O2,
+    oxygen_extraction_efficiency,
+    stress_factor,
+    )
+
+function ellipsoid_endotherm(
+    air_temperature::Quantity,
+    wind_speed::Quantity,
+    relative_humidity::Real,
+    P_atmos::Quantity,
+    mass::Quantity,
+    density::Quantity,
+    posture::Real,
+    insulation_depth::Quantity,
+    insulation_conductivity::Quantity,
+    emissivity::Real,
+    core_temperature::Quantity,
+    minimum_metabolic_rate::Union{Missing,Quantity},
+    metabolic_rate_equation::MetabolicRateEquation,
+    metabolic_multiplier::Real,
+    q10::Real,
+    f_O2::Real,
+    oxygen_extraction_efficiency::Real,
+    stress_factor::Real,
 )
 
     # refinition of variables and parameters to match Porter & Kearney 2009 formulae
-    T_f = air_temperature |> u"K" # fluid temperature
-    T_c = core_temperature |> u"K" # core body temperature
+    T_f = air_temperature # fluid temperature
+    T_c = core_temperature # core body temperature
     k_insulation = insulation_conductivity
     ϵ = emissivity
     v = wind_speed
@@ -74,7 +116,7 @@ function ellipsoid_endotherm(;
 
     # estimate basal metabolism if not provided
     if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
-        allometric_estimate = metabolic_rate(mrate_equation, mass) * metabolic_multiplier
+        allometric_estimate = metabolic_rate(metabolic_rate_equation, mass) * metabolic_multiplier
         Q_gen_min = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
     end
 
