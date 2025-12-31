@@ -16,6 +16,7 @@ abstract type AbstractModelParameters end
 abstract type AbstractFunctionalTraits end
 
 struct Traits{
+        SP<:AbstractShape,
         IN<:AbstractMorphoParameters,
         CE<:AbstractMorphoParameters,
         CI<:AbstractPhysioParameters,
@@ -26,6 +27,7 @@ struct Traits{
         RE<:AbstractPhysioParameters,
         ME<:AbstractPhysioParameters,
  } <: AbstractFunctionalTraits
+    shape_pars::SP
     insulation_pars::IN
     conduction_pars_external::CE
     conduction_pars_internal::CI
@@ -50,6 +52,7 @@ traits(o::AbstractOrganism) = o.traits
 #shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
 #insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
 
+shapepars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
 insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
 conductionpars_external(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_external)
 conductionpars_internal(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_internal)
@@ -60,6 +63,7 @@ hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
 respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
 metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
 
+shapepars(o::AbstractOrganism) = shapepars(traits(o))
 insulationpars(o::AbstractOrganism) = insulationpars(traits(o))
 conductionpars_external(o::AbstractOrganism) = conductionpars_external(traits(o))
 conductionpars_internal(o::AbstractOrganism) = conductionpars_internal(traits(o))

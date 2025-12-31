@@ -324,6 +324,7 @@ metabolism_pars = MetabolismParameters(;
 )
 
 traits = Traits(
+    shape_pars,
     InsulationParameters(),
     conduction_pars_external,
     conduction_pars_internal,

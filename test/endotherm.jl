@@ -156,6 +156,7 @@ for shape_number in 1:4
         )
 
         traits = Traits(
+            shape_pars,
             insulation_pars,
             conduction_pars_external,
             conduction_pars_internal,

@@ -1,9 +1,5 @@
 module HeatExchange
 
-function __init__()\
-    Unitful.register(HeatExchange)
-end
-
 using Unitful, UnitfulMoles, ModelParameters, Roots
 
 using FluidProperties
@@ -60,5 +56,9 @@ include("endotherm/mean_skin_temperature.jl")
 include("endotherm/net_metabolic_heat.jl")
 include("endotherm/skin_and_insulation_temperature.jl")
 include("endotherm/endotherm.jl")
+
+# function __init__()\
+#     Unitful.register(HeatExchange)
+# end
 
 end
