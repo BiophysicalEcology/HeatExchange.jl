@@ -82,8 +82,8 @@ McKechnie, A. E., and B. O. Wolf. 2004. The Allometry of Avian Basal Metabolic R
 struct McKechnieWolf <: MetabolicRateEquation end
 
 function metabolic_rate(::McKechnieWolf, mass)
-    mass_kg = ustrip(u"g", mass)
-    Q_metab = 10^(-1.461 + 0.669 * log10(mass_kg))u"W"
+    mass_g = ustrip(u"g", mass)
+    Q_metab = (10.0^(-1.461 + 0.669 * log10(mass_g)))u"W"
     return (Q_metab)
 end
 

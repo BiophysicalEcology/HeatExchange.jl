@@ -1,5 +1,5 @@
 
-insulation = InsulationPars(;
+insulation = InsulationParameters(;
     fibre_diameter_dorsal=Param(30.0u"μm"), # hair diameter, dorsal (m)
     fibre_diameter_ventral=Param(30.0u"μm"), # hair diameter, ventral (m)
     fibre_length_dorsal=Param(23.9u"mm"), # hair length, dorsal (m)
@@ -16,7 +16,9 @@ insulation = InsulationPars(;
 )
 
 insulation_out = insulation_properties(; insulation, insulation_temperature=(273.15 + 20.0)u"K", ventral_fraction=0.3)
-
+insulation_properties(; insulation=insulation_pars,
+            insulation_temperature=thermoregulation.T_insulation,
+            ventral_fraction=radiation_pars.ventral_fraction)
 density = 1000.0u"kg/m^3"
 mass = 0.04u"kg"
 shapeb = 2
