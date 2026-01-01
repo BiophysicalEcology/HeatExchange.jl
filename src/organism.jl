@@ -1,31 +1,27 @@
-abstract type AbstractPhysioModel end # TODO spell out fully for all abstract types
+abstract type AbstractPhysiologyModel end
 
-abstract type MetabolicRateEquation <: AbstractPhysioModel end
-abstract type OxygenJoulesConversion <: AbstractPhysioModel end
+abstract type MetabolicRateEquation <: AbstractPhysiologyModel end
+abstract type OxygenJoulesConversion <: AbstractPhysiologyModel end
         
-abstract type AbstractPhysioParameters end
+abstract type AbstractPhysiologyParameters end
 
-abstract type AbstractMorphoParameters end
+abstract type AbstractMorphologyParameters end
         
-abstract type AbstractBehavParameters end
-        
-#abstract type AbstractBehavThresholds end
-
 abstract type AbstractModelParameters end
 
 abstract type AbstractFunctionalTraits end
 
 struct Traits{
         SP<:AbstractShape,
-        IN<:AbstractMorphoParameters,
-        CE<:AbstractMorphoParameters,
-        CI<:AbstractPhysioParameters,
-        RA<:AbstractMorphoParameters,
-        CO<:AbstractMorphoParameters,
-        EV<:AbstractMorphoParameters,
-        HD<:AbstractPhysioParameters,
-        RE<:AbstractPhysioParameters,
-        ME<:AbstractPhysioParameters,
+        IN<:AbstractMorphologyParameters,
+        CE<:AbstractMorphologyParameters,
+        CI<:AbstractPhysiologyParameters,
+        RA<:AbstractMorphologyParameters,
+        CO<:AbstractMorphologyParameters,
+        EV<:AbstractMorphologyParameters,
+        HD<:AbstractPhysiologyParameters,
+        RE<:AbstractPhysiologyParameters,
+        ME<:AbstractPhysiologyParameters,
  } <: AbstractFunctionalTraits
     shape_pars::SP
     insulation_pars::IN

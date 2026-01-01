@@ -1,6 +1,6 @@
 
 """
-    ExternalConductionParameters <: AbstractMorphoParameters
+    ExternalConductionParameters <: AbstractMorphologyParameters
 
 Morphological parameters relating to conductive heat exchange with the external environment.
 
@@ -8,12 +8,12 @@ Morphological parameters relating to conductive heat exchange with the external 
 - `conduction_fraction::F` — Fraction of total surface area that is contacting the substrate (0–1).
 
 """
-Base.@kwdef struct ExternalConductionParameters{F} <: AbstractMorphoParameters
+Base.@kwdef struct ExternalConductionParameters{F} <: AbstractMorphologyParameters
     conduction_fraction::F =  Param(0.0, bounds=(0.0, 1.0))
 end
 
 """
-    InternalConductionParameters <: AbstractPhysioParameters
+    InternalConductionParameters <: AbstractPhysiologyParameters
 
 Morphological parameters relating to conductive heat flow within the organism.
 
@@ -23,7 +23,7 @@ Morphological parameters relating to conductive heat flow within the organism.
 - `k_fat::K` — Thermal conductivity of fat tissue (W/m/K).
 
 """
-Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF} <: AbstractPhysioParameters
+Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF} <: AbstractPhysiologyParameters
     fat_fraction::FF = Param(0.0, bounds=(0.0, 1.0))
     k_flesh::FL      = Param(0.9u"W/m/K")
     k_fat::FA        = Param(0.230u"W/m/K")
@@ -31,7 +31,7 @@ Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF} <: AbstractPhysioPa
 end
 
 """
-    ConvectionParameters <: AbstractMorphoParameters
+    ConvectionParameters <: AbstractMorphologyParameters
 
 Morphological parameters relating to convective heat exchange.
 
@@ -39,7 +39,7 @@ Morphological parameters relating to convective heat exchange.
 - `convection_area` — surface area involved in convection.
 
 """
-Base.@kwdef struct ConvectionParameters{A} <: AbstractMorphoParameters
+Base.@kwdef struct ConvectionParameters{A} <: AbstractMorphologyParameters
     convection_area::A = Param(0.0u"m^2")
 end
 
@@ -61,7 +61,7 @@ Morphological parameters relating to radiation exchange.
 
 """
 Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,
-  VF} <: AbstractMorphoParameters
+  VF} <: AbstractMorphologyParameters
     α_body_dorsal::AD     = Param(0.85, bounds=(0.0, 1.0))
     α_body_ventral::AV    = Param(0.85, bounds=(0.0, 1.0))
     ϵ_body_dorsal::ED     = Param(0.95, bounds=(0.0, 1.0))
@@ -78,7 +78,7 @@ Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,
 end
 
 """
-    EvaporationParameters <: AbstractMorphoParameters
+    EvaporationParameters <: AbstractMorphologyParameters
 
 Morphological parameters relating to cutaneous evaporation of the organism.
 
@@ -90,7 +90,7 @@ Morphological parameters relating to cutaneous evaporation of the organism.
 - `insulation_fraction::F` — Fraction of surface area covered by insulation (0–1).
 
 """
-Base.@kwdef struct EvaporationParameters{SW,IW,EF,BF,IF} <: AbstractMorphoParameters
+Base.@kwdef struct EvaporationParameters{SW,IW,EF,BF,IF} <: AbstractMorphologyParameters
     skin_wetness::SW        = Param(0.0, bounds=(0.0, 1.0))
     insulation_wetness::IW  = Param(1, bounds=(0.0, 1.0))  
     eye_fraction::EF        = Param(0.0, bounds=(0.0, 1.0))
@@ -99,7 +99,7 @@ Base.@kwdef struct EvaporationParameters{SW,IW,EF,BF,IF} <: AbstractMorphoParame
 end
 
 """
-    HydraulicParameters <: AbstractPhysioParameters
+    HydraulicParameters <: AbstractPhysiologyParameters
 
 Morphological parameters relating to radiation exchange.
 
@@ -111,14 +111,14 @@ Morphological parameters relating to radiation exchange.
   exchange with substrate if K_skin > 0
 
 """
-Base.@kwdef struct HydraulicParameters{WP,HC,SH} <: AbstractPhysioParameters
+Base.@kwdef struct HydraulicParameters{WP,HC,SH} <: AbstractPhysiologyParameters
     water_potential::WP       = Param(0.0u"J/kg", bounds=(-Inf, 0.0))
     hydraulic_conductance::HC = Param(0.0u"kg / (m^2 * s * (J/kg))", bounds=(0.0, Inf))
     specific_hydration::SH    = Param(0.000304u"m^3 / (m^3 * (J/kg))", bounds=(0.0, Inf))
 end
 
 """
-    RespirationParameters <: AbstractPhysioParameters
+    RespirationParameters <: AbstractPhysiologyParameters
 
 Physiological parameters relating to respiration of the organism.
 
@@ -131,7 +131,7 @@ Physiological parameters relating to respiration of the organism.
 
 These parameters influence radiative and evaporative exchange.
 """
-Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE} <: AbstractPhysioParameters
+Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE} <: AbstractPhysiologyParameters
     fO2_extract::OE = Param(0.2, bounds=(0.0, 1.0))
     pant::PA        = Param(1.0, bounds=(1.0, Inf))
     rq::RQ          = Param(0.8, bounds=(0.5, 1.2))
@@ -140,7 +140,7 @@ Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE} <: AbstractPhysioParame
 end
 
 """
-    InsulationPars(; kwargs...) <: AbstractMorphoParameters
+    InsulationPars(; kwargs...) <: AbstractMorphologyParameters
 
 Parameters describing the physical and optical properties of fur or other
 insulative pelage layers on an animal. These values control heat retention,
@@ -199,7 +199,7 @@ typical small-mammal pelage properties.
   allowing asymmetric fur properties.
 """
 Base.@kwdef struct InsulationParameters{ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,
-    FRD,FRV,IRD,IRV,IDC,FCN,LDF} <: AbstractMorphoParameters
+    FRD,FRV,IRD,IRV,IDC,FCN,LDF} <: AbstractMorphologyParameters
     insulation_conductivity_dorsal::ICD     = nothing
     insulation_conductivity_ventral::ICV    = nothing
     fibre_diameter_dorsal::FDD              = Param(30.0u"μm")
@@ -218,7 +218,7 @@ Base.@kwdef struct InsulationParameters{ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,
 end
 
 """
-    MetabolicParameters <: AbstractPhysioParameters
+    MetabolicParameters <: AbstractPhysiologyParameters
 
 A collection of physiological parameters relating to metabolic rate.
 
@@ -228,7 +228,7 @@ A collection of physiological parameters relating to metabolic rate.
 - `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
 
 """
-Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysioParameters
+Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysiologyParameters
     T_core::TC       = Param(37u"°C" |> u"K")
     Q_metabolism::QM = Param(0.0u"W")
     q10::QT          = Param(2.0)
