@@ -11,6 +11,7 @@ abstract type AbstractModelParameters end
 
 abstract type AbstractFunctionalTraits end
 
+#TODO fix types
 struct Traits{
         SP<:AbstractShape,
         IN<:AbstractMorphologyParameters,
