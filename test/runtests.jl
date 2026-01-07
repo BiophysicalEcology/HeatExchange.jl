@@ -1,6 +1,7 @@
 using HeatExchange
-using SafeTestsets
 using Aqua
+using SafeTestsets
+using Test
 
 @testset "Quality assurance" begin
     Aqua.test_unbound_args(HeatExchange)
