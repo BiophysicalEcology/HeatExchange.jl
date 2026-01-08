@@ -5,8 +5,6 @@ version = "0.1.0"
 
 [deps]
 BiophysicalGeometry = "06c61620-4f66-4020-a018-07befe374221"
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 FluidProperties = "d16f1b92-71d3-42f3-aafa-43e5bb0efda8"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
@@ -34,9 +32,10 @@ Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 BiophysicalGeometry = "06c61620-4f66-4020-a018-07befe374221"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "BiophysicalGeometry", "Roots", "SafeTestsets", "Test"]
+test = ["Aqua", "BiophysicalGeometry", "DataFrames", "DataStructures", "Roots", "SafeTestsets", "Test"]
