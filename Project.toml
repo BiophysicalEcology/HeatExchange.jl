@@ -16,16 +16,11 @@ FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/Fl
 BiophysicalGeometry = {rev = "endotherm-model", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
 
 [compat]
+Aqua = "0.8"
 BiophysicalGeometry = "0.1.0"
-CSV = "0.10"
+CSV = "0.10.15"
 DataFrames = "1"
 DataStructures = "0.18, 0.19"
-
-[compat]
-
-Aqua = "0.8"
-CSV = "0.10.15"
-DataFrames = "1.8.0"
 FluidProperties = "0.1.0"
 ModelParameters = "0.4"
 Roots = "2.2.7"
