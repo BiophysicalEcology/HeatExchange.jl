@@ -1,10 +1,9 @@
 module HeatExchange
 
-function __init__()\
-    Unitful.register(HeatExchange)
-end
+using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, 
+    enthalpy_of_vaporisation, water_properties, atmospheric_pressure
 
-using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, enthalpy_of_vaporisation, water_properties, atmospheric_pressure
+using FluidProperties: molCO₂, molH₂O, molO₂, molN₂
 
 using Unitful, UnitfulMoles, ModelParameters
 
@@ -33,10 +32,5 @@ include("environment.jl")
 include("organism.jl")
 include("biophysics.jl")
 include("heat_balance.jl")
-
-@compound H2O
-@compound O2
-@compound CO2
-@compound N2
 
 end
