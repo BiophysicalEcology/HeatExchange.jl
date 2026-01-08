@@ -20,9 +20,17 @@ BiophysicalGeometry = "0.1.0"
 CSV = "0.10"
 DataFrames = "1"
 DataStructures = "0.18, 0.19"
+
+[compat]
+
+Aqua = "0.8"
+CSV = "0.10.15"
+DataFrames = "1.8.0"
 FluidProperties = "0.1.0"
 ModelParameters = "0.4"
 Roots = "2.2.7"
+SafeTestsets = "0.1"
+Test = "1"
 Unitful = "1"
 UnitfulMoles = "0.1.1"
 julia = "1"

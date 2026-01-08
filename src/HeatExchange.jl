@@ -5,6 +5,10 @@ using Unitful, UnitfulMoles, ModelParameters, Roots
 using FluidProperties
 using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, 
     enthalpy_of_vaporisation, water_properties, atmospheric_pressure
+using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, 
+    enthalpy_of_vaporisation, water_properties, atmospheric_pressure
+
+using FluidProperties: molCO₂, molH₂O, molO₂, molN₂
 
 using BiophysicalGeometry
 using BiophysicalGeometry: AbstractBody, shape
