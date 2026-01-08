@@ -5,19 +5,24 @@ version = "0.1.0"
 
 [deps]
 FluidProperties = "d16f1b92-71d3-42f3-aafa-43e5bb0efda8"
-Microclimate = "fa5d2a79-de00-40ba-a9f4-ff140fbe07ba"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
+[sources]
+FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
+
 [compat]
+
+Aqua = "0.8"
 CSV = "0.10.15"
 DataFrames = "1.8.0"
 FluidProperties = "0.1.0"
-Microclimate = "0.1.0"
 ModelParameters = "0.4"
 Roots = "2.2.7"
+SafeTestsets = "0.1"
+Test = "1"
 Unitful = "1"
 UnitfulMoles = "0.1.1"
 julia = "1"
