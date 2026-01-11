@@ -13,7 +13,7 @@ using FluidProperties: molCO₂, molH₂O, molO₂, molN₂
 using BiophysicalGeometry
 using BiophysicalGeometry: AbstractBody, shape
 
-export Organism, Traits, EndoModelPars, BodyPars, InsulationParameters, ExternalConductionParameters,
+export Organism, Traits, EndoModelPars, InsulationParameters, ExternalConductionParameters,
   InternalConductionParameters, RadiationParameters, ConvectionParameters, EvaporationParameters, 
   HydraulicParameters, RespirationParameters, MetabolismParameters
 
@@ -22,19 +22,19 @@ export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 export body, traits, insulationpars, conductionpars_external, conductionpars_internal, 
   convectionpars, radiationpars, evaporationpars, hydraulicpars, respirationpars, metabolismpars
 
-export heat_balance, get_Tb
+export get_Tb
 
 export solar, radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced 
 
-export ectotherm, Tsurf_and_Tlung, respiration_ectotherm
+export ectotherm, Tsurf_and_Tlung
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
-export endotherm, solve_metabolic_rate, ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
+export solve_metabolic_rate, ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
-export simulsol, respiration_endotherm, mean_skin_temperature, respiration
+export simulsol, mean_skin_temperature, respiration
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
 
