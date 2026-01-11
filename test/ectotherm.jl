@@ -323,7 +323,7 @@ metabolism_pars = MetabolismParameters(;
     model = AndrewsPough2(),
 )
 
-traits = Traits(
+traits = HeatExchangeTraits(
     shape_pars,
     InsulationParameters(),
     conduction_pars_external,
