@@ -17,6 +17,7 @@ BiophysicalGeometry = {rev = "main", url = "https://github.com/BiophysicalEcolog
 
 [compat]
 Aqua = "0.8"
+BiophysicalGeometry  = "0.1"
 CSV = "0.10.15"
 DataFrames = "1"
 DataStructures = "0.18, 0.19"
