@@ -13,7 +13,7 @@ using FluidProperties: molCO₂, molH₂O, molO₂, molN₂
 using BiophysicalGeometry
 using BiophysicalGeometry: AbstractBody, shape
 
-export Organism, Traits, EndoModelPars, InsulationParameters, ExternalConductionParameters,
+export Organism, HeatExchangeTraits, EndoModelPars, InsulationParameters, ExternalConductionParameters,
   InternalConductionParameters, RadiationParameters, ConvectionParameters, EvaporationParameters, 
   HydraulicParameters, RespirationParameters, MetabolismParameters
 

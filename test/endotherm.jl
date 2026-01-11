@@ -155,7 +155,7 @@ for shape_number in 1:4
             longwave_depth_fraction=endo_input.XR,
         )
 
-        traits = Traits(
+        traits = HeatExchangeTraits(
             shape_pars,
             insulation_pars,
             conduction_pars_external,

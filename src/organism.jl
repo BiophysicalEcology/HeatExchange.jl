@@ -11,8 +11,19 @@ abstract type AbstractModelParameters end
 
 abstract type AbstractFunctionalTraits end
 
-#TODO fix types
-struct Traits{
+shapepars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
+insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
+conductionpars_external(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_external)
+conductionpars_internal(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_internal)
+convectionpars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
+radiationpars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
+evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
+hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
+respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
+metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
+
+# TODO more specific subtypes
+struct HeatExchangeTraits{
         SP<:AbstractShape,
         IN<:AbstractMorphologyParameters,
         CE<:AbstractMorphologyParameters,
@@ -49,17 +60,7 @@ traits(o::AbstractOrganism) = o.traits
 #shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
 #insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
 
-shapepars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
-insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
-conductionpars_external(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_external)
-conductionpars_internal(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_internal)
-convectionpars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
-radiationpars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
-evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
-hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
-respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
-metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
-
+# Forwarding methods from organism to traits
 shapepars(o::AbstractOrganism) = shapepars(traits(o))
 insulationpars(o::AbstractOrganism) = insulationpars(traits(o))
 conductionpars_external(o::AbstractOrganism) = conductionpars_external(traits(o))
