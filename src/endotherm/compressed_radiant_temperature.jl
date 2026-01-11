@@ -1,10 +1,11 @@
-compressed_radiant_temperature(; body::AbstractBody, insulation, insulation_pars, k_flesh, 
-    k_fat, T_core, T_substrate, cd, side) = 
-        compressed_radiant_temperature(shape(body), body, insulation, insulation_pars, k_flesh, 
-            k_fat, T_core, T_substrate, cd, side)
+compressed_radiant_temperature(; body::AbstractBody, insulation, insulation_pars, ks::ThermalConductivities,
+    T_core, T_substrate, cd, side) =
+        compressed_radiant_temperature(shape(body), body, insulation, insulation_pars, ks,
+            T_core, T_substrate, cd, side)
 
-function compressed_radiant_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars, k_flesh, 
-        k_fat, T_core, T_substrate, cd, side)
+function compressed_radiant_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars, ks::ThermalConductivities,
+        T_core, T_substrate, cd, side)
+    (; k_flesh, k_fat) = ks
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
     r_compressed = r_skin + insulation.insulation_depth_compressed
@@ -19,9 +20,9 @@ function compressed_radiant_temperature(shape::Union{Cylinder,Plate}, body, insu
     return (; cf1, T_ins_compressed)
 end
 
-function compressed_radiant_temperature(shape::Sphere, body, insulation, insulation_pars, k_flesh,
-        k_fat, T_core, T_substrate, cd, side)
-    
+function compressed_radiant_temperature(shape::Sphere, body, insulation, insulation_pars, ks::ThermalConductivities,
+        T_core, T_substrate, cd, side)
+    (; k_flesh, k_fat) = ks
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
     r_compressed = r_skin + insulation.insulation_depth_compressed
@@ -36,9 +37,9 @@ function compressed_radiant_temperature(shape::Sphere, body, insulation, insulat
     return (; cf1, T_ins_compressed)
 end
 
-function compressed_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars, k_flesh, 
-        k_fat, T_core, T_substrate, cd, side)
-
+function compressed_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars, ks::ThermalConductivities,
+        T_core, T_substrate, cd, side)
+    (; k_flesh, k_fat) = ks
     volume = flesh_volume(body)
     if side == 1
         insulation_depth = insulation_pars.insulation_depth_dorsal

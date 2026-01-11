@@ -1,16 +1,20 @@
-insulation_radiant_temperature(; body::AbstractBody, insulation, insulation_pars, T_core, 
-    T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc, cd,
-     k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, dv1,
-      dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction, side) = 
-      insulation_radiant_temperature(shape(body), body, insulation, insulation_pars, T_core,
-      T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc, cd,
-       k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, dv1,
-        dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction, side)
+insulation_radiant_temperature(; body::AbstractBody, insulation, insulation_pars, T_core,
+    T_ins_compressed, env_temps::EnvironmentTemperatures, area_convection, hc, cd,
+    k_insulation, Q_solar, Q_evap_insulation, Q_rads::RadiationCoeffs,
+    cds::ConductanceCoeffs, dvs::DivisorCoeffs, longwave_depth_fraction, conduction_fraction, side) =
+    insulation_radiant_temperature(shape(body), body, insulation, insulation_pars, T_core,
+        T_ins_compressed, env_temps, area_convection, hc, cd, k_insulation, Q_solar, Q_evap_insulation,
+        Q_rads, cds, dvs, longwave_depth_fraction, conduction_fraction, side)
         
 function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars,
-     T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc,
-      cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
-      dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction, side)
+    T_core, T_ins_compressed, env_temps::EnvironmentTemperatures, area_convection, hc,
+    cd, k_insulation, Q_solar, Q_evap_insulation, Q_rads::RadiationCoeffs,
+    cds::ConductanceCoeffs, dvs::DivisorCoeffs, longwave_depth_fraction, conduction_fraction, side)
+
+    (; T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate) = env_temps
+    (; cd1, cd2, cd3) = cds
+    (; dv1, dv2, dv3, dv4) = dvs
+    (; Q_rad1, Q_rad2, Q_rad3, Q_rad4) = Q_rads
 
     r_skin = skin_radius(body)
     r_insulation = insulation_radius(body)
@@ -50,9 +54,14 @@ function insulation_radiant_temperature(shape::Union{Cylinder,Plate}, body, insu
 end
 
 function insulation_radiant_temperature(shape::Sphere, body, insulation, insulation_pars,
-     T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, hc,
-      cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
-      dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction, side)
+    T_core, T_ins_compressed, env_temps::EnvironmentTemperatures, area_convection, hc,
+    cd, k_insulation, Q_solar, Q_evap_insulation, Q_rads::RadiationCoeffs,
+    cds::ConductanceCoeffs, dvs::DivisorCoeffs, longwave_depth_fraction, conduction_fraction, side)
+
+    (; T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate) = env_temps
+    (; cd1, cd2, cd3) = cds
+    (; dv1, dv2, dv3, dv4) = dvs
+    (; Q_rad1, Q_rad2, Q_rad3, Q_rad4) = Q_rads
 
     r_skin = skin_radius(body)
     r_insulation = insulation_radius(body)
@@ -88,11 +97,16 @@ function insulation_radiant_temperature(shape::Sphere, body, insulation, insulat
     return(; T_insulation_calc, T_radiant2)    
 end
 
-function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars, 
-    T_core, T_ins_compressed, T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate, area_convection, 
-    hc, cd, k_insulation, Q_solar, Q_evap_insulation, Q_rad1, Q_rad2, Q_rad3, Q_rad4, cd1, cd2, cd3, 
-    dv1, dv2, dv3, dv4, longwave_depth_fraction, conduction_fraction, side)
-    
+function insulation_radiant_temperature(shape::Ellipsoid, body, insulation, insulation_pars,
+    T_core, T_ins_compressed, env_temps::EnvironmentTemperatures, area_convection, hc,
+    cd, k_insulation, Q_solar, Q_evap_insulation, Q_rads::RadiationCoeffs,
+    cds::ConductanceCoeffs, dvs::DivisorCoeffs, longwave_depth_fraction, conduction_fraction, side)
+
+    (; T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate) = env_temps
+    (; cd1, cd2, cd3) = cds
+    (; dv1, dv2, dv3, dv4) = dvs
+    (; Q_rad1, Q_rad2, Q_rad3, Q_rad4) = Q_rads
+
     volume = flesh_volume(body)
 
     a_semi_major = body.geometry.length.a_semi_major_skin

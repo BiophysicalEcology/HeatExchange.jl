@@ -157,11 +157,11 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 rad.ventral_fraction,
                 conduction_fraction = cond_ex.conduction_fraction,
                 longwave_depth_fraction = ins.longwave_depth_fraction)
-        env_vars = (; 
-                F_sky,
-                F_ground,
-                F_bush,
-                F_vegetation,
+        view_factors = ViewFactors(F_sky, F_ground, F_bush, F_vegetation)
+        atmos = AtmosphericConditions(e_vars.rh, e_vars.wind_speed, e_vars.P_atmos)
+        env_vars = (;
+                view_factors,
+                atmos,
                 fluid = e_pars.fluid,
                 T_air = e_vars.T_air,
                 T_ground = e_vars.T_ground,
@@ -169,13 +169,8 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 T_vegetation,
                 T_sky = e_vars.T_sky,
                 T_substrate = e_vars.T_substrate,
-                rh = e_vars.rh,
-                wind_speed = e_vars.wind_speed,
-                P_atmos = e_vars.P_atmos,
-                Q_solar = Q_sol, 
-                fO2 = e_pars.fO2,
-                fCO2 = e_pars.fCO2,
-                fN2 = e_pars.fN2,
+                Q_solar = Q_sol,
+                gas = e_pars.gas,
                 convection_enhancement = e_pars.convection_enhancement,
                 )
         traits = (; 
@@ -217,8 +212,8 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     # zbrent and respfun
 
     # Now compute a weighted mean heat generation for all the parts/components = (dorsal value *(F_sky+F_vegetation))+(ventral value*F_ground)
-    gen_d = simulsol_out[1].Q_gen_net
-    gen_v = simulsol_out[2].Q_gen_net
+    gen_d = simulsol_out[1].fluxes.Q_gen_net
+    gen_v = simulsol_out[2].fluxes.Q_gen_net
     dmult = F_sky_ref + F_vegetation_ref
     vmult = 1 - dmult # assume that reflectivity of veg below equals reflectivity of soil so vmult left as 1 - dmult
     x = gen_d * dmult + gen_v * vmult # weighted estimate of metabolic heat generation
@@ -258,9 +253,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             T_air = e_vars.T_air,
             P_atmos = e_vars.P_atmos,                                
             rh = e_vars.rh,
-            fO2 = e_pars.fO2,
-            fN2 = e_pars.fN2,
-            fCO2 = e_pars.fCO2,                                
+            gas = e_pars.gas,
             O2conversion = Kleiber1961()
         ).balance
 
@@ -309,9 +302,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             T_air = e_vars.T_air,
             P_atmos = e_vars.P_atmos,
             rh = e_vars.rh,
-            fO2 = e_pars.fO2,
-            fN2 = e_pars.fN2,
-            fCO2 = e_pars.fCO2,
+            gas = e_pars.gas,
             O2conversion = Kleiber1961(),
         )
         Q_gen = respiration_out.Q_gen # Q_gen_net
@@ -324,24 +315,24 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     # simusol outputs
     T_insulation_dorsal = simulsol_out[1].T_insulation   # feather/fur-air interface temp (°C)
     T_skin_dorsal = simulsol_out[1].T_skin   # average skin temp
-    Q_convection_dorsal = simulsol_out[1].Q_convection   # convection (W)
-    Q_conduction_dorsal = simulsol_out[1].Q_conduction   # conduction (W)
-    Q_evap_skin_dorsal = simulsol_out[1].Q_evap_skin   # cutaneous evaporation (W)
-    Q_longwave_dorsal = simulsol_out[1].Q_longwave   # radiative loss (W)
-    Q_solar_dorsal = simulsol_out[1].Q_solar   # solar (W)
-    Q_evap_insulation_dorsal = simulsol_out[1].Q_evap_insulation  # fur evaporation (W)
+    Q_convection_dorsal = simulsol_out[1].fluxes.Q_convection   # convection (W)
+    Q_conduction_dorsal = simulsol_out[1].fluxes.Q_conduction   # conduction (W)
+    Q_evap_skin_dorsal = simulsol_out[1].fluxes.Q_evap_skin   # cutaneous evaporation (W)
+    Q_longwave_dorsal = simulsol_out[1].fluxes.Q_longwave   # radiative loss (W)
+    Q_solar_dorsal = simulsol_out[1].fluxes.Q_solar   # solar (W)
+    Q_evap_insulation_dorsal = simulsol_out[1].fluxes.Q_evap_insulation  # fur evaporation (W)
     ntry_dorsal = simulsol_out[1].ntry  # attempts
     success_dorsal = simulsol_out[1].success  # success?
     k_insulation_dorsal = simulsol_out[1].k_insulation  # fur conductivity? (same as FORTRAN)
 
     T_insulation_ventral = simulsol_out[2].T_insulation   # feather/fur-air interface temp (°C)
     T_skin_ventral = simulsol_out[2].T_skin   # average skin temp
-    Q_convection_ventral = simulsol_out[2].Q_convection   # convection (W)
-    Q_conduction_ventral = simulsol_out[2].Q_conduction   # conduction (W)
-    Q_evap_skin_ventral = simulsol_out[2].Q_evap_skin   # cutaneous evaporation (W)
-    Q_longwave_ventral = simulsol_out[2].Q_longwave   # radiative loss (W)
-    Q_solar_ventral = simulsol_out[2].Q_solar   # solar (W)
-    Q_evap_insulation_ventral = simulsol_out[2].Q_evap_insulation  # fur evaporation (W)
+    Q_convection_ventral = simulsol_out[2].fluxes.Q_convection   # convection (W)
+    Q_conduction_ventral = simulsol_out[2].fluxes.Q_conduction   # conduction (W)
+    Q_evap_skin_ventral = simulsol_out[2].fluxes.Q_evap_skin   # cutaneous evaporation (W)
+    Q_longwave_ventral = simulsol_out[2].fluxes.Q_longwave   # radiative loss (W)
+    Q_solar_ventral = simulsol_out[2].fluxes.Q_solar   # solar (W)
+    Q_evap_insulation_ventral = simulsol_out[2].fluxes.Q_evap_insulation  # fur evaporation (W)
     ntry_ventral = simulsol_out[2].ntry  # attempts
     success_ventral = simulsol_out[2].success  # success?
     k_insulation_ventral = simulsol_out[2].k_insulation  # fur conductivity? (same as FORTRAN)
@@ -352,16 +343,17 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         m_resp = respiration_out.m_resp
         V_air = respiration_out.V_air
         V_O2_STP = respiration_out.V_O2_STP
-        J_air_in = respiration_out.J_air_in
-        J_air_out = respiration_out.J_air_out
-        J_H2O_in = respiration_out.J_H2O_in
-        J_H2O_out = respiration_out.J_H2O_out
-        J_O2_in = respiration_out.J_O2_in
-        J_O2_out = respiration_out.J_O2_out
-        J_CO2_in = respiration_out.J_CO2_in
-        J_CO2_out = respiration_out.J_CO2_out
-        J_N2_in = respiration_out.J_N2_in
-        J_N2_out = respiration_out.J_N2_out
+        molar_fluxes = respiration_out.molar_fluxes
+        J_air_in = molar_fluxes.J_air_in
+        J_air_out = molar_fluxes.J_air_out
+        J_H2O_in = molar_fluxes.J_H2O_in
+        J_H2O_out = molar_fluxes.J_H2O_out
+        J_O2_in = molar_fluxes.J_O2_in
+        J_O2_out = molar_fluxes.J_O2_out
+        J_CO2_in = molar_fluxes.J_CO2_in
+        J_CO2_out = molar_fluxes.J_CO2_out
+        J_N2_in = molar_fluxes.J_N2_in
+        J_N2_out = molar_fluxes.J_N2_out
     else
         balance = nothing
         Q_resp = 0.0u"W"

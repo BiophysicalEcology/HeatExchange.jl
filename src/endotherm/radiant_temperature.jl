@@ -1,12 +1,15 @@
-radiant_temperature(; body::AbstractBody, insulation, insulation_pars, Q_evap, T_core, T_skin, 
- T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
- conduction_fraction, side) = radiant_temperature(shape(body), body, insulation, insulation_pars, 
- Q_evap, T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, 
- longwave_depth_fraction, conduction_fraction, side)
+radiant_temperature(; body::AbstractBody, insulation, insulation_pars, Q_evap, org_temps::OrganismTemperatures,
+    T_substrate, ks::ThermalConductivities, cd, longwave_depth_fraction,
+    conduction_fraction, side) = radiant_temperature(shape(body), body, insulation, insulation_pars,
+    Q_evap, org_temps, T_substrate, ks, cd,
+    longwave_depth_fraction, conduction_fraction, side)
 
-function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, insulation_pars, 
-    Q_evap, T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation,
-     cd, longwave_depth_fraction, conduction_fraction, side)
+function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, insulation_pars,
+    Q_evap, org_temps::OrganismTemperatures, T_substrate, ks::ThermalConductivities,
+    cd, longwave_depth_fraction, conduction_fraction, side)
+
+    (; T_core, T_skin, T_insulation) = org_temps
+    (; k_flesh, k_fat, k_insulation) = ks
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -51,12 +54,17 @@ function radiant_temperature(shape::Union{Cylinder, Plate}, body, insulation, in
         dv3 / dv4 + (T_ins_compressed * cd2) / dv4 + (T_insulation *
             ((k_insulation / log(r_insulation / r_radiation)) *
             (1 - conduction_fraction))) / dv4 : T_insulation
-    return (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4)
+    cds = ConductanceCoeffs(cd1, cd2, cd3)
+    dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
+    return (; T_radiant, T_ins_compressed, cds, dvs)
 end
 
-function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q_evap, T_core, T_skin,
-     T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, longwave_depth_fraction, 
-     conduction_fraction, side)
+function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q_evap, org_temps::OrganismTemperatures,
+    T_substrate, ks::ThermalConductivities, cd, longwave_depth_fraction,
+    conduction_fraction, side)
+
+    (; T_core, T_skin, T_insulation) = org_temps
+    (; k_flesh, k_fat, k_insulation) = ks
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -105,12 +113,17 @@ function radiant_temperature(shape::Sphere, body, insulation, insulation_pars, Q
         (T_insulation *
             ((k_insulation * r_insulation) / (r_insulation - r_radiation) *
             (1 - conduction_fraction))) / dv4 : T_insulation
-    return (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4)
+    cds = ConductanceCoeffs(cd1, cd2, cd3)
+    dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
+    return (; T_radiant, T_ins_compressed, cds, dvs)
 end
 
 function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_evap,
-     T_core, T_skin, T_substrate, T_insulation, k_flesh, k_fat, k_insulation, cd, 
-      longwave_depth_fraction, conduction_fraction, side)
+    org_temps::OrganismTemperatures, T_substrate, ks::ThermalConductivities, cd,
+    longwave_depth_fraction, conduction_fraction, side)
+
+    (; T_core, T_skin, T_insulation) = org_temps
+    (; k_flesh, k_fat, k_insulation) = ks
 
     volume = flesh_volume(body)
    
@@ -165,5 +178,7 @@ function radiant_temperature(::Ellipsoid, body, insulation, insulation_pars, Q_e
     T_radiant = longwave_depth_fraction < 1 ?
         dv3 / dv4 + (T_ins_compressed * cd2) / dv4 + (T_insulation *
             ((k_insulation * bl) / (bl - br) * (1 - conduction_fraction))) / dv4 : T_insulation
-    return (; T_radiant, T_ins_compressed, cd1, cd2, cd3, dv1, dv2, dv3, dv4)
+    cds = ConductanceCoeffs(cd1, cd2, cd3)
+    dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
+    return (; T_radiant, T_ins_compressed, cds, dvs)
 end

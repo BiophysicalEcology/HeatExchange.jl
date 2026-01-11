@@ -8,9 +8,7 @@ env_pars = EnvironmentalPars(
     ϵ_sky = 1.0,
     elevation = 0.0u"m",
     fluid = 0,
-    fN2 = 0.79,
-    fO2 = 0.2095,
-    fCO2 = 0.0003,
+    gas = GasFractions(0.2095, 0.0003, 0.79),
 )
 env_params = Model(env_pars)
 env_pars = stripparams(env_params)

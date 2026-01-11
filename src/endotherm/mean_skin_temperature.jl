@@ -1,9 +1,11 @@
-mean_skin_temperature(; body::AbstractBody, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, 
-    k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction) = 
-        mean_skin_temperature(shape(body), body, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, 
-            k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction)
+mean_skin_temperature(; body::AbstractBody, insulation, insulation_pars, Q_env, Q_evap_skin,
+    ks::ThermalConductivities, T_core, T_insulation_calc, T_ins_compressed, cds::ConductanceCoeffs, conduction_fraction) =
+        mean_skin_temperature(shape(body), body, insulation, insulation_pars, Q_env, Q_evap_skin,
+            ks, T_core, T_insulation_calc, T_ins_compressed, cds, conduction_fraction)
 
-function mean_skin_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction)
+function mean_skin_temperature(shape::Union{Cylinder,Plate}, body, insulation, insulation_pars, Q_env, Q_evap_skin, ks::ThermalConductivities, T_core, T_insulation_calc, T_ins_compressed, cds::ConductanceCoeffs, conduction_fraction)
+    (; k_flesh, k_fat) = ks
+    (; cd1, cd2, cd3) = cds
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
@@ -23,8 +25,10 @@ function mean_skin_temperature(shape::Union{Cylinder,Plate}, body, insulation, i
     return (; T_skin_mean, T_skin_calc1)
 end
 
-function mean_skin_temperature(shape::Sphere, body, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, 
-        k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction)
+function mean_skin_temperature(shape::Sphere, body, insulation, insulation_pars, Q_env, Q_evap_skin,
+        ks::ThermalConductivities, T_core, T_insulation_calc, T_ins_compressed, cds::ConductanceCoeffs, conduction_fraction)
+    (; k_flesh, k_fat) = ks
+    (; cd1, cd2, cd3) = cds
     k_compressed = insulation.insulation_conductivity_compressed
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -44,8 +48,10 @@ function mean_skin_temperature(shape::Sphere, body, insulation, insulation_pars,
     return (; T_skin_mean, T_skin_calc1)
 end
 
-function mean_skin_temperature(shape::Ellipsoid, body, insulation, insulation_pars, Q_env, Q_evap_skin, k_flesh, 
-        k_fat, T_core, T_insulation_calc, T_ins_compressed, cd1, cd2, cd3, conduction_fraction)
+function mean_skin_temperature(shape::Ellipsoid, body, insulation, insulation_pars, Q_env, Q_evap_skin,
+        ks::ThermalConductivities, T_core, T_insulation_calc, T_ins_compressed, cds::ConductanceCoeffs, conduction_fraction)
+    (; k_flesh, k_fat) = ks
+    (; cd1, cd2, cd3) = cds
     volume = flesh_volume(body)
     k_compressed = insulation.insulation_conductivity_compressed
     a_semi_major = body.geometry.length.a_semi_major_skin

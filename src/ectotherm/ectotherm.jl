@@ -50,12 +50,10 @@ function ectotherm(T_x, insulation::Naked, o, e)
         mass = o.body.shape.mass,
         T_air_exit = T_x,
         rh_exit = resp.rh_exit,         
-        T_air = e_vars.T_air, 
-        rh = e_vars.rh, 
-        P_atmos = e_vars.P_atmos, 
-        fO2 = e_pars.fO2, 
-        fCO2 = e_pars.fCO2, 
-        fN2 = e_pars.fN2,
+        T_air = e_vars.T_air,
+        rh = e_vars.rh,
+        P_atmos = e_vars.P_atmos,
+        gas = e_pars.gas,
         )
     Q_resp = resp_out.Q_resp
     V_O2 = u"ml/hr"(Joules_to_O2(Q_metab))
@@ -136,10 +134,8 @@ function ectotherm(T_x, insulation::Naked, o, e)
         T_surface, 
         wind_speed = e_vars.wind_speed, 
         P_atmos = e_vars.P_atmos, 
-        fluid = e_pars.fluid, 
-        fO2 = e_pars.fO2, 
-        fCO2 = e_pars.fCO2, 
-        fN2 = e_pars.fN2, 
+        fluid = e_pars.fluid,
+        gas = e_pars.gas,
         convection_enhancement = e_pars.convection_enhancement,
         )
     Q_conv = conv_out.Q_conv
@@ -155,11 +151,9 @@ function ectotherm(T_x, insulation::Naked, o, e)
         eye_fraction = evap.eye_fraction, 
         bare_fraction = 1.0, 
         T_air = e_vars.T_air,
-        rh = e_vars.rh, 
-        P_atmos = e_vars.P_atmos, 
-        fO2 = e_pars.fO2, 
-        fCO2 = e_pars.fCO2, 
-        fN2 = e_pars.fN2,
+        rh = e_vars.rh,
+        P_atmos = e_vars.P_atmos,
+        gas = e_pars.gas,
         )
     Q_evap = evap_out.Q_evap
 
