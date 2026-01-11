@@ -3,20 +3,22 @@ abstract type AbstractEnvironmentalPars end
 """
     EnvironmentalParamsMorphoPars
 
-    EnvironmentalParams(α_sub, ϵ_sub, ϵ_sky, elev, fluid, fN2, fO2, fCO2)
+    EnvironmentalParams(α_ground, ϵ_ground, ϵ_sky, elevation, fluid, fN2, fO2, fCO2)
     EnvironmentalParams(; kw...)
 
 Environmental parameters for an organism model.
 """
-Base.@kwdef struct EnvironmentalPars{A,E,L,F} <: AbstractEnvironmentalPars
-    α_sub::A = Param(0.8, bounds=(0.0, 1.0))
-    ϵ_sub::A = Param(1.0, bounds=(0.2, 1.0))
-    ϵ_sky::A = Param(1.0, bounds=(0.2, 1.0))
-    elev::E = Param(0.0, units=u"m")
-    fluid::L = Param(0)
-    fN2::F = Param(0.79)
-    fO2::F = Param(0.2095)
-    fCO2::F = Param(0.0003)
+Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,FN,FO,FC,CE,CD} <: AbstractEnvironmentalPars
+    α_ground::AG = Param(0.2, bounds=(0.0, 1.0))
+    ϵ_ground::EG = Param(1.0, bounds=(0.0, 1.0))
+    ϵ_sky::ES = Param(1.0, bounds=(0.0, 1.0))
+    elevation::EL = Param(0.0, units=u"m")
+    fluid::FL = Param(0)
+    fN2::FN = Param(0.7902)
+    fO2::FO = Param(0.2095)
+    fCO2::FC = Param(0.0003)
+    convection_enhancement::CE = Param(1.0)
+    conduction_depth::CD = Param(2.5u"cm", bounds=(0.0, 200.0))
 end
 
 abstract type AbstractEnvironmentalVars end
@@ -24,35 +26,45 @@ abstract type AbstractEnvironmentalVars end
 """
     EnvironmentalVars <: AbstractEnvironmentalVars
 
-    EnvironmentalVars(T_air, T_sky, T_sub, rh, vel, P_atmos, zen, k_sub, Q_sol, Q_dir, Q_dif)
+    EnvironmentalVars(T_air, T_sky, T_sub, rh, wind_speed, P_atmos, zenith_angle, k_substrate, global_solar_radiation, diffuse_fraction)
     EnvironmentalVars(; kw...)
 
 Environmental variables for an organism model.
 """
-Base.@kwdef struct EnvironmentalVars{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
-    T_air::T = (273.15+20.0)K
-    T_sky::T = (273.15-5.0)K
-    T_sub::T = (273.15+30.0)K
-    rh::R = 5.0
-    vel::V = 1.0m/s
-    P_atmos::P = 101325.0Pa
-    zen::Z = 20.0°
-    k_sub::K = 0.5W/m/K
-    Q_sol::Q = 1000.0W/m^2
-    Q_dir::Q = 964.177772475912W/m^2
-    Q_dif::Q = 100.0W/m^2
+Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,
+        WS,PA,ZA,KS,GR,FD,SD} <: AbstractEnvironmentalVars
+    T_air::TA
+    T_air_reference::TR = T_air
+    T_sky::TU
+    T_ground::TD
+    T_substrate::TS
+    T_bush::TB = T_air
+    T_vegetation::TV = T_air
+    rh::RH
+    wind_speed::WS
+    P_atmos::PA
+    zenith_angle::ZA
+    k_substrate::KS
+    global_radiation::GR
+    diffuse_fraction::FD
+    shade::SD
 end
 
-Base.@kwdef struct EnvironmentalVarsVec{T,R,V,P,Z,K,Q} <: AbstractEnvironmentalVars
-    T_air::Matrix{T}# = hcat(vcat((collect(15.0:5.0:35.0).+273.15).*1.0K))
-    T_sky::Vector{T}# = fill((273.15-5.0)K, length(T_air))
-    T_sub::Matrix{T}# = hcat(vcat(fill((273.15+30.0)K, length(T_air))))
-    rh::Matrix{R}# = hcat(vcat(fill(5.0, length(T_air))))
-    vel::Matrix{V}# = hcat(vcat(fill(1.0m/s, length(T_air))))
-    P_atmos::Vector{P}# = fill(101325.0Pa, length(T_air))
-    zen::Vector{Z}# = fill(20.0°, length(T_air))
-    k_sub::Matrix{K}# = hcat(vcat(fill(0.5W/m/K, length(T_air))))
-    Q_sol::Vector{Q}# = fill(1000.0W/m^2, length(T_air))
-    Q_dir::Vector{Q}# = fill(964.177772475912W/m^2, length(T_air))
-    Q_dif::Vector{Q}# = fill(100.0W/m^2, length(T_air))
+Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,
+        WS,PA,ZA,KS,GR,FD,SD} <: AbstractEnvironmentalVars
+    T_air::Vector{TA}
+    T_air_reference::Vector{TR} = T_air
+    T_sky::Vector{TU}
+    T_ground::Vector{TD}
+    T_substrate::Vector{TS}
+    T_bush::Vector{TB} = T_air
+    T_vegetation::Vector{TV} = T_air
+    rh::Vector{RH}
+    wind_speed::Vector{WS}
+    P_atmos::Vector{PA}
+    zenith_angle::Vector{ZA}
+    k_substrate::Vector{KS}
+    global_radiation::Vector{GR}
+    diffuse_fraction::Vector{FD}
+    shade::Vector{SD}
 end

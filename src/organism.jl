@@ -1,71 +1,39 @@
-abstract type AbstractPhysioModel end
+abstract type AbstractPhysiologyModel end
+
+abstract type MetabolicRateEquation <: AbstractPhysiologyModel end
+abstract type OxygenJoulesConversion <: AbstractPhysiologyModel end
         
-abstract type AbstractPhysioParameters end
+abstract type AbstractPhysiologyParameters end
+
+abstract type AbstractMorphologyParameters end
         
-abstract type AbstractPhysioThresholds end
+abstract type AbstractModelParameters end
 
-# """
-#     AbstractFunctionalTraits 
+abstract type AbstractFunctionalTraits end
 
-# An abstract super type for organism functional traits.
-# """
-# abstract type AbstractFunctionalTraits end
-
-# """
-#     FunctionalTraits <: AbstractFunctionalTraits
-
-# A collection of functional traits for an organism.
-# """
-# Base.@kwdef struct FunctionalTraits{F,K,M,B} <: AbstractFunctionalTraits
-#     α_org_dorsal::F = Param(0.85, bounds=(0.2, 1.0))
-#     α_org_ventral::F = Param(0.85, bounds=(0.2, 1.0))
-#     ϵ_org_dorsal::F = Param(0.95, bounds=(0.1, 1.0))
-#     ϵ_org_ventral::F = Param(0.95, bounds=(0.1, 1.0))
-#     F_sky::F = Param(0.4, bounds=(0.3, 0.5))
-#     F_sub::F = Param(0.4, bounds=(0.3, 0.5))
-#     p_eyes::F = Param(0.0, bounds=(0.0, 4e-4))
-#     fO2_extract::F = Param(0.20, bounds=(0.10, 0.30))
-#     k_body::K = Param(0.5, bounds=(0.412, 2.8), units=u"W/m/K")
-#     rq::F = Param(0.8, bounds=(0.7, 0.9))
-#     M1::M = Param(0.013, bounds=(0.01, 0.02))
-#     M2::M = Param(0.8, bounds=(0.7, 0.9))
-#     M3::M = Param(0.038, bounds=(0.02, 0.04))
-#     p_wet::F = Param(0.001, bounds=(0.0, 1.0))
-#     p_cond::F = Param(0.1, bounds=(0.0, 1.0))
-#     pant::B = Param(1.0, bounds=(1.0, 10.0))
-# end
-
-
-"""
-    MorphoPars <: AbstractParameterTrait
-
-A collection of morphological parameter functional traits for an organism.
-"""
-Base.@kwdef struct MorphoPars{F,K} <: AbstractMorphoParameters
-    α_org_dorsal::F = Param(0.85, bounds=(0.2, 1.0))
-    α_org_ventral::F = Param(0.85, bounds=(0.2, 1.0))
-    ϵ_org_dorsal::F = Param(0.95, bounds=(0.1, 1.0))
-    ϵ_org_ventral::F = Param(0.95, bounds=(0.1, 1.0))
-    F_sky::F = Param(0.4, bounds=(0.3, 0.5))
-    F_sub::F = Param(0.4, bounds=(0.3, 0.5))
-    k_body::K = Param(0.5, bounds=(0.412, 2.8), units=u"W/m/K")
-    p_eyes::F = Param(0.0, bounds=(0.0, 4e-4))
-    p_wet::F = Param(0.001, bounds=(0.0, 1.0))
-    p_cond::F = Param(0.1, bounds=(0.0, 1.0))
-end
-
-"""
-    PhysioPars <: AbstractParameterTrait
-
-A collection of physiological parameter functional traits for an organism.
-"""
-Base.@kwdef struct PhysioPars{F,M,B} <: AbstractPhysioParameters
-    fO2_extract::F = Param(0.20, bounds=(0.10, 0.30))
-    rq::F = Param(0.8, bounds=(0.7, 0.9))
-    M1::M = Param(0.013, bounds=(0.01, 0.02))
-    M2::M = Param(0.8, bounds=(0.7, 0.9))
-    M3::M = Param(0.038, bounds=(0.02, 0.04))
-    pant::B = Param(1.0, bounds=(1.0, 10.0))
+#TODO fix types
+struct Traits{
+        SP<:AbstractShape,
+        IN<:AbstractMorphologyParameters,
+        CE<:AbstractMorphologyParameters,
+        CI<:AbstractPhysiologyParameters,
+        RA<:AbstractMorphologyParameters,
+        CO<:AbstractMorphologyParameters,
+        EV<:AbstractMorphologyParameters,
+        HD<:AbstractPhysiologyParameters,
+        RE<:AbstractPhysiologyParameters,
+        ME<:AbstractPhysiologyParameters,
+ } <: AbstractFunctionalTraits
+    shape_pars::SP
+    insulation_pars::IN
+    conduction_pars_external::CE
+    conduction_pars_internal::CI
+    radiation_pars::RA
+    convection_pars::CO
+    evaporation_pars::EV
+    hydraulic_pars::HD
+    respiration_pars::RE
+    metabolism_pars::ME
 end
 
 """
@@ -77,10 +45,31 @@ abstract type AbstractOrganism end
 
 # With some generic methods to get the params and body
 body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
-morphopars(o::AbstractOrganism) = o.morphopars # gets the morphological parameter traits from an object of type AbstractOrganism
-physiopars(o::AbstractOrganism) = o.physiopars # gets the physioloigcal parameter traits from an object of type AbstractOrganism
-shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
-insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
+traits(o::AbstractOrganism) = o.traits
+#shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
+#insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
+
+shapepars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
+insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
+conductionpars_external(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_external)
+conductionpars_internal(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_internal)
+convectionpars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
+radiationpars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
+evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
+hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
+respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
+metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
+
+shapepars(o::AbstractOrganism) = shapepars(traits(o))
+insulationpars(o::AbstractOrganism) = insulationpars(traits(o))
+conductionpars_external(o::AbstractOrganism) = conductionpars_external(traits(o))
+conductionpars_internal(o::AbstractOrganism) = conductionpars_internal(traits(o))
+convectionpars(o::AbstractOrganism) = convectionpars(traits(o))
+radiationpars(o::AbstractOrganism) = radiationpars(traits(o))
+evaporationpars(o::AbstractOrganism) = evaporationpars(traits(o))
+hydraulicpars(o::AbstractOrganism) = hydraulicpars(traits(o))
+respirationpars(o::AbstractOrganism) = respirationpars(traits(o))
+metabolismpars(o::AbstractOrganism) = metabolismpars(traits(o))
 
 """
     Organism <: AbstractOrganism
@@ -90,12 +79,14 @@ insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from
 A concrete implementation of `AbstractOrganism`, it accepts an
 [`AbstractBody`](@ref) and [`AbstractFunctionalTraits`](@ref) object.
 """
-struct Organism{B<:Body,M<:AbstractMorphoParameters,P<:AbstractPhysioParameters} <: AbstractOrganism
+struct Organism{
+        B<:AbstractBody,
+        T<:AbstractFunctionalTraits} <: AbstractOrganism
     body::B
-    morphopars::M
-    physiopars::P
+    traits::T
 end
 
+# TODO use this as a container for outputs? Or remove?
 """
     AbstractOrganismalVars
 
@@ -106,11 +97,14 @@ abstract type AbstractOrganismalVars end
 """
     OrganismalVars <: AbstractOrganismalVars
 
+    - `ψ_org` — Body water potential (determines humidity at skin surface 
+    and liquid water exchange) (J/kg).
 Variables for an [`AbstractOrganism`](@ref) model.
 """
-Base.@kwdef mutable struct OrganismalVars{T,P} <: AbstractOrganismalVars
-    T_core::T = K(20°C)
-    T_surf::T = K(20°C)
-    T_lung::T = K(20°C)
-    ψ_org::P = -707J/kg
+Base.@kwdef mutable struct OrganismalVars{TC,TS,TI,TL,P} <: AbstractOrganismalVars
+    T_core::TC
+    T_skin::TS
+    T_insulation::TI = T_core
+    T_lung::TL
+    ψ_org::P
 end

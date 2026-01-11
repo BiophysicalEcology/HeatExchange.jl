@@ -1,36 +1,68 @@
 module HeatExchange
 
+using Unitful, UnitfulMoles, ModelParameters, Roots
+
+using FluidProperties
+using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, 
+    enthalpy_of_vaporisation, water_properties, atmospheric_pressure
 using FluidProperties: wet_air_properties, dry_air_properties, vapour_pressure, 
     enthalpy_of_vaporisation, water_properties, atmospheric_pressure
 
 using FluidProperties: molCO₂, molH₂O, molO₂, molN₂
 
-using Unitful, UnitfulMoles, ModelParameters
+using BiophysicalGeometry
+using BiophysicalGeometry: AbstractBody, shape
 
-using Unitful: °, rad, °C, K, Pa, kPa, MPa, J, kJ, W, L, g, kg, cm, m, s, hr, d, mol, mmol, μmol, σ, R
-
-export Shape, Cylinder, Ellipsoid, Plate, LeopardFrog, DesertIguana 
-
-export Body
-
-export Insulation, Naked, Fur
-
-export Organism, MorphoPars, PhysioPars, OrganismalVars
+export Organism, Traits, EndoModelPars, InsulationParameters, ExternalConductionParameters,
+  InternalConductionParameters, RadiationParameters, ConvectionParameters, EvaporationParameters, 
+  HydraulicParameters, RespirationParameters, MetabolismParameters
 
 export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
-export calc_area, calc_silhouette_area
+export body, traits, insulationpars, conductionpars_external, conductionpars_internal, 
+  convectionpars, radiationpars, evaporationpars, hydraulicpars, respirationpars, metabolismpars
 
-export geometry, shape, insulation
+export get_Tb
 
-export heat_balance, get_Tb, flip2vectors
+export solar, radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced 
 
-export metabolism, respiration, solar, radin, radout, evaporation, conduction, convection, get_nusselt_free, get_nusselt_forced, get_Tsurf_Tlung
+export ectotherm, Tsurf_and_Tlung
 
-include("geometry.jl")
-include("environment.jl")
+export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
+
+export solve_metabolic_rate, ellipsoid_endotherm, update_T_insulation!, solve_with_insulation!, solve_without_insulation!
+
+export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
+
+export simulsol, mean_skin_temperature, respiration
+
+export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
+
+export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
+
 include("organism.jl")
+include("traits.jl")
+include("environment.jl")
+
 include("biophysics.jl")
-include("heat_balance.jl")
+include("metabolism.jl")
+include("respiration.jl")
+include("insulation.jl")
+
+include("ectotherm/lung_and_surface_temperature.jl")
+include("ectotherm/ectotherm.jl")
+
+include("endotherm/ellipsoid_model.jl")
+include("endotherm/radiant_temperature.jl")
+include("endotherm/insulation_radiant_temperature.jl")
+include("endotherm/compressed_radiant_temperature.jl")
+include("endotherm/mean_skin_temperature.jl")
+include("endotherm/net_metabolic_heat.jl")
+include("endotherm/skin_and_insulation_temperature.jl")
+include("endotherm/endotherm.jl")
+
+# function __init__()\
+#     Unitful.register(HeatExchange)
+# end
 
 end

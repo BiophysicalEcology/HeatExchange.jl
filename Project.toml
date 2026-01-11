@@ -4,6 +4,7 @@ authors = ["Michael Kearney, Urtzi Enriquez Urzelai and Rafael Schouten"]
 version = "0.1.0"
 
 [deps]
+BiophysicalGeometry = "06c61620-4f66-4020-a018-07befe374221"
 FluidProperties = "d16f1b92-71d3-42f3-aafa-43e5bb0efda8"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
@@ -12,12 +13,14 @@ UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [sources]
 FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
+BiophysicalGeometry = {rev = "main", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
 
 [compat]
-
 Aqua = "0.8"
+BiophysicalGeometry  = "0.1"
 CSV = "0.10.15"
-DataFrames = "1.8.0"
+DataFrames = "1"
+DataStructures = "0.18, 0.19"
 FluidProperties = "0.1.0"
 ModelParameters = "0.4"
 Roots = "2.2.7"
@@ -31,9 +34,10 @@ julia = "1"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "Roots", "SafeTestsets", "Test"]
+test = ["Aqua", "CSV", "DataFrames", "DataStructures", "Roots", "SafeTestsets", "Test"]
