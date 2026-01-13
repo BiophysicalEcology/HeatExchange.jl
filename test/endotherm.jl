@@ -252,7 +252,7 @@ for shape_number in 1:4
 
         environment = (; environment_pars, environment_vars)
 
-        model_pars = EndoModelPars(;
+        options = EndothermMetabolicRateOptions(;
             respire=Bool(endo_input.RESPIRE),
             simulsol_tolerance=(endo_input.DIFTOL)u"K",
             resp_tolerance=endo_input.BRENTOL,
@@ -263,7 +263,7 @@ for shape_number in 1:4
         T_insulation = u"K"((endo_input.TFA)u"°C")
 
         endotherm_out = solve_metabolic_rate(
-            T_skin, T_insulation, mammal, environment, model_pars
+            T_skin, T_insulation, mammal, environment, options
         )
 
         thermoregulation = endotherm_out.thermoregulation
