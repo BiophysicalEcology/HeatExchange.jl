@@ -93,22 +93,6 @@ struct OrganismTemperatures{T1,T2,T3}
 end
 
 """
-    GasFractions
-
-Atmospheric gas composition fractions.
-
-# Fields
-- `fO2` — Oxygen fraction
-- `fCO2` — Carbon dioxide fraction
-- `fN2` — Nitrogen fraction
-"""
-@kwdef struct GasFractions{T1,T2,T3}
-    fO2::T1 = 0.2095
-    fCO2::T2 = 0.0004
-    fN2::T3 = 0.7901
-end
-
-"""
     ViewFactors{T1,T2,T3,T4}
 
 View factors to environmental surfaces for radiation exchange.

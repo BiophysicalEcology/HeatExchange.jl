@@ -14,7 +14,7 @@ Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,G,CE,CD} <: AbstractEnvironm
     ϵ_sky::ES = Param(1.0, bounds=(0.0, 1.0))
     elevation::EL = Param(0.0, units=u"m")
     fluid::FL = Param(0)
-    gas::G = GasFractions()
+    gasfrac::G = GasFractions()
     convection_enhancement::CE = Param(1.0)
     conduction_depth::CD = Param(2.5u"cm", bounds=(0.0, 200.0))
 end

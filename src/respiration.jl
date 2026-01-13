@@ -1,9 +1,9 @@
 """
-    respiration_ectotherm(; kw...)
-    respiration_ectotherm(T_lung, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2) 
+    respiration(; kw...)
+    respiration(T_lung, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, gasfrac)
 
-Computes respiratory heat and water loss via mass flow through the lungs 
-given gas concentrations, pressure, respiration rate and humidity for an ectotherm.
+Computes respiratory heat and water loss via mass flow through the lungs
+given gas concentrations, pressure, respiration rate and humidity.
 
 # Keywords
 - `T_lung`: current core temperature guess, K
@@ -15,34 +15,32 @@ given gas concentrations, pressure, respiration rate and humidity for an ectothe
 - `rh`: relative humidity, fractional
 - `elevation`: elevation, m
 - `P_atmos`: barometric pressure, Pa
-- `fO2`: fractional O2 concentration in atmosphere, -
-- `fCO2`: fractional CO2 concentration in atmosphere, -
-- `fN2`: fractional N2 concentration in atmosphere, -
+- `gasfrac`: GasFractions with O2, CO2, N2 concentrations
 - `O2conversion`: model to be used to convert O2 to Watts
 """
 function respiration(;
     Q_metab,
-    Q_sum = Q_metab,
-    Q_min = Q_metab,
+    Q_sum=Q_metab,
+    Q_min=Q_metab,
     T_lung,
-    fO2_extract = 0.2,
-    pant = 1.0,
-    rq = 0.8,
+    fO2_extract=0.2,
+    pant=1.0,
+    rq=0.8,
     mass,
-    T_air_exit = T_lung,
-    rh_exit = 1.0,
+    T_air_exit=T_lung,
+    rh_exit=1.0,
     T_air,
     rh,
-    P_atmos = 101325u"Pa",
-    gas::GasFractions = GasFractions(),
+    P_atmos=101325u"Pa",
+    gasfrac::GasFractions=GasFractions(),
     O2conversion::OxygenJoulesConversion=Typical(),
 )
     return respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit,
-        rh_exit, T_air, rh, P_atmos, gas, O2conversion)
+        rh_exit, T_air, rh, P_atmos, gasfrac, O2conversion)
 end
 function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit,
-        rh_exit, T_air, rh, P_atmos, gas, O2conversion)
-    (; fO2, fCO2, fN2) = gas
+        rh_exit, T_air, rh, P_atmos, gasfrac, O2conversion)
+    (; fO2, fCO2, fN2) = gasfrac
     # adjust O2 to ensure sum to 1
     if fO2 + fCO2 + fN2 != 1
         fO2 = 1 - (fN2 + fCO2)
@@ -66,7 +64,7 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
     J_CO2_in = P_atmos * V_CO2 / (Unitful.R * T_lung)
     J_air_in = (J_O2_in + J_N2_in + J_CO2_in) * pant
     V_air = uconvert(u"m^3/s", (J_air_in * Unitful.R * 273.15u"K" / 101325u"Pa")) # air volume @ stp (m3/s)
-    # computing the vapor pressure at saturation for the subsequent calculation of 
+    # computing the vapor pressure at saturation for the subsequent calculation of
     # actual moles of water based on actual relative humidity
     P_vap_sat = vapour_pressure(T_air)
     J_H2O_in = J_air_in * (P_vap_sat * rh) / (P_atmos - P_vap_sat * rh)
@@ -74,17 +72,13 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
     J_O2_out = J_O2_in - J_O2 # remove consumed oxygen from the total
     J_N2_out = J_N2_in
     J_CO2_out = rq * J_O2 + J_CO2_in
-    # total moles of air at exit will be approximately the same as at entrance, since 
+    # total moles of air at exit will be approximately the same as at entrance, since
     # the moles of O2 removed = approx. the # moles of co2 added
     J_air_out = (J_O2_out + J_N2_out + J_CO2_out) * pant
     # assuming saturated air at exit
     P_vap_exit = vapour_pressure(T_air_exit)
-    #wet_air_out = wet_air_properties(T_air_exit, rh_exit, P_atmos; fO2, fCO2, fN2)
-    #P_vap_exit = wet_air_out.P_vap
     J_H2O_out = J_air_out * (P_vap_exit / (P_atmos - P_vap_exit))
-    #P_vap_sat = vapour_pressure(T_lung)
-    #J_H2O_out = J_air_out * (P_vap_sat / (P_atmos - P_vap_sat))
-    # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume 
+    # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume
     # P,T,V constant, so not significant flow energy, PV. (H = U + PV)
 
     # moles/s lost by breathing:
@@ -107,22 +101,19 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
     m_resp = min(m_resp, (2.22E-03 * ustrip(u"kg", mass) * 15)u"g/s")
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
-    #L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(T_lung) - 273.15))J / kg # from wet_air_properties
     L_v = enthalpy_of_vaporisation(T_lung)
     # heat loss by breathing (J/s)=(J/kg)*(kg/s)
     Q_resp = uconvert(u"W", L_v * m_resp)
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
     L_v = enthalpy_of_vaporisation(T_lung)
-    #L_v = (2.5012e6 - 2.3787e3 * (Unitful.ustrip(u"°C",  T_lung)))u"J/kg" # from wet_air_properties
-    # heat loss by breathing (J/s)=(J/kg)*(kg/s)
-    (; M_a) = dry_air_properties(T_air, P_atmos)
-    (; c_p) = wet_air_properties(T_air, rh, P_atmos; fO2, fCO2, fN2)
+    (; M_a) = dry_air_properties(T_air, P_atmos; gasfrac)
+    (; c_p) = wet_air_properties(T_air, rh, P_atmos; gasfrac)
     Q_air = c_p * J_air_in * M_a * (T_air - T_lung)
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
     Q_net_check = Q_metab - Q_resp
     balance = Q_net_check - Q_sum
     molar_fluxes = MolarFluxes(J_air_in, J_air_out, J_H2O_in, J_H2O_out,
         J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
-    return (; balance, Q_resp, m_resp, Q_gen = Q_metab, V_air, V_O2_STP, molar_fluxes)
+    return (; balance, Q_resp, m_resp, Q_gen=Q_metab, V_air, V_O2_STP, molar_fluxes)
 end

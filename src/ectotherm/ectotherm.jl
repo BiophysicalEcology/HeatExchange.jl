@@ -53,7 +53,7 @@ function ectotherm(T_x, insulation::Naked, o, e)
         T_air = e_vars.T_air,
         rh = e_vars.rh,
         P_atmos = e_vars.P_atmos,
-        gas = e_pars.gas,
+        gasfrac = e_pars.gasfrac,
         )
     Q_resp = resp_out.Q_resp
     V_O2 = u"ml/hr"(Joules_to_O2(Q_metab))
@@ -133,9 +133,9 @@ function ectotherm(T_x, insulation::Naked, o, e)
         T_air = e_vars.T_air, 
         T_surface, 
         wind_speed = e_vars.wind_speed, 
-        P_atmos = e_vars.P_atmos, 
+        P_atmos = e_vars.P_atmos,
         fluid = e_pars.fluid,
-        gas = e_pars.gas,
+        gasfrac = e_pars.gasfrac,
         convection_enhancement = e_pars.convection_enhancement,
         )
     Q_conv = conv_out.Q_conv
@@ -153,7 +153,7 @@ function ectotherm(T_x, insulation::Naked, o, e)
         T_air = e_vars.T_air,
         rh = e_vars.rh,
         P_atmos = e_vars.P_atmos,
-        gas = e_pars.gas,
+        gasfrac = e_pars.gasfrac,
         )
     Q_evap = evap_out.Q_evap
 

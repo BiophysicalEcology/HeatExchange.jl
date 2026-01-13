@@ -107,12 +107,11 @@ function radout(T_dorsal, T_ventral, A_total, A_conduction, F_sky, F_ground, ϵ_
 end
 
 function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid,
-        gas::GasFractions=GasFractions(),
-        convection_enhancement = 1.0)
-    (; fO2, fCO2, fN2) = gas
+        gasfrac::GasFractions=GasFractions(),
+        convection_enhancement=1.0)
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
-    dry_air_out = dry_air_properties(T_air, P_atmos; fO2, fCO2, fN2)
+    dry_air_out = dry_air_properties(T_air, P_atmos; gasfrac)
     D_w = dry_air_out.D_w
     # checking to see if the fluid is water, not air
     if fluid == 1
@@ -268,32 +267,30 @@ function evaporation(;
     hd,
     hd_free = 0.0u"m/s",
     eye_fraction,
-    bare_fraction = 1.0,
+    bare_fraction=1.0,
     T_air,
     rh,
     P_atmos,
-    gas::GasFractions = GasFractions(),
+    gasfrac::GasFractions=GasFractions(),
 )
     return evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction,
-        bare_fraction, T_air, rh, P_atmos, gas)
+        bare_fraction, T_air, rh, P_atmos, gasfrac)
 end
 function evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction,
-        bare_fraction, T_air, rh, P_atmos, gas)
-    (; fO2, fCO2, fN2) = gas
-
+        bare_fraction, T_air, rh, P_atmos, gasfrac)
     # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction
     effective_area_insulated = (area - effective_area_eye) * wetness * (1 - bare_fraction)
     effective_area_bare = (area - effective_area_eye) * wetness * bare_fraction
 
     # get vapour density at surface based on water potential of body
-    M_w = (1u"molH₂O" |> u"kg")/1u"mol" # molar mass of water
+    M_w = (1u"molH₂O" |> u"kg") / 1u"mol" # molar mass of water
     rh_surf = exp(ψ_org / (Unitful.R / M_w * T_surface))
-    wet_air_out = wet_air_properties(T_surface, rh_surf, P_atmos; fO2, fCO2, fN2)
+    wet_air_out = wet_air_properties(T_surface, rh_surf, P_atmos; gasfrac)
     ρ_vap_surf = wet_air_out.ρ_vap
 
     # get air vapour density
-    wet_air_out = wet_air_properties(T_air, rh, P_atmos; fO2, fCO2, fN2)
+    wet_air_out = wet_air_properties(T_air, rh, P_atmos; gasfrac)
     ρ_vap_air = wet_air_out.ρ_vap
 
     # mass of water lost

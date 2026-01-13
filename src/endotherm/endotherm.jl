@@ -170,7 +170,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 T_sky = e_vars.T_sky,
                 T_substrate = e_vars.T_substrate,
                 Q_solar = Q_sol,
-                gas = e_pars.gas,
+                gasfrac = e_pars.gasfrac,
                 convection_enhancement = e_pars.convection_enhancement,
                 )
         traits = (; 
@@ -253,7 +253,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             T_air = e_vars.T_air,
             P_atmos = e_vars.P_atmos,                                
             rh = e_vars.rh,
-            gas = e_pars.gas,
+            gasfrac = e_pars.gasfrac,
             O2conversion = Kleiber1961()
         ).balance
 
@@ -302,7 +302,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             T_air = e_vars.T_air,
             P_atmos = e_vars.P_atmos,
             rh = e_vars.rh,
-            gas = e_pars.gas,
+            gasfrac = e_pars.gasfrac,
             O2conversion = Kleiber1961(),
         )
         Q_gen = respiration_out.Q_gen # Q_gen_net
