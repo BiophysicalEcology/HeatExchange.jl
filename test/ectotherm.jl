@@ -55,6 +55,7 @@ shade = ecto_input.SHADE / 100
 fO2 = ecto_input.O2gas / 100
 fCO2 = ecto_input.CO2gas / 100
 fN2 = ecto_input.N2gas / 100
+gas = GasFractions(fO2, fCO2, fN2)
 convection_enhancement = ecto_input.conv_enhance
 
 # organism morphology
@@ -131,31 +132,30 @@ Q_metab = metabolic_rate(AndrewsPough2(), mass, T_core; M1, M2, M3, M4, O2conver
 @test Q_metab ≈ (ecto_output.QMET)u"W" rtol=1e-9
 
 # respiration
-resp_out = respiration(; 
-    T_lung = T_core, 
-    Q_metab, 
-    fO2_extract, 
-    pant, 
+resp_out = respiration(;
+    T_lung = T_core,
+    Q_metab,
+    fO2_extract,
+    pant,
     rq,
-    mass, 
-    T_air, 
-    rh, 
-    P_atmos, 
-    fO2, 
-    fCO2, 
-    fN2,
+    mass,
+    T_air,
+    rh,
+    P_atmos,
+    gas,
     )
 Q_resp = resp_out.Q_resp
 
 # respiration test
-@test u"mol/s"(resp_out.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(resp_out.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(resp_out.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(resp_out.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(resp_out.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(resp_out.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(resp_out.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
-@test u"mol/s"(resp_out.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
+molar_fluxes = resp_out.molar_fluxes
+@test u"mol/s"(molar_fluxes.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_fluxes.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_fluxes.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_fluxes.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_fluxes.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_fluxes.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_fluxes.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_fluxes.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
 @test resp_out.Q_resp ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
@@ -226,17 +226,15 @@ Q_cond = conduction(;
     )
 
 # convection
-conv_out = convection(; 
-            body=geometry, 
-            area=A_convection, 
-            T_air, 
+conv_out = convection(;
+            body=geometry,
+            area=A_convection,
+            T_air,
             T_surface=T_skin,
             wind_speed,
             P_atmos,
             fluid,
-            fO2,
-            fCO2,
-            fN2,
+            gas,
             convection_enhancement,
             )
 Q_conv = conv_out.Q_conv
@@ -253,9 +251,7 @@ evap_out = evaporation(;
             T_air,
             rh,
             P_atmos,
-            fO2,
-            fCO2,
-            fN2,
+            gas,
             )
 Q_evap = evap_out.Q_evap
 
@@ -346,9 +342,7 @@ environment_pars = EnvironmentalPars(;
     ϵ_sky,
     elevation,
     fluid,
-    fN2,
-    fO2,
-    fCO2,
+    gas,
 )
 
 environment_vars = EnvironmentalVars(;
@@ -396,14 +390,15 @@ heat_balance_out = ectotherm(T_core_s, lizard, environment)
 @test heat_balance_out.masbal.m_cut ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 @test heat_balance_out.masbal.m_eye ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 
-@test u"mol/s"(heat_balance_out.resp_out.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(heat_balance_out.resp_out.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
-@test u"mol/s"(heat_balance_out.resp_out.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(heat_balance_out.resp_out.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-3
-@test u"mol/s"(heat_balance_out.resp_out.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(heat_balance_out.resp_out.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
-@test u"mol/s"(heat_balance_out.resp_out.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
-@test u"mol/s"(heat_balance_out.resp_out.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
+molar_fluxes = heat_balance_out.resp_out.molar_fluxes
+@test u"mol/s"(molar_fluxes.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_fluxes.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_fluxes.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_fluxes.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-3
+@test u"mol/s"(molar_fluxes.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_fluxes.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_fluxes.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_fluxes.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
 @test heat_balance_out.resp_out.Q_resp ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test heat_balance_out.resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 

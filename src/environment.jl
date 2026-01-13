@@ -8,15 +8,13 @@ abstract type AbstractEnvironmentalPars end
 
 Environmental parameters for an organism model.
 """
-Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,FN,FO,FC,CE,CD} <: AbstractEnvironmentalPars
+Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,G,CE,CD} <: AbstractEnvironmentalPars
     α_ground::AG = Param(0.2, bounds=(0.0, 1.0))
     ϵ_ground::EG = Param(1.0, bounds=(0.0, 1.0))
     ϵ_sky::ES = Param(1.0, bounds=(0.0, 1.0))
     elevation::EL = Param(0.0, units=u"m")
     fluid::FL = Param(0)
-    fN2::FN = Param(0.7902)
-    fO2::FO = Param(0.2095)
-    fCO2::FC = Param(0.0003)
+    gas::G = GasFractions()
     convection_enhancement::CE = Param(1.0)
     conduction_depth::CD = Param(2.5u"cm", bounds=(0.0, 200.0))
 end

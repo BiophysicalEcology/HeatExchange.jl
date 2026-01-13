@@ -106,8 +106,10 @@ function radout(T_dorsal, T_ventral, A_total, A_conduction, F_sky, F_ground, ϵ_
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end
 
-function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, fO2, fCO2, fN2, 
+function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid,
+        gas::GasFractions=GasFractions(),
         convection_enhancement = 1.0)
+    (; fO2, fCO2, fN2) = gas
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
     dry_air_out = dry_air_properties(T_air, P_atmos; fO2, fCO2, fN2)
@@ -264,21 +266,20 @@ function evaporation(;
     wetness,
     area,
     hd,
-    hd_free = 0.0u"m/s", 
+    hd_free = 0.0u"m/s",
     eye_fraction,
-    bare_fraction = 1.0, 
+    bare_fraction = 1.0,
     T_air,
     rh,
     P_atmos,
-    fO2 = 0.2095,
-    fCO2 = 0.000412,
-    fN2 = 0.7902,
+    gas::GasFractions = GasFractions(),
 )
-    return evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, 
-        bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
+    return evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction,
+        bare_fraction, T_air, rh, P_atmos, gas)
 end
-function evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction, 
-        bare_fraction, T_air, rh, P_atmos, fO2, fCO2, fN2)
+function evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction,
+        bare_fraction, T_air, rh, P_atmos, gas)
+    (; fO2, fCO2, fN2) = gas
 
     # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction

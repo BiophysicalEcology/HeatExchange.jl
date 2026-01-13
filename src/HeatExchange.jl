@@ -36,6 +36,10 @@ export insulation_thermal_conductivity, insulation_properties, net_metabolic_hea
 
 export simulsol, mean_skin_temperature, respiration
 
+export ConductanceCoeffs, DivisorCoeffs, RadiationCoeffs, EnvironmentTemperatures,
+    OrganismTemperatures, GasFractions, ViewFactors, AtmosphericConditions,
+    ThermalConductivities, MolarFluxes, HeatFluxes
+
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
 
 export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
@@ -43,6 +47,8 @@ export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 include("organism.jl")
 include("traits.jl")
 include("environment.jl")
+
+include("endotherm/types.jl")
 
 include("biophysics.jl")
 include("metabolism.jl")
