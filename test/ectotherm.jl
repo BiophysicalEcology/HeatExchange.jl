@@ -55,7 +55,7 @@ shade = ecto_input.SHADE / 100
 fO2 = ecto_input.O2gas / 100
 fCO2 = ecto_input.CO2gas / 100
 fN2 = ecto_input.N2gas / 100
-gas = GasFractions(fO2, fCO2, fN2)
+gasfrac = GasFractions(fO2, fCO2, fN2)
 convection_enhancement = ecto_input.conv_enhance
 
 # organism morphology
@@ -142,7 +142,7 @@ resp_out = respiration(;
     T_air,
     rh,
     P_atmos,
-    gas,
+    gasfrac,
     )
 Q_resp = resp_out.Q_resp
 
@@ -234,7 +234,7 @@ conv_out = convection(;
             wind_speed,
             P_atmos,
             fluid,
-            gas,
+            gasfrac,
             convection_enhancement,
             )
 Q_conv = conv_out.Q_conv
@@ -251,7 +251,7 @@ evap_out = evaporation(;
             T_air,
             rh,
             P_atmos,
-            gas,
+            gasfrac,
             )
 Q_evap = evap_out.Q_evap
 
@@ -342,7 +342,7 @@ environment_pars = EnvironmentalPars(;
     ϵ_sky,
     elevation,
     fluid,
-    gas,
+    gasfrac,
 )
 
 environment_vars = EnvironmentalVars(;

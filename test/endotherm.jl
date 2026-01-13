@@ -70,7 +70,7 @@ for shape_number in 1:4
             ϵ_sky=1.0,
             elevation=(endo_input.ELEV)u"m",
             fluid=endo_input.FLTYPE,
-            gas=GasFractions(endo_input.O2GAS / 100.0, endo_input.CO2GAS / 100.0, endo_input.N2GAS / 100.0),
+            gasfrac=GasFractions(endo_input.O2GAS / 100.0, endo_input.CO2GAS / 100.0, endo_input.N2GAS / 100.0),
             convection_enhancement=endo_input.CONV_ENHANCE,
         )
 

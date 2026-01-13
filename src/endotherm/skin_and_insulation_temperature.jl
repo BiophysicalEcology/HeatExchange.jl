@@ -21,7 +21,7 @@ function solve_without_insulation!(T_skin, T_insulation,
 )
     #(; conduction_fraction) = geom_vars
     (; view_factors, atmos, fluid, T_air, T_bush, T_vegetation, T_ground, T_sky,
-        Q_solar, gas, convection_enhancement) = env_vars
+        Q_solar, gasfrac, convection_enhancement) = env_vars
     (; F_sky, F_ground, F_bush, F_vegetation) = view_factors
     (; rh, wind_speed, P_atmos) = atmos
     (; T_core, k_flesh, ϵ_body, skin_wetness, bare_skin_fraction,
@@ -51,7 +51,7 @@ function solve_without_insulation!(T_skin, T_insulation,
                 wind_speed,
                 P_atmos,
                 fluid,
-                gas,
+                gasfrac,
                 convection_enhancement,
                 )
             Q_evap_skin = evaporation(;
@@ -65,7 +65,7 @@ function solve_without_insulation!(T_skin, T_insulation,
                 T_air,
                 rh,
                 P_atmos,
-                gas).Q_evap
+                gasfrac).Q_evap
 
             # Q_rad variables for radiant exchange
             Q_rad1 = area_convection * (F_sky * 4.0 * ϵ_body * σ * ((T_skin + T_sky) / 2)^3)
@@ -127,7 +127,7 @@ function solve_with_insulation!(T_skin, T_insulation,
 )
     (; side, cd, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geom_vars
     (; view_factors, atmos, fluid, T_air, T_substrate, T_bush, T_vegetation, T_ground, T_sky,
-        Q_solar, gas, convection_enhancement) = env_vars
+        Q_solar, gasfrac, convection_enhancement) = env_vars
     (; F_sky, F_ground, F_bush, F_vegetation) = view_factors
     (; rh, wind_speed, P_atmos) = atmos
     (; T_core, k_flesh, k_fat, ϵ_body, skin_wetness, insulation_wetness, bare_skin_fraction,
@@ -161,7 +161,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 wind_speed,
                 P_atmos,
                 fluid,
-                gas,
+                gasfrac,
                 convection_enhancement)
             Q_evap_skin = evaporation(;
                 T_surface = T_skin,
@@ -174,7 +174,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                 T_air,
                 rh,
                 P_atmos,
-                gas).Q_evap
+                gasfrac).Q_evap
             # second from insulation
             if insulation_wetness > 0 && insulation_test > 0.0u"m"
                 Q_evap_insulation = evaporation(;
@@ -188,7 +188,7 @@ function solve_with_insulation!(T_skin, T_insulation,
                     T_air,
                     rh,
                     P_atmos,
-                    gas).Q_evap
+                    gasfrac).Q_evap
             else
                 Q_evap_insulation = 0.0u"W"
             end
