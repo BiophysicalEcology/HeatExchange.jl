@@ -42,14 +42,8 @@ A `NamedTuple` with:
 Porter, W. P., & Kearney, M. R. (2009). *Size, shape, and the thermal niche of endotherms*.  
 PNAS, 106(46), 19666–19672.
 """
-ellipsoid_endotherm(
-    ::Missing,
-    ::Missing,
-    ::Missing,
-    ::Missing;
-    kwargs...
-) = missing
-ellipsoid_endotherm(
+ellipsoid_endotherm(::Missing, ::Missing, ::Missing, ::Missing; kwargs...) = missing
+function ellipsoid_endotherm(
     air_temperature::Quantity,
     wind_speed::Quantity,
     relative_humidity::Real,
@@ -62,32 +56,34 @@ ellipsoid_endotherm(
     emissivity::Real,
     core_temperature::Quantity,
     minimum_metabolic_rate=missing,
-    metabolic_rate_equation::MetabolicRateEquation = Kleiber(),
+    metabolic_rate_equation::MetabolicRateEquation=Kleiber(),
     metabolic_multiplier::Real=1.0,
     q10::Real,
     f_O2::Real,
     oxygen_extraction_efficiency::Real,
     stress_factor::Real,
-    ) = ellipsoid_endotherm(
-    air_temperature,
-    wind_speed,
-    relative_humidity,
-    P_atmos,
-    mass,
-    density,
-    posture,
-    insulation_depth,
-    insulation_conductivity,
-    emissivity,
-    core_temperature,
-    minimum_metabolic_rate,
-    metabolic_rate_equation,
-    metabolic_multiplier,
-    q10,
-    f_O2,
-    oxygen_extraction_efficiency,
-    stress_factor,
+)
+    ellipsoid_endotherm(
+        air_temperature,
+        wind_speed,
+        relative_humidity,
+        P_atmos,
+        mass,
+        density,
+        posture,
+        insulation_depth,
+        insulation_conductivity,
+        emissivity,
+        core_temperature,
+        minimum_metabolic_rate,
+        metabolic_rate_equation,
+        metabolic_multiplier,
+        q10,
+        f_O2,
+        oxygen_extraction_efficiency,
+        stress_factor,
     )
+end
 
 function ellipsoid_endotherm(
     air_temperature::Quantity,
@@ -123,7 +119,8 @@ function ellipsoid_endotherm(
 
     # estimate basal metabolism if not provided
     if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
-        allometric_estimate = metabolic_rate(metabolic_rate_equation, mass) * metabolic_multiplier
+        allometric_estimate =
+            metabolic_rate(metabolic_rate_equation, mass) * metabolic_multiplier
         Q_gen_min = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
     end
 
@@ -164,8 +161,10 @@ function ellipsoid_endotherm(
     Re = ρ_air * v * L_c / μ # Reynold's number
     Pr = (μ * c_p_air) / k_air # Prandtl number
 
-    q′′′_numerator = 2 * A * k_b * k_air * (2 + a_coef * (Re^b_coef) * Pr^(1 / 3)) * (T_c - T_f)
-    q′′′_denominator = 2 * k_b * L_c * V + A * S2 * k_air * (2 + a_coef * Re^b_coef * Pr^(1 / 3))
+    q′′′_numerator =
+        2 * A * k_b * k_air * (2 + a_coef * (Re^b_coef) * Pr^(1 / 3)) * (T_c - T_f)
+    q′′′_denominator =
+        2 * k_b * L_c * V + A * S2 * k_air * (2 + a_coef * Re^b_coef * Pr^(1 / 3))
     q′′′ = q′′′_numerator / q′′′_denominator
     T_s = T_c - (q′′′ * S2) / (2 * k_b) # skin temperature, Eq. 6
 
@@ -188,8 +187,9 @@ function ellipsoid_endotherm(
     ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).ρ_vap # inhaled air
     ρ_vap_c = wet_air_properties(T_c, 1, P_atmos).ρ_vap # exhaled air (saturated)
 
-    respiratory_water_loss_rate = u"g/hr"((O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) *
-                                  (ρ_vap_c - ρ_vap_f))
+    respiratory_water_loss_rate = u"g/hr"(
+        (O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) * (ρ_vap_c - ρ_vap_f)
+    )
     latent_heat = enthalpy_of_vaporisation(T_f)
     Q_respiration = u"W"(respiratory_water_loss_rate * latent_heat)
 

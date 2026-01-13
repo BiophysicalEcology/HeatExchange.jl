@@ -9,11 +9,13 @@ function conduction(;
     L=0.025u"m",
     T_surface=u"K"(25.0u"°C"),
     T_substrate=u"K"(10.0u"°C"),
-    k_substrate=0.1u"W/m/K"
+    k_substrate=0.1u"W/m/K",
 )
     return conduction(A_conduction, L, T_surface, T_substrate, k_substrate)
 end
-conduction(A_conduction, L, T_surface, T_substrate, k_substrate) = A_conduction * (k_substrate / L) * (T_surface - T_substrate)
+function conduction(A_conduction, L, T_surface, T_substrate, k_substrate)
+    A_conduction * (k_substrate / L) * (T_surface - T_substrate)
+end
 
 """
     solar(; kw...)
@@ -26,27 +28,57 @@ function solar(;
     α_body_ventral,
     A_silhouette,
     A_total,
-    A_conduction = 0.0u"m^2",
+    A_conduction=0.0u"m^2",
     F_ground,
     F_sky,
     α_ground,
     shade,
-    zenith_angle, 
+    zenith_angle,
     global_radiation,
     diffuse_fraction,
 )
-    return solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, 
-        shade, zenith_angle, global_radiation, diffuse_fraction)
+    return solar(
+        α_body_dorsal,
+        α_body_ventral,
+        A_silhouette,
+        A_total,
+        A_conduction,
+        F_ground,
+        F_sky,
+        α_ground,
+        shade,
+        zenith_angle,
+        global_radiation,
+        diffuse_fraction,
+    )
 end
-function solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, 
-        shade, zenith_angle, global_radiation, diffuse_fraction)
-        
+function solar(
+    α_body_dorsal,
+    α_body_ventral,
+    A_silhouette,
+    A_total,
+    A_conduction,
+    F_ground,
+    F_sky,
+    α_ground,
+    shade,
+    zenith_angle,
+    global_radiation,
+    diffuse_fraction,
+)
     direct_radiation = global_radiation * (1 - diffuse_fraction)
     diffuse_radiation = global_radiation * diffuse_fraction
-    beam_radiation = zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
+    beam_radiation =
+        zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
     Q_direct = α_body_dorsal * A_silhouette * beam_radiation * (1 - shade)
     Q_solar_sky = α_body_dorsal * F_sky * A_total * diffuse_radiation * (1 - shade)
-    Q_solar_substrate = α_body_ventral * F_ground * (A_total - A_conduction) * (1 - α_ground) * global_radiation * (1 - shade)
+    Q_solar_substrate =
+        α_body_ventral *
+        F_ground *
+        (A_total - A_conduction) *
+        (1 - α_ground) *
+        global_radiation *
+        (1 - shade)
     Q_solar = (Q_direct + Q_solar_substrate + Q_solar_sky)
 
     return (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate)
@@ -60,7 +92,7 @@ Calculate incoming radiation.
 """
 function radin(;
     A_total,
-    A_conduction = 0.0u"m^2",
+    A_conduction=0.0u"m^2",
     F_sky,
     F_ground,
     ϵ_body_dorsal,
@@ -70,12 +102,35 @@ function radin(;
     T_sky,
     T_ground,
 )
-    return radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
+    return radin(
+        A_total,
+        A_conduction,
+        F_sky,
+        F_ground,
+        ϵ_body_dorsal,
+        ϵ_body_ventral,
+        ϵ_ground,
+        ϵ_sky,
+        T_sky,
+        T_ground,
+    )
 end
-function radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
+function radin(
+    A_total,
+    A_conduction,
+    F_sky,
+    F_ground,
+    ϵ_body_dorsal,
+    ϵ_body_ventral,
+    ϵ_ground,
+    ϵ_sky,
+    T_sky,
+    T_ground,
+)
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     Q_ir_sky = ϵ_body_dorsal * F_sky * A_total * ϵ_sky * σ * T_sky^4
-    Q_ir_sub = ϵ_body_ventral * F_ground * (A_total - A_conduction) * ϵ_ground * σ * T_ground^4
+    Q_ir_sub =
+        ϵ_body_ventral * F_ground * (A_total - A_conduction) * ϵ_ground * σ * T_ground^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
     return (; Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
@@ -96,9 +151,27 @@ function radout(;
     ϵ_body_dorsal,
     ϵ_body_ventral,
 )
-    radout(T_dorsal, T_ventral, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+    radout(
+        T_dorsal,
+        T_ventral,
+        A_total,
+        A_conduction,
+        F_sky,
+        F_ground,
+        ϵ_body_dorsal,
+        ϵ_body_ventral,
+    )
 end
-function radout(T_dorsal, T_ventral, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+function radout(
+    T_dorsal,
+    T_ventral,
+    A_total,
+    A_conduction,
+    F_sky,
+    F_ground,
+    ϵ_body_dorsal,
+    ϵ_body_ventral,
+)
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     Q_ir_to_sky = A_total * F_sky * ϵ_body_dorsal * σ * T_dorsal^4
     Q_ir_to_sub = (A_total - A_conduction) * F_ground * ϵ_body_ventral * σ * T_ventral^4
@@ -106,9 +179,17 @@ function radout(T_dorsal, T_ventral, A_total, A_conduction, F_sky, F_ground, ϵ_
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end
 
-function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid,
-        gasfrac::GasFractions=GasFractions(),
-        convection_enhancement=1.0)
+function convection(;
+    body,
+    area,
+    T_air,
+    T_surface,
+    wind_speed,
+    P_atmos,
+    fluid,
+    gasfrac::GasFractions=GasFractions(),
+    convection_enhancement=1.0,
+)
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
     dry_air_out = dry_air_properties(T_air, P_atmos; gasfrac)
@@ -138,7 +219,7 @@ function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid,
     δ_T = T_surface - T_air
     if δ_T <= 0.0u"K" # stability check - avoiding zero
         δ_T = δ_T + 0.00001u"K"
-    end 
+    end
     Gr = abs(((ρ_air^2) * β * Unitful.gn * (D^3) * δ_T) / (μ^2))
     Re = ρ_air * wind_speed * D / μ
     Nu_free = nusselt_free(body.shape, Gr, Pr)
@@ -164,10 +245,23 @@ function convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid,
     Sh = Nu_comb * (Sc / Pr)^(1 / 3) # Sherwood number, combined
     hd_forc = Sh_forc * D_w / D  # mass transfer coefficient, forced
     hd = Sh * D_w / D # mass transfer coefficient, combined
-    return (; Q_conv, hc, hd, Sh, Q_free, Q_forc, hc_free, hc_forc, Sh_free, Sh_forc, hd_free, hd_forc)
+    return (;
+        Q_conv,
+        hc,
+        hd,
+        Sh,
+        Q_free,
+        Q_forc,
+        hc_free,
+        hc_forc,
+        Sh_free,
+        Sh_forc,
+        hd_free,
+        hd_forc,
+    )
 end
 
-function nusselt_free(shape::Union{Cylinder, DesertIguana, LeopardFrog}, Gr, Pr)
+function nusselt_free(shape::Union{Cylinder,DesertIguana,LeopardFrog}, Gr, Pr)
     #  free convection for a cylinder
     #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
     Ra = Gr * Pr
@@ -197,12 +291,12 @@ function nusselt_free(shape::Union{Cylinder, DesertIguana, LeopardFrog}, Gr, Pr)
     return Nu_free
 end
 function nusselt_free(shape::Plate, Gr, Pr)
-   Ra = Gr * Pr
-   #Nu_free = 0.55 * Ra ^ 0.25
-   Nu_free = 0.13 * Ra ^ (1 / 3) # Gates 1980 eq. 9.77
-   return Nu_free
+    Ra = Gr * Pr
+    #Nu_free = 0.55 * Ra ^ 0.25
+    Nu_free = 0.13 * Ra ^ (1 / 3) # Gates 1980 eq. 9.77
+    return Nu_free
 end
-function nusselt_free(shape::Union{Sphere, Ellipsoid}, Gr, Pr)
+function nusselt_free(shape::Union{Sphere,Ellipsoid}, Gr, Pr)
     #  sphere free convection
     #  from p.413 Bird et all (1960) Transport Phenomena
     Ra = (Gr ^ (1 / 4)) * (Pr ^ (1 / 3))
@@ -243,7 +337,7 @@ function nusselt_forced(shape::Plate, Re)
     #0.102 * Re ^ 0.675 * Pr ^ (1 / 3)
     0.032 * Re ^ 0.8
 end
-function nusselt_forced(shape::Union{Ellipsoid, Sphere, DesertIguana, LeopardFrog}, Re)
+function nusselt_forced(shape::Union{Ellipsoid,Sphere,DesertIguana,LeopardFrog}, Re)
     #  forced convection of a sphere
     0.35 * Re ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end
@@ -261,11 +355,11 @@ end
 """
 function evaporation(;
     T_surface,
-    ψ_org = 0.0u"J/kg",
+    ψ_org=0.0u"J/kg",
     wetness,
     area,
     hd,
-    hd_free = 0.0u"m/s",
+    hd_free=0.0u"m/s",
     eye_fraction,
     bare_fraction=1.0,
     T_air,
@@ -273,18 +367,42 @@ function evaporation(;
     P_atmos,
     gasfrac::GasFractions=GasFractions(),
 )
-    return evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction,
-        bare_fraction, T_air, rh, P_atmos, gasfrac)
+    return evaporation(
+        T_surface,
+        ψ_org,
+        wetness,
+        area,
+        hd,
+        hd_free,
+        eye_fraction,
+        bare_fraction,
+        T_air,
+        rh,
+        P_atmos,
+        gasfrac,
+    )
 end
-function evaporation(T_surface, ψ_org, wetness, area, hd, hd_free, eye_fraction,
-        bare_fraction, T_air, rh, P_atmos, gasfrac)
+function evaporation(
+    T_surface,
+    ψ_org,
+    wetness,
+    area,
+    hd,
+    hd_free,
+    eye_fraction,
+    bare_fraction,
+    T_air,
+    rh,
+    P_atmos,
+    gasfrac,
+)
     # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction
     effective_area_insulated = (area - effective_area_eye) * wetness * (1 - bare_fraction)
     effective_area_bare = (area - effective_area_eye) * wetness * bare_fraction
 
     # get vapour density at surface based on water potential of body
-    M_w = (1u"molH₂O" |> u"kg") / 1u"mol" # molar mass of water
+    M_w = (u"kg"(1u"molH₂O")) / 1u"mol" # molar mass of water
     rh_surf = exp(ψ_org / (Unitful.R / M_w * T_surface))
     wet_air_out = wet_air_properties(T_surface, rh_surf, P_atmos; gasfrac)
     ρ_vap_surf = wet_air_out.ρ_vap

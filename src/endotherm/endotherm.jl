@@ -1,11 +1,10 @@
 Base.@kwdef struct EndoModelPars{RE,ST,BT} <: AbstractModelParameters
-    respire::RE =               Param(true)
-    simulsol_tolerance::ST =    Param(1e-3u"K")
-    resp_tolerance::BT =        Param(1e-5u"K")
+    respire::RE = Param(true)
+    simulsol_tolerance::ST = Param(1e-3u"K")
+    resp_tolerance::BT = Param(1e-5u"K")
 end
 
 function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
-
     e_pars = stripparams(e.environment_pars)
     e_vars = e.environment_vars
     ins = insulationpars(o)
@@ -17,28 +16,28 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     hyd = hydraulicpars(o)
     resp = respirationpars(o)
     metab = metabolismpars(o)
-    
+
     simulsol_out = Vector{NamedTuple}(undef, 2) # TODO preallocate
     respiration_out = Vector{NamedTuple}(undef, 1) # TODO preallocate
     geometry_pars = nothing
     simulsol_tolerance = m.simulsol_tolerance
 
     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3
-    insulation_out = insulation_properties(; 
-                        insulation=ins, insulation_temperature, 
-                        ventral_fraction = rad.ventral_fraction)
+    insulation_out = insulation_properties(;
+        insulation=ins, insulation_temperature, ventral_fraction=rad.ventral_fraction
+    )
     fibre_diameters = insulation_out.fibre_diameters
     fibre_densities = insulation_out.fibre_densities
     insulation_depths = insulation_out.insulation_depths
     # if no insulation, reset bare_skin_fraction if necessary
     if insulation_out.insulation_test <= 0.0u"m" && evap.bare_skin_fraction < 1.0
-        evap_temp = EvaporationParameters(
-            skin_wetness        = evap.skin_wetness,
-            insulation_wetness  = evap.insulation_wetness,
-            eye_fraction        = evap.eye_fraction,
-            bare_skin_fraction  = 1.0,
-            insulation_fraction = evap.insulation_fraction,
-        )    
+        evap_temp = EvaporationParameters(;
+            skin_wetness=evap.skin_wetness,
+            insulation_wetness=evap.insulation_wetness,
+            eye_fraction=evap.eye_fraction,
+            bare_skin_fraction=1.0,
+            insulation_fraction=evap.insulation_fraction,
+        )
         evap = evap_temp
     end
 
@@ -57,21 +56,20 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     area_conduction = area_total * cond_ex.conduction_fraction # not used but initialised for output
     area_evaporation = evaporation_area(o.body)
     area_convection = area_total * (1 - cond_ex.conduction_fraction)
-    (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) =
-        solar(;
-            α_body_dorsal,
-            α_body_ventral, 
-            A_silhouette = area_silhouette,
-            A_total = area_total,
-            A_conduction = area_conduction, 
-            F_ground, 
-            F_sky,
-            α_ground = e_pars.α_ground,
-            shade = e_vars.shade,
-            zenith_angle = e_vars.zenith_angle, 
-            global_radiation = e_vars.global_radiation,
-            diffuse_fraction = e_vars.diffuse_fraction, 
-            )
+    (; Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate) = solar(;
+        α_body_dorsal,
+        α_body_ventral,
+        A_silhouette=area_silhouette,
+        A_total=area_total,
+        A_conduction=area_conduction,
+        F_ground,
+        F_sky,
+        α_ground=e_pars.α_ground,
+        shade=e_vars.shade,
+        zenith_angle=e_vars.zenith_angle,
+        global_radiation=e_vars.global_radiation,
+        diffuse_fraction=e_vars.diffuse_fraction,
+    )
     Q_ventral = Q_solar_substrate
 
     # set infrared environment
@@ -101,7 +99,9 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
                 F_vegetation = 0.0
                 F_ground = F_ground_ref * 2.0
                 F_bush = F_bush_ref * 2.0
-                Q_sol = (Q_ventral / (1.0 - F_sky_ref - F_vegetation_ref)) * (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO to have it coming in both directions, but also cutting down according to fractional area conducting to ground (in both directions)
+                Q_sol =
+                    (Q_ventral / (1.0 - F_sky_ref - F_vegetation_ref)) *
+                    (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO to have it coming in both directions, but also cutting down according to fractional area conducting to ground (in both directions)
             end
         else
             Q_sol = 0.0u"W"
@@ -125,7 +125,11 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         end
 
         # set fur depth and conductivity
-        insulation = Fur(insulation_depths[side + 1], fibre_diameters[side + 1], fibre_densities[side + 1])
+        insulation = Fur(
+            insulation_depths[side + 1],
+            fibre_diameters[side + 1],
+            fibre_densities[side + 1],
+        )
         if side == 1
             insulation_conductivity = ins.insulation_conductivity_dorsal
         else
@@ -151,60 +155,63 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         end
 
         # package up inputs
-        geom_vars = (; 
-                side,
-                cd,
-                rad.ventral_fraction,
-                conduction_fraction = cond_ex.conduction_fraction,
-                longwave_depth_fraction = ins.longwave_depth_fraction)
+        geom_vars = (;
+            side,
+            cd,
+            rad.ventral_fraction,
+            conduction_fraction=cond_ex.conduction_fraction,
+            longwave_depth_fraction=ins.longwave_depth_fraction,
+        )
         view_factors = ViewFactors(F_sky, F_ground, F_bush, F_vegetation)
         atmos = AtmosphericConditions(e_vars.rh, e_vars.wind_speed, e_vars.P_atmos)
         env_vars = (;
-                view_factors,
-                atmos,
-                fluid = e_pars.fluid,
-                T_air = e_vars.T_air,
-                T_ground = e_vars.T_ground,
-                T_bush = e_vars.T_bush,
-                T_vegetation,
-                T_sky = e_vars.T_sky,
-                T_substrate = e_vars.T_substrate,
-                Q_solar = Q_sol,
-                gasfrac = e_pars.gasfrac,
-                convection_enhancement = e_pars.convection_enhancement,
-                )
-        traits = (; 
-                T_core = metab.T_core,
-                k_flesh = cond_in.k_flesh,
-                k_fat = cond_in.k_fat,
-                ϵ_body,
-                skin_wetness = evap.skin_wetness,
-                insulation_wetness = evap.insulation_wetness,
-                bare_skin_fraction = evap.bare_skin_fraction,
-                eye_fraction = evap.eye_fraction,
-                insulation_conductivity,
-                #ψ_body = hyd.ψ_body,
-                )
-           
-        insulation_out = insulation_properties(; 
-                        insulation = ins, insulation_temperature = T_insulation * 0.7 + T_skin * 0.3, 
-                        rad.ventral_fraction)
+            view_factors,
+            atmos,
+            fluid=e_pars.fluid,
+            T_air=e_vars.T_air,
+            T_ground=e_vars.T_ground,
+            T_bush=e_vars.T_bush,
+            T_vegetation,
+            T_sky=e_vars.T_sky,
+            T_substrate=e_vars.T_substrate,
+            Q_solar=Q_sol,
+            gasfrac=e_pars.gasfrac,
+            convection_enhancement=e_pars.convection_enhancement,
+        )
+        traits = (;
+            T_core=metab.T_core,
+            k_flesh=cond_in.k_flesh,
+            k_fat=cond_in.k_fat,
+            ϵ_body,
+            skin_wetness=evap.skin_wetness,
+            insulation_wetness=evap.insulation_wetness,
+            bare_skin_fraction=evap.bare_skin_fraction,
+            eye_fraction=evap.eye_fraction,
+            insulation_conductivity,
+            #ψ_body = hyd.ψ_body,
+        )
+
+        insulation_out = insulation_properties(;
+            insulation=ins,
+            insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
+            rad.ventral_fraction,
+        )
         # call simulsol
-        simulsol_out[side,] = simulsol(; 
-                                T_skin, 
-                                T_insulation, 
-                                simulsol_tolerance = m.simulsol_tolerance,
-                                geometry_pars,
-                                insulation_pars = ins, 
-                                insulation_out,
-                                geom_vars,
-                                env_vars,
-                                traits)
-        
+        simulsol_out[side,] = simulsol(;
+            T_skin,
+            T_insulation,
+            simulsol_tolerance=m.simulsol_tolerance,
+            geometry_pars,
+            insulation_pars=ins,
+            insulation_out,
+            geom_vars,
+            env_vars,
+            traits,
+        )
+
         T_skin = simulsol_out[side,].T_skin # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
         T_insulation = simulsol_out[side,].T_insulation # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
         simulsol_tolerance = simulsol_out[side,].tolerance # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
-
     end
 
     T_skin_max = max(simulsol_out[1].T_skin, simulsol_out[2].T_skin)
@@ -239,23 +246,24 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         if T_skin_max >= metab.T_core
             Q_m2 = metab.Q_metabolism * 1.01
         end
-        f = x -> respiration(;
-            Q_metab = x,
-            Q_min,
-            Q_sum,
-            T_lung,
-            mass = geometry_pars.shape.mass,
-            rq = resp.rq,
-            fO2_extract = resp.fO2_extract,
-            rh_exit = resp.rh_exit,
-            T_air_exit,
-            pant = resp.pant,                                
-            T_air = e_vars.T_air,
-            P_atmos = e_vars.P_atmos,                                
-            rh = e_vars.rh,
-            gasfrac = e_pars.gasfrac,
-            O2conversion = Kleiber1961()
-        ).balance
+        f =
+            x -> respiration(;
+                Q_metab=x,
+                Q_min,
+                Q_sum,
+                T_lung,
+                mass=geometry_pars.shape.mass,
+                rq=resp.rq,
+                fO2_extract=resp.fO2_extract,
+                rh_exit=resp.rh_exit,
+                T_air_exit,
+                pant=resp.pant,
+                T_air=e_vars.T_air,
+                P_atmos=e_vars.P_atmos,
+                rh=e_vars.rh,
+                gasfrac=e_pars.gasfrac,
+                O2conversion=Kleiber1961(),
+            ).balance
 
         # a, b = bracket_root(f, Q_m1, Q_m2)
 
@@ -285,30 +293,30 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
             f,
             ustrip(u"W", Q_m1),
             ustrip(u"W", Q_m2),
-            m.resp_tolerance * ustrip(u"W", metab.Q_metabolism)
+            m.resp_tolerance * ustrip(u"W", metab.Q_metabolism),
         )
 
         respiration_out = respiration(;
-            Q_metab = Q_gen,
+            Q_metab=Q_gen,
             Q_min,
             Q_sum,
             T_lung,
-            mass = geometry_pars.shape.mass,
-            rq = resp.rq,
-            fO2_extract = resp.fO2_extract,
-            rh_exit = resp.rh_exit,
+            mass=geometry_pars.shape.mass,
+            rq=resp.rq,
+            fO2_extract=resp.fO2_extract,
+            rh_exit=resp.rh_exit,
             T_air_exit,
-            pant = resp.pant,
-            T_air = e_vars.T_air,
-            P_atmos = e_vars.P_atmos,
-            rh = e_vars.rh,
-            gasfrac = e_pars.gasfrac,
-            O2conversion = Kleiber1961(),
+            pant=resp.pant,
+            T_air=e_vars.T_air,
+            P_atmos=e_vars.P_atmos,
+            rh=e_vars.rh,
+            gasfrac=e_pars.gasfrac,
+            O2conversion=Kleiber1961(),
         )
         Q_gen = respiration_out.Q_gen # Q_gen_net
     else
         Q_gen = Q_sum
-    end 
+    end
 
     # collate output
 
@@ -383,7 +391,7 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
     # geometric outputs
     insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
     geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
-        
+
     fat_mass = geometry_pars.shape.mass * fat.fraction
     volume = geometry_pars.geometry.volume
     volume_flesh = flesh_volume(geometry_pars)
@@ -406,23 +414,32 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         area_radiant_ventral = area_skin #* (1 - cond_ex.conduction_fraction) TODO make conduction occur when no insulation
     end
     # infrared dorsal
-    Q_rad_out_dorsal = 2 * F_sky * σ * rad.ϵ_body_dorsal * area_radiant_dorsal * T_surface_dorsal^4
+    Q_rad_out_dorsal =
+        2 * F_sky * σ * rad.ϵ_body_dorsal * area_radiant_dorsal * T_surface_dorsal^4
     Q_rad_in_dorsal = -Q_longwave_dorsal + Q_rad_out_dorsal
 
     # infrared ventral
-    Q_rad_out_ventral = 2 * F_ground * σ * rad.ϵ_body_ventral * area_radiant_ventral * T_surface_ventral^4
+    Q_rad_out_ventral =
+        2 * F_ground * σ * rad.ϵ_body_ventral * area_radiant_ventral * T_surface_ventral^4
     Q_rad_in_ventral = -Q_longwave_ventral + Q_rad_out_ventral
     # energy flows
     Q_solar = Q_solar_dorsal * dmult + Q_solar_ventral * vmult
     Q_longwave_in = Q_rad_in_dorsal * dmult + Q_rad_in_ventral * vmult
-    Q_evaporation = Q_evap_skin_dorsal * dmult + Q_evap_skin_ventral * vmult +
-                    Q_evap_insulation_dorsal * dmult + Q_evap_insulation_ventral * vmult + Q_resp
+    Q_evaporation =
+        Q_evap_skin_dorsal * dmult +
+        Q_evap_skin_ventral * vmult +
+        Q_evap_insulation_dorsal * dmult +
+        Q_evap_insulation_ventral * vmult +
+        Q_resp
     Q_longwave_out = Q_rad_out_dorsal * dmult + Q_rad_out_ventral * vmult
     Q_convection = Q_convection_dorsal * dmult + Q_convection_ventral * vmult
     Q_conduction = Q_conduction_dorsal * dmult + Q_conduction_ventral * vmult
 
-    insulation_out = insulation_properties(; insulation = ins,
-        insulation_temperature = T_insulation * 0.7 + T_skin * 0.3, rad.ventral_fraction)
+    insulation_out = insulation_properties(;
+        insulation=ins,
+        insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
+        rad.ventral_fraction,
+    )
     k_insulation_effective = insulation_out.effective_conductivities[1]
     k_insulation_compressed = insulation_out.insulation_conductivity_compressed
     T_skin = T_skin_dorsal * dmult + T_skin_ventral * vmult
@@ -433,26 +450,72 @@ function solve_metabolic_rate(T_skin, T_insulation, o, e, m)
         shape_b = o.body.shape.b
     end
     thermoregulation = (;
-        metab.T_core, T_skin, T_insulation, T_lung, T_skin_dorsal, T_skin_ventral, T_insulation_dorsal, 
-        T_insulation_ventral, shape_b, pant=resp.pant, skin_wetness=evap.skin_wetness, 
-        k_flesh=cond_in.k_flesh, k_insulation_effective, k_insulation_dorsal, k_insulation_ventral, 
-        k_insulation_compressed, ins.insulation_depth_dorsal, ins.insulation_depth_ventral, metab.q10
+        metab.T_core,
+        T_skin,
+        T_insulation,
+        T_lung,
+        T_skin_dorsal,
+        T_skin_ventral,
+        T_insulation_dorsal,
+        T_insulation_ventral,
+        shape_b,
+        pant=resp.pant,
+        skin_wetness=evap.skin_wetness,
+        k_flesh=cond_in.k_flesh,
+        k_insulation_effective,
+        k_insulation_dorsal,
+        k_insulation_ventral,
+        k_insulation_compressed,
+        ins.insulation_depth_dorsal,
+        ins.insulation_depth_ventral,
+        metab.q10,
     )
 
     morphology = (;
-        area_total, area_skin, area_evaporation, area_convection, area_conduction = area_conduction / 2, area_silhouette,
-        F_sky, F_ground, volume, volume_flesh, 
-        characteristic_dimension = geometry_pars.geometry.characteristic_dimension,
-     fat_mass, geometry_pars.geometry.length...
+        area_total,
+        area_skin,
+        area_evaporation,
+        area_convection,
+        area_conduction=area_conduction / 2,
+        area_silhouette,
+        F_sky,
+        F_ground,
+        volume,
+        volume_flesh,
+        characteristic_dimension=geometry_pars.geometry.characteristic_dimension,
+        fat_mass,
+        geometry_pars.geometry.length...,
     )
 
     energy_fluxes = (;
-        Q_solar, Q_longwave_in, Q_gen, Q_evaporation, Q_longwave_out, Q_convection, Q_conduction, balance,
-        ntry=max(ntry_dorsal, ntry_ventral), success=all((success_dorsal, success_ventral))
+        Q_solar,
+        Q_longwave_in,
+        Q_gen,
+        Q_evaporation,
+        Q_longwave_out,
+        Q_convection,
+        Q_conduction,
+        balance,
+        ntry=max(ntry_dorsal, ntry_ventral),
+        success=all((success_dorsal, success_ventral)),
     )
 
-    mass_fluxes = (; V_air, V_O2_STP, m_evap, m_resp, m_sweat, J_H2O_in, J_H2O_out, J_O2_in, J_O2_out,
-        J_CO2_in, J_CO2_out, J_N2_in, J_N2_out, J_air_in, J_air_out
+    mass_fluxes = (;
+        V_air,
+        V_O2_STP,
+        m_evap,
+        m_resp,
+        m_sweat,
+        J_H2O_in,
+        J_H2O_out,
+        J_O2_in,
+        J_O2_out,
+        J_CO2_in,
+        J_CO2_out,
+        J_N2_in,
+        J_N2_out,
+        J_air_in,
+        J_air_out,
     )
     return (; thermoregulation, morphology, energy_fluxes, mass_fluxes)
 end
@@ -470,26 +533,22 @@ function bracket_root(f, a, b; factor=2, maxiter=20)
     error("Failed to bracket root")
 end
 
-function zbrent(f, a, b, tol;
-                maxiter = 300,
-                eps = 3e-8)
-
+function zbrent(f, a, b, tol; maxiter=300, eps=3e-8)
     qa = ustrip(u"W", f(a * u"W"))
     qb = ustrip(u"W", f(b * u"W"))
 
-    c = 0.
-    e = 0.
-    d = 0.
+    c = 0.0
+    e = 0.0
+    d = 0.0
 
     qc = qb
 
     @inbounds for i in 1:maxiter
-
         if qb * qc > 0.0
-            c  = a
+            c = a
             qc = qa
-            d  = b - a
-            e  = d
+            d = b - a
+            e = d
         end
         if abs(qc) < abs(qb)
             a = b
@@ -501,7 +560,7 @@ function zbrent(f, a, b, tol;
         end
 
         tol1 = 2eps * abs(b) + tol/2
-        xm   = (c - b) / 2
+        xm = (c - b) / 2
 
         if abs(xm) ≤ tol1 || qb == 0.0
             return b * u"W"
@@ -538,7 +597,7 @@ function zbrent(f, a, b, tol;
             e = d
         end
 
-        a  = b
+        a = b
         qa = qb
 
         b += abs(d) > tol1 ? d : sign(xm)*tol1
@@ -547,4 +606,3 @@ function zbrent(f, a, b, tol;
 
     return b * u"W"
 end
-

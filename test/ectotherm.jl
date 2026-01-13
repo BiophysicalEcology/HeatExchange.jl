@@ -13,24 +13,133 @@ ecto_input_vec = DataFrame(CSV.File("$testdir/data/ectoR_input.csv"))[:, 2]
 ecto_output_vec = DataFrame(CSV.File("$testdir/data/ectoR_output.csv"))[:, 2]
 
 names = [
-    :Ww_g, :alpha, :epsilon, :rho_body, :fatosk, :fatosb, :shape, :shape_a, :shape_b, :shape_c, :conv_enhance, 
-    :custom_shape1, :custom_shape2, :custom_shape3, :custom_shape4, :custom_shape5, :custom_shape6, 
-    :custom_shape7, :custom_shape8, :pct_cond, :pct_touch, :postur, :orient, :k_flesh, 
-    :M_1, :M_2, :M_3, :M_4, :Q_act, :pct_wet, :pct_eyes, :pct_mouth, :psi_body, :pantmax, 
-    :F_O2, :RQ, :delta_air, :leaf, :g_vs_ab, :g_vs_ad, :elevation, :alpha_sub, 
-    :epsilon_sub, :epsilon_sky, :pres, :fluid, :O2gas, :CO2gas, :N2gas, :K_sub, 
-    :PDIF, :SHADE, :QSOLR, :Z, :TA, :TGRD, :TSUBST, :TSKY, :VEL, :RH
+    :Ww_g,
+    :alpha,
+    :epsilon,
+    :rho_body,
+    :fatosk,
+    :fatosb,
+    :shape,
+    :shape_a,
+    :shape_b,
+    :shape_c,
+    :conv_enhance,
+    :custom_shape1,
+    :custom_shape2,
+    :custom_shape3,
+    :custom_shape4,
+    :custom_shape5,
+    :custom_shape6,
+    :custom_shape7,
+    :custom_shape8,
+    :pct_cond,
+    :pct_touch,
+    :postur,
+    :orient,
+    :k_flesh,
+    :M_1,
+    :M_2,
+    :M_3,
+    :M_4,
+    :Q_act,
+    :pct_wet,
+    :pct_eyes,
+    :pct_mouth,
+    :psi_body,
+    :pantmax,
+    :F_O2,
+    :RQ,
+    :delta_air,
+    :leaf,
+    :g_vs_ab,
+    :g_vs_ad,
+    :elevation,
+    :alpha_sub,
+    :epsilon_sub,
+    :epsilon_sky,
+    :pres,
+    :fluid,
+    :O2gas,
+    :CO2gas,
+    :N2gas,
+    :K_sub,
+    :PDIF,
+    :SHADE,
+    :QSOLR,
+    :Z,
+    :TA,
+    :TGRD,
+    :TSUBST,
+    :TSKY,
+    :VEL,
+    :RH,
 ]
 
 ecto_input = (; zip(names, ecto_input_vec)...)
 
 names = [
-:TC, :TSKIN, :TLUNG, :QSOL, :QIRIN, :QMET, :QRESP, :QEVAP, :QIROUT, :QCONV, :QCOND, :ENB, 
-:O2_ml, :H2OResp_g, :H2OCut_g, :H2OEyes_g, :AREA, :AV, :AT, :AL, :VOL, :R, :R1, 
-:ASEMAJR, :BSEMINR, :CSEMINR, :ASILN, :ASILP, :AEFF, :QSOLAR, :QSDIFF, :QSRSB, :QSSKY, :QSOBJ, :QRESP2, 
-:GEVAP, :AIRML1, :AIRML2, :WMOL1, :WMOL2, :O2MOL1, :O2MOL2, :CO2MOL1, :CO2MOL2, :CONVAR, :QCONV2, 
-:HC, :HD, :SH, :QFREE, :HCFREE, :HCFORC, :SHFREE, :SHFORC, :HDFREE, :HDFORC, :QSEVAP, :WEVAP, 
-:WRESP, :WCUT, :WEYES, :G_V
+    :TC,
+    :TSKIN,
+    :TLUNG,
+    :QSOL,
+    :QIRIN,
+    :QMET,
+    :QRESP,
+    :QEVAP,
+    :QIROUT,
+    :QCONV,
+    :QCOND,
+    :ENB,
+    :O2_ml,
+    :H2OResp_g,
+    :H2OCut_g,
+    :H2OEyes_g,
+    :AREA,
+    :AV,
+    :AT,
+    :AL,
+    :VOL,
+    :R,
+    :R1,
+    :ASEMAJR,
+    :BSEMINR,
+    :CSEMINR,
+    :ASILN,
+    :ASILP,
+    :AEFF,
+    :QSOLAR,
+    :QSDIFF,
+    :QSRSB,
+    :QSSKY,
+    :QSOBJ,
+    :QRESP2,
+    :GEVAP,
+    :AIRML1,
+    :AIRML2,
+    :WMOL1,
+    :WMOL2,
+    :O2MOL1,
+    :O2MOL2,
+    :CO2MOL1,
+    :CO2MOL2,
+    :CONVAR,
+    :QCONV2,
+    :HC,
+    :HD,
+    :SH,
+    :QFREE,
+    :HCFREE,
+    :HCFORC,
+    :SHFREE,
+    :SHFORC,
+    :HDFREE,
+    :HDFORC,
+    :QSEVAP,
+    :WEVAP,
+    :WRESP,
+    :WCUT,
+    :WEYES,
+    :G_V,
 ]
 
 ecto_output = (; zip(names, ecto_output_vec)...)
@@ -99,7 +208,7 @@ end
 pant = 1.0
 
 # geometry
-shape_pars = DesertIguana(mass, ρ_flesh) 
+shape_pars = DesertIguana(mass, ρ_flesh)
 #shape_pars = Cylinder(mass, ρ_flesh, shape_b)
 geometry = Body(shape_pars, Naked())
 A_total = total_area(geometry)
@@ -126,24 +235,17 @@ T_core = u"K"((ecto_output.TC)u"°C")
 # calculate heat fluxes
 
 # metabolism|
-Q_metab = metabolic_rate(AndrewsPough2(), mass, T_core; M1, M2, M3, M4, O2conversion=Typical())
+Q_metab = metabolic_rate(
+    AndrewsPough2(), mass, T_core; M1, M2, M3, M4, O2conversion=Typical()
+)
 
 # metabolism test
 @test Q_metab ≈ (ecto_output.QMET)u"W" rtol=1e-9
 
 # respiration
 resp_out = respiration(;
-    T_lung = T_core,
-    Q_metab,
-    fO2_extract,
-    pant,
-    rq,
-    mass,
-    T_air,
-    rh,
-    P_atmos,
-    gasfrac,
-    )
+    T_lung=T_core, Q_metab, fO2_extract, pant, rq, mass, T_air, rh, P_atmos, gasfrac
+)
 Q_resp = resp_out.Q_resp
 
 # respiration test
@@ -164,11 +266,7 @@ Q_gen_net = Q_metab - Q_resp
 Q_gen_spec = Q_gen_net / geometry.geometry.volume
 
 # compute skin and lung temperature
-T_skin, T_lung = Tsurf_and_Tlung(;
-    body = geometry, 
-    k_flesh, 
-    Q_gen_spec, 
-    T_core)
+T_skin, T_lung = Tsurf_and_Tlung(; body=geometry, k_flesh, Q_gen_spec, T_core)
 
 # test lung temperature
 @test T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-7
@@ -181,78 +279,72 @@ solar_out = solar(;
     A_silhouette,
     A_total,
     A_conduction,
-    F_ground, 
-    F_sky, 
-    α_ground, 
-    shade, 
-    zenith_angle, 
-    global_radiation, 
-    diffuse_fraction
-    )
+    F_ground,
+    F_sky,
+    α_ground,
+    shade,
+    zenith_angle,
+    global_radiation,
+    diffuse_fraction,
+)
 Q_solar = solar_out.Q_solar
 
 # longwave radiation
 ir_gain = radin(;
     A_total,
-    F_sky, 
-    F_ground, 
-    ϵ_body_dorsal, 
-    ϵ_body_ventral, 
-    ϵ_ground, 
-    ϵ_sky, 
-    T_sky, 
+    F_sky,
+    F_ground,
+    ϵ_body_dorsal,
+    ϵ_body_ventral,
+    ϵ_ground,
+    ϵ_sky,
+    T_sky,
     T_ground,
-    )
+)
 Q_ir_in = ir_gain.Q_ir_in
 ir_loss = radout(;
-    T_dorsal = T_skin,
-    T_ventral = T_skin,
+    T_dorsal=T_skin,
+    T_ventral=T_skin,
     A_total,
     A_conduction,
     F_sky,
     F_ground,
     ϵ_body_dorsal,
     ϵ_body_ventral,
-    )
+)
 Q_ir_out = ir_loss.Q_ir_out
 
 # conduction
-Q_cond = conduction(;
-    A_conduction, 
-    L = Le, 
-    T_surface = T_skin, 
-    T_substrate, 
-    k_substrate,
-    )
+Q_cond = conduction(; A_conduction, L=Le, T_surface=T_skin, T_substrate, k_substrate)
 
 # convection
 conv_out = convection(;
-            body=geometry,
-            area=A_convection,
-            T_air,
-            T_surface=T_skin,
-            wind_speed,
-            P_atmos,
-            fluid,
-            gasfrac,
-            convection_enhancement,
-            )
+    body=geometry,
+    area=A_convection,
+    T_air,
+    T_surface=T_skin,
+    wind_speed,
+    P_atmos,
+    fluid,
+    gasfrac,
+    convection_enhancement,
+)
 Q_conv = conv_out.Q_conv
 
 # evaporation
 evap_out = evaporation(;
-            T_surface = T_skin,
-            ψ_org,
-            wetness = skin_wetness,
-            area = A_convection,
-            hd = conv_out.hd,
-            hd_free = conv_out.hd_free,
-            eye_fraction,
-            T_air,
-            rh,
-            P_atmos,
-            gasfrac,
-            )
+    T_surface=T_skin,
+    ψ_org,
+    wetness=skin_wetness,
+    area=A_convection,
+    hd=conv_out.hd,
+    hd_free=conv_out.hd_free,
+    eye_fraction,
+    T_air,
+    rh,
+    P_atmos,
+    gasfrac,
+)
 Q_evap = evap_out.Q_evap
 
 # energy balance test
@@ -274,13 +366,9 @@ Q_in - Q_out
 
 # using structs to pass parameters
 
-conduction_pars_external = ExternalConductionParameters(;
-    conduction_fraction,
-)
+conduction_pars_external = ExternalConductionParameters(; conduction_fraction)
 
-conduction_pars_internal = InternalConductionParameters(;
-    k_flesh,
-)
+conduction_pars_internal = InternalConductionParameters(; k_flesh)
 
 radiation_pars = RadiationParameters(;
     α_body_dorsal,
@@ -288,36 +376,22 @@ radiation_pars = RadiationParameters(;
     ϵ_body_dorsal,
     ϵ_body_ventral,
     A_silhouette,
-    A_total, 
-    A_conduction, 
+    A_total,
+    A_conduction,
     F_sky,
     F_ground,
     ventral_fraction,
 )
 
-convection_pars = ConvectionParameters(;
-    convection_area = A_convection,
-)
+convection_pars = ConvectionParameters(; convection_area=A_convection)
 
-evaporation_pars = EvaporationParameters(;
-    skin_wetness,
-    eye_fraction,
-)
+evaporation_pars = EvaporationParameters(; skin_wetness, eye_fraction)
 
-hydraulic_pars = HydraulicParameters(;
-    water_potential = ψ_org,
-)
+hydraulic_pars = HydraulicParameters(; water_potential=ψ_org)
 
-respiration_pars = RespirationParameters(;
-    fO2_extract,
-    pant,
-    rq,
-)
+respiration_pars = RespirationParameters(; fO2_extract, pant, rq)
 
-metabolism_pars = MetabolismParameters(;
-    Q_metabolism = Q_metab,
-    model = AndrewsPough2(),
-)
+metabolism_pars = MetabolismParameters(; Q_metabolism=Q_metab, model=AndrewsPough2())
 
 traits = HeatExchangeTraits(
     shape_pars,
@@ -329,21 +403,14 @@ traits = HeatExchangeTraits(
     evaporation_pars,
     hydraulic_pars,
     respiration_pars,
-    metabolism_pars
+    metabolism_pars,
 )
 # construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
 #lizard = Model(Organism(geometry, traits))
 lizard = Organism(geometry, traits)
 
 # get the environmental parameters
-environment_pars = EnvironmentalPars(;
-    α_ground,
-    ϵ_ground,
-    ϵ_sky,
-    elevation,
-    fluid,
-    gasfrac,
-)
+environment_pars = EnvironmentalPars(; α_ground, ϵ_ground, ϵ_sky, elevation, fluid, gasfrac)
 
 environment_vars = EnvironmentalVars(;
     T_air,
@@ -365,7 +432,9 @@ environment = (; environment_pars, environment_vars)
 T_air = environment_vars.T_air
 ectotherm(T_air, lizard, environment)
 
-T_core_s = find_zero(t -> ectotherm(t, lizard, environment), (T_air - 40u"K", T_air + 100u"K"), Bisection())
+T_core_s = find_zero(
+    t -> ectotherm(t, lizard, environment), (T_air - 40u"K", T_air + 100u"K"), Bisection()
+)
 T_core_C = (Unitful.ustrip(T_core_s) - 273.15)u"°C"
 
 # test core temperature calculation

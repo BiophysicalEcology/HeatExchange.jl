@@ -15,10 +15,14 @@ insulation = InsulationParameters(;
     longwave_depth_fraction=Param(1.0),
 )
 
-insulation_out = insulation_properties(; insulation, insulation_temperature=(273.15 + 20.0)u"K", ventral_fraction=0.3)
-insulation_properties(; insulation=insulation_pars,
-            insulation_temperature=thermoregulation.T_insulation,
-            ventral_fraction=radiation_pars.ventral_fraction)
+insulation_out = insulation_properties(;
+    insulation, insulation_temperature=(273.15 + 20.0)u"K", ventral_fraction=0.3
+)
+insulation_properties(;
+    insulation=insulation_pars,
+    insulation_temperature=thermoregulation.T_insulation,
+    ventral_fraction=radiation_pars.ventral_fraction,
+)
 density = 1000.0u"kg/m^3"
 mass = 0.04u"kg"
 shapeb = 2
@@ -26,7 +30,11 @@ shape = Cylinder(mass, density, shapeb) # define shape as a Cylinder struct of t
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
-fur = Fur(insulation_out.insulation_depths[1], insulation_out.fibre_diameters[1], insulation_out.fibre_densities[1])
+fur = Fur(
+    insulation_out.insulation_depths[1],
+    insulation_out.fibre_diameters[1],
+    insulation_out.fibre_densities[1],
+)
 composite_insulation = (fat, fur)
 
 body = Body(shape, Naked()) # construct a Body, which is furred
@@ -43,19 +51,26 @@ shape = Sphere(mass, density) # define shape as a Cylinder struct of type 'Shape
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
-fur = Fur(insulation_out.insulation_depths[1], insulation_out.fibre_diameters[1], insulation_out.fibre_densities[1])
+fur = Fur(
+    insulation_out.insulation_depths[1],
+    insulation_out.fibre_diameters[1],
+    insulation_out.fibre_densities[1],
+)
 composite_insulation = (fat, fur)
 
 body = Body(shape, fur) # construct a Body, which is furred
 body = Body(shape, fat) # construct a Body, which has a fat layer
 body = Body(shape, CompositeInsulation(fur, fat))
 
-
 shape = Plate(mass, density, shapeb, shapeb) # define shape as a Cylinder struct of type 'Shape' and give it required values
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
-fur = Fur(insulation_out.insulation_depths[1], insulation_out.fibre_diameters[1], insulation_out.fibre_densities[1])
+fur = Fur(
+    insulation_out.insulation_depths[1],
+    insulation_out.fibre_diameters[1],
+    insulation_out.fibre_densities[1],
+)
 composite_insulation = (fat, fur)
 
 body = Body(shape, Naked()) # construct a Body, which is furred
@@ -67,7 +82,11 @@ shape = Ellipsoid(mass, density, shapeb, shapeb) # define shape as a Cylinder st
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
-fur = Fur(insulation_out.insulation_depths[1], insulation_out.fibre_diameters[1], insulation_out.fibre_densities[1])
+fur = Fur(
+    insulation_out.insulation_depths[1],
+    insulation_out.fibre_diameters[1],
+    insulation_out.fibre_densities[1],
+)
 composite_insulation = (fat, fur)
 
 body = Body(shape, Naked()) # construct a Body, which is furred
