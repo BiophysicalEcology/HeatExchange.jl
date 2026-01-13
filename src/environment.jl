@@ -29,8 +29,8 @@ abstract type AbstractEnvironmentalVars end
 
 Environmental variables for an organism model.
 """
-Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,
-        WS,PA,ZA,KS,GR,FD,SD} <: AbstractEnvironmentalVars
+Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,SD} <:
+                   AbstractEnvironmentalVars
     T_air::TA
     T_air_reference::TR = T_air
     T_sky::TU
@@ -48,8 +48,8 @@ Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,
     shade::SD
 end
 
-Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,
-        WS,PA,ZA,KS,GR,FD,SD} <: AbstractEnvironmentalVars
+Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,SD} <:
+                   AbstractEnvironmentalVars
     T_air::Vector{TA}
     T_air_reference::Vector{TR} = T_air
     T_sky::Vector{TU}

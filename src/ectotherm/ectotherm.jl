@@ -42,19 +42,19 @@ function ectotherm(T_x, insulation::Naked, o, e)
 
     # respiration
     resp_out = respiration(;
-        T_lung = T_x, 
-        Q_metab, 
-        fO2_extract = resp.fO2_extract, 
-        pant = resp.pant, 
-        rq = resp.rq,
-        mass = o.body.shape.mass,
-        T_air_exit = T_x,
-        rh_exit = resp.rh_exit,         
-        T_air = e_vars.T_air,
-        rh = e_vars.rh,
-        P_atmos = e_vars.P_atmos,
-        gasfrac = e_pars.gasfrac,
-        )
+        T_lung=T_x,
+        Q_metab,
+        fO2_extract=resp.fO2_extract,
+        pant=resp.pant,
+        rq=resp.rq,
+        mass=o.body.shape.mass,
+        T_air_exit=T_x,
+        rh_exit=resp.rh_exit,
+        T_air=e_vars.T_air,
+        rh=e_vars.rh,
+        P_atmos=e_vars.P_atmos,
+        gasfrac=e_pars.gasfrac,
+    )
     Q_resp = resp_out.Q_resp
     V_O2 = u"ml/hr"(Joules_to_O2(Q_metab))
 
@@ -64,97 +64,94 @@ function ectotherm(T_x, insulation::Naked, o, e)
 
     # resultant surfanec and lung temperature
     Tsurf_Tlung_out = Tsurf_and_Tlung(;
-        body = o.body, 
-        k_flesh = cond_in.k_flesh, 
-        Q_gen_spec, 
-        T_core = T_x,
-        )
+        body=o.body, k_flesh=cond_in.k_flesh, Q_gen_spec, T_core=T_x
+    )
     T_surface = Tsurf_Tlung_out.T_surface
     T_lung = Tsurf_Tlung_out.T_lung
 
     # solar radiation
-    solar_out = solar(; 
-        α_body_dorsal = rad.α_body_dorsal, 
-        α_body_ventral = rad.α_body_ventral, 
-        A_silhouette, 
-        A_total, 
+    solar_out = solar(;
+        α_body_dorsal=rad.α_body_dorsal,
+        α_body_ventral=rad.α_body_ventral,
+        A_silhouette,
+        A_total,
         A_conduction,
-        F_ground = rad.F_ground, 
-        F_sky = rad.F_sky, 
-        α_ground = e_pars.α_ground, 
-        shade = e_vars.shade, 
-        zenith_angle = e_vars.zenith_angle, 
-        global_radiation = e_vars.global_radiation, 
-        diffuse_fraction = e_vars.diffuse_fraction,
-        )
+        F_ground=rad.F_ground,
+        F_sky=rad.F_sky,
+        α_ground=e_pars.α_ground,
+        shade=e_vars.shade,
+        zenith_angle=e_vars.zenith_angle,
+        global_radiation=e_vars.global_radiation,
+        diffuse_fraction=e_vars.diffuse_fraction,
+    )
     Q_solar = solar_out.Q_solar
 
     # infrared in
     ir_gain = radin(;
-        F_sky = rad.F_sky, 
-        F_ground = rad.F_ground, 
-        ϵ_body_dorsal = rad.ϵ_body_dorsal, 
-        ϵ_body_ventral = rad.ϵ_body_ventral,
+        F_sky=rad.F_sky,
+        F_ground=rad.F_ground,
+        ϵ_body_dorsal=rad.ϵ_body_dorsal,
+        ϵ_body_ventral=rad.ϵ_body_ventral,
         A_total,
         A_conduction,
-        e_pars.ϵ_ground, 
-        e_pars.ϵ_sky, 
-        e_vars.T_sky, 
+        e_pars.ϵ_ground,
+        e_pars.ϵ_sky,
+        e_vars.T_sky,
         e_vars.T_ground,
-        )
+    )
     Q_ir_in = ir_gain.Q_ir_in
 
     # infrared out
     ir_loss = radout(;
-        T_dorsal = T_surface,
-        T_ventral = T_surface, 
-        A_total, 
+        T_dorsal=T_surface,
+        T_ventral=T_surface,
+        A_total,
         A_conduction,
-        F_sky = rad.F_sky,
-        F_ground = rad.F_ground, 
-        ϵ_body_dorsal = rad.ϵ_body_dorsal, 
-        ϵ_body_ventral = rad.ϵ_body_ventral,
-        )
+        F_sky=rad.F_sky,
+        F_ground=rad.F_ground,
+        ϵ_body_dorsal=rad.ϵ_body_dorsal,
+        ϵ_body_ventral=rad.ϵ_body_ventral,
+    )
     Q_ir_out = ir_loss.Q_ir_out
 
     # conduction
     Q_cond = conduction(;
-        A_conduction, 
-        L = e_pars.conduction_depth,
+        A_conduction,
+        L=e_pars.conduction_depth,
         T_surface,
-        T_substrate = e_vars.T_substrate, 
-        k_substrate = e_vars.k_substrate,
-        )
+        T_substrate=e_vars.T_substrate,
+        k_substrate=e_vars.k_substrate,
+    )
 
     # convection
-    conv_out = convection(; 
-        body = o.body, 
-        area = A_convection, 
-        T_air = e_vars.T_air, 
-        T_surface, 
-        wind_speed = e_vars.wind_speed, 
-        P_atmos = e_vars.P_atmos,
-        fluid = e_pars.fluid,
-        gasfrac = e_pars.gasfrac,
-        convection_enhancement = e_pars.convection_enhancement,
-        )
+    conv_out = convection(;
+        body=o.body,
+        area=A_convection,
+        T_air=e_vars.T_air,
+        T_surface,
+        wind_speed=e_vars.wind_speed,
+        P_atmos=e_vars.P_atmos,
+        fluid=e_pars.fluid,
+        gasfrac=e_pars.gasfrac,
+        convection_enhancement=e_pars.convection_enhancement,
+    )
     Q_conv = conv_out.Q_conv
-    
+
     # evaporation
     evap_out = evaporation(;
-        T_surface, 
-        ψ_org = hyd.water_potential,
-        wetness = evap.skin_wetness, 
-        area = A_convection, 
-        hd = conv_out.hd, 
-        hd_free = conv_out.hd_free, 
-        eye_fraction = evap.eye_fraction, 
-        bare_fraction = 1.0, 
-        T_air = e_vars.T_air,
-        rh = e_vars.rh,
-        P_atmos = e_vars.P_atmos,
-        gasfrac = e_pars.gasfrac,
-        )
+        T_surface,
+        ψ_org=hyd.water_potential,
+        wetness=evap.skin_wetness,
+        area=A_convection,
+        hd=conv_out.hd,
+        hd_free=conv_out.hd_free,
+        eye_fraction=evap.eye_fraction,
+        bare_fraction=1.0,
+        T_air=e_vars.T_air,
+        rh=e_vars.rh,
+        P_atmos=e_vars.P_atmos,
+        gasfrac=e_pars.gasfrac,
+    )
     Q_evap = evap_out.Q_evap
 
     # heat balance
@@ -164,11 +161,21 @@ function ectotherm(T_x, insulation::Naked, o, e)
     Q_bal = Q_in - Q_out # this must balance
 
     enbal = (; Q_solar, Q_ir_in, Q_metab, Q_resp, Q_evap, Q_ir_out, Q_conv, Q_cond, Q_bal)
-    masbal = (; V_O2, m_resp = resp_out.m_resp, m_cut = evap_out.m_cut, 
-        m_eye = evap_out.m_eyes)
-    (; Q_bal, T_core=T_x, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, 
-        ir_loss, conv_out, evap_out)
-
+    masbal = (; V_O2, m_resp=resp_out.m_resp, m_cut=evap_out.m_cut, m_eye=evap_out.m_eyes)
+    (;
+        Q_bal,
+        T_core=T_x,
+        T_surface,
+        T_lung,
+        enbal,
+        masbal,
+        resp_out,
+        solar_out,
+        ir_gain,
+        ir_loss,
+        conv_out,
+        evap_out,
+    )
 end
 function ectotherm(T_x, insulation::Fur, pars, organism, vars) # A method for organisms with fur
     #....
@@ -176,7 +183,9 @@ end
 
 function get_Tb(mod::Model, e_pars, vars)
     T_air = vars.environment.T_air
-    T_c = find_zero(t -> ectotherm(t, mod, e_pars, vars), (T_air - 40K, T_air + 100K), Bisection())
+    T_c = find_zero(
+        t -> ectotherm(t, mod, e_pars, vars), (T_air - 40K, T_air + 100K), Bisection()
+    )
     ectotherm(T_c, mod, e_pars, vars)
 end
 

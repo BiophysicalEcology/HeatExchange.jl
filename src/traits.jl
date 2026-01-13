@@ -9,7 +9,7 @@ Morphological parameters relating to conductive heat exchange with the external 
 
 """
 Base.@kwdef struct ExternalConductionParameters{F} <: AbstractMorphologyParameters
-    conduction_fraction::F =  Param(0.0, bounds=(0.0, 1.0))
+    conduction_fraction::F = Param(0.0, bounds=(0.0, 1.0))
 end
 
 """
@@ -25,9 +25,9 @@ Morphological parameters relating to conductive heat flow within the organism.
 """
 Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF} <: AbstractPhysiologyParameters
     fat_fraction::FF = Param(0.0, bounds=(0.0, 1.0))
-    k_flesh::FL      = Param(0.9u"W/m/K")
-    k_fat::FA        = Param(0.230u"W/m/K")
-    ρ_fat::DF        = Param(901.0u"kg/m^3")
+    k_flesh::FL = Param(0.9u"W/m/K")
+    k_fat::FA = Param(0.230u"W/m/K")
+    ρ_fat::DF = Param(901.0u"kg/m^3")
 end
 
 """
@@ -60,21 +60,21 @@ Morphological parameters relating to radiation exchange.
 - `ventral_fraction::F` — Fraction of total surface area that is ventral (0–1).
 
 """
-Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,
-  VF} <: AbstractMorphologyParameters
-    α_body_dorsal::AD     = Param(0.85, bounds=(0.0, 1.0))
-    α_body_ventral::AV    = Param(0.85, bounds=(0.0, 1.0))
-    ϵ_body_dorsal::ED     = Param(0.95, bounds=(0.0, 1.0))
-    ϵ_body_ventral::EV    = Param(0.95, bounds=(0.0, 1.0))
-    A_silhouette::AS      = Param(0.0u"m^2")
-    A_total::AT          = Param(0.0u"m^2")
-    A_conduction::AC         = Param(0.0u"m^2")
-    F_sky::FS             = Param(0.5, bounds=(0.0, 1.0))
-    F_ground::FG          = Param(0.5, bounds=(0.0, 1.0))
-    F_vegetation::FV      = Param(0.0, bounds=(0.0, 1.0))
-    F_bush::FB            = Param(0.0, bounds=(0.0, 1.0))
-    ventral_fraction::VF  = Param(0.5, bounds=(0.0, 1.0))
-    solar_orientation     = Intermediate() 
+Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,VF} <:
+                   AbstractMorphologyParameters
+    α_body_dorsal::AD = Param(0.85, bounds=(0.0, 1.0))
+    α_body_ventral::AV = Param(0.85, bounds=(0.0, 1.0))
+    ϵ_body_dorsal::ED = Param(0.95, bounds=(0.0, 1.0))
+    ϵ_body_ventral::EV = Param(0.95, bounds=(0.0, 1.0))
+    A_silhouette::AS = Param(0.0u"m^2")
+    A_total::AT = Param(0.0u"m^2")
+    A_conduction::AC = Param(0.0u"m^2")
+    F_sky::FS = Param(0.5, bounds=(0.0, 1.0))
+    F_ground::FG = Param(0.5, bounds=(0.0, 1.0))
+    F_vegetation::FV = Param(0.0, bounds=(0.0, 1.0))
+    F_bush::FB = Param(0.0, bounds=(0.0, 1.0))
+    ventral_fraction::VF = Param(0.5, bounds=(0.0, 1.0))
+    solar_orientation = Intermediate()
 end
 
 """
@@ -91,10 +91,10 @@ Morphological parameters relating to cutaneous evaporation of the organism.
 
 """
 Base.@kwdef struct EvaporationParameters{SW,IW,EF,BF,IF} <: AbstractMorphologyParameters
-    skin_wetness::SW        = Param(0.0, bounds=(0.0, 1.0))
-    insulation_wetness::IW  = Param(1, bounds=(0.0, 1.0))  
-    eye_fraction::EF        = Param(0.0, bounds=(0.0, 1.0))
-    bare_skin_fraction::BF  = Param(1.0, bounds=(0.0, 1.0))
+    skin_wetness::SW = Param(0.0, bounds=(0.0, 1.0))
+    insulation_wetness::IW = Param(1, bounds=(0.0, 1.0))
+    eye_fraction::EF = Param(0.0, bounds=(0.0, 1.0))
+    bare_skin_fraction::BF = Param(1.0, bounds=(0.0, 1.0))
     insulation_fraction::IF = Param(0.0, bounds=(0.0, 1.0))
 end
 
@@ -112,9 +112,9 @@ Morphological parameters relating to radiation exchange.
 
 """
 Base.@kwdef struct HydraulicParameters{WP,HC,SH} <: AbstractPhysiologyParameters
-    water_potential::WP       = Param(0.0u"J/kg", bounds=(-Inf, 0.0))
+    water_potential::WP = Param(0.0u"J/kg", bounds=(-Inf, 0.0))
     hydraulic_conductance::HC = Param(0.0u"kg / (m^2 * s * (J/kg))", bounds=(0.0, Inf))
-    specific_hydration::SH    = Param(0.000304u"m^3 / (m^3 * (J/kg))", bounds=(0.0, Inf))
+    specific_hydration::SH = Param(0.000304u"m^3 / (m^3 * (J/kg))", bounds=(0.0, Inf))
 end
 
 """
@@ -133,10 +133,10 @@ These parameters influence radiative and evaporative exchange.
 """
 Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE} <: AbstractPhysiologyParameters
     fO2_extract::OE = Param(0.2, bounds=(0.0, 1.0))
-    pant::PA        = Param(1.0, bounds=(1.0, Inf))
-    rq::RQ          = Param(0.8, bounds=(0.5, 1.2))
-    Δ_breath::DB    = Param(0.0u"K")
-    rh_exit::RE     = Param(1.0, bounds=(0.0, 1.0))
+    pant::PA = Param(1.0, bounds=(1.0, Inf))
+    rq::RQ = Param(0.8, bounds=(0.5, 1.2))
+    Δ_breath::DB = Param(0.0u"K")
+    rh_exit::RE = Param(1.0, bounds=(0.0, 1.0))
 end
 
 """
@@ -198,23 +198,24 @@ typical small-mammal pelage properties.
 - This struct represents both dorsal and ventral insulation separately,
   allowing asymmetric fur properties.
 """
-Base.@kwdef struct InsulationParameters{ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,
-    FRD,FRV,IRD,IRV,IDC,FCN,LDF} <: AbstractMorphologyParameters
-    insulation_conductivity_dorsal::ICD     = nothing
-    insulation_conductivity_ventral::ICV    = nothing
-    fibre_diameter_dorsal::FDD              = Param(30.0u"μm")
-    fibre_diameter_ventral::FDV             = Param(30.0u"μm")
-    fibre_length_dorsal::FLD                = Param(23.9u"mm")
-    fibre_length_ventral::FLV               = Param(23.9u"mm")
-    insulation_depth_dorsal::IDD             = Param(2.0u"mm")
-    insulation_depth_ventral::IDV            = Param(2.0u"mm")    
-    fibre_density_dorsal::FRD               = Param(3000.0u"cm^-2")
-    fibre_density_ventral::FRV              = Param(3000.0u"cm^-2") 
-    insulation_reflectance_dorsal::IRD      = Param(0.301, bounds=(0.0, 1.0))
-    insulation_reflectance_ventral::IRV     = Param(0.301, bounds=(0.0, 1.0))
-    insulation_depth_compressed::IDC        = Param(2.0u"mm")
-    fibre_conductivity::FCN                 = Param(0.209u"W/m/K")
-    longwave_depth_fraction::LDF            = Param(1, bounds=(0.0, 1.0))
+Base.@kwdef struct InsulationParameters{
+    ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,FRD,FRV,IRD,IRV,IDC,FCN,LDF
+} <: AbstractMorphologyParameters
+    insulation_conductivity_dorsal::ICD = nothing
+    insulation_conductivity_ventral::ICV = nothing
+    fibre_diameter_dorsal::FDD = Param(30.0u"μm")
+    fibre_diameter_ventral::FDV = Param(30.0u"μm")
+    fibre_length_dorsal::FLD = Param(23.9u"mm")
+    fibre_length_ventral::FLV = Param(23.9u"mm")
+    insulation_depth_dorsal::IDD = Param(2.0u"mm")
+    insulation_depth_ventral::IDV = Param(2.0u"mm")
+    fibre_density_dorsal::FRD = Param(3000.0u"cm^-2")
+    fibre_density_ventral::FRV = Param(3000.0u"cm^-2")
+    insulation_reflectance_dorsal::IRD = Param(0.301, bounds=(0.0, 1.0))
+    insulation_reflectance_ventral::IRV = Param(0.301, bounds=(0.0, 1.0))
+    insulation_depth_compressed::IDC = Param(2.0u"mm")
+    fibre_conductivity::FCN = Param(0.209u"W/m/K")
+    longwave_depth_fraction::LDF = Param(1, bounds=(0.0, 1.0))
 end
 
 """
@@ -229,8 +230,8 @@ A collection of physiological parameters relating to metabolic rate.
 
 """
 Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysiologyParameters
-    T_core::TC       = Param(37u"°C" |> u"K")
+    T_core::TC = Param(u"K"(37u"°C"))
     Q_metabolism::QM = Param(0.0u"W")
-    q10::QT          = Param(2.0)
-    model            = AndrewsPough2()
+    q10::QT = Param(2.0)
+    model = AndrewsPough2()
 end

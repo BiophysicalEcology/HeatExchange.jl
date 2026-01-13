@@ -2,19 +2,23 @@ abstract type AbstractPhysiologyModel end
 
 abstract type MetabolicRateEquation <: AbstractPhysiologyModel end
 abstract type OxygenJoulesConversion <: AbstractPhysiologyModel end
-        
+
 abstract type AbstractPhysiologyParameters end
 
 abstract type AbstractMorphologyParameters end
-        
+
 abstract type AbstractModelParameters end
 
 abstract type AbstractFunctionalTraits end
 
 shapepars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
 insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
-conductionpars_external(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_external)
-conductionpars_internal(t::AbstractFunctionalTraits) = stripparams(t.conduction_pars_internal)
+function conductionpars_external(t::AbstractFunctionalTraits)
+    stripparams(t.conduction_pars_external)
+end
+function conductionpars_internal(t::AbstractFunctionalTraits)
+    stripparams(t.conduction_pars_internal)
+end
 convectionpars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
 radiationpars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
 evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
@@ -24,17 +28,17 @@ metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
 
 # TODO more specific subtypes
 struct HeatExchangeTraits{
-        SP<:AbstractShape,
-        IN<:AbstractMorphologyParameters,
-        CE<:AbstractMorphologyParameters,
-        CI<:AbstractPhysiologyParameters,
-        RA<:AbstractMorphologyParameters,
-        CO<:AbstractMorphologyParameters,
-        EV<:AbstractMorphologyParameters,
-        HD<:AbstractPhysiologyParameters,
-        RE<:AbstractPhysiologyParameters,
-        ME<:AbstractPhysiologyParameters,
- } <: AbstractFunctionalTraits
+    SP<:AbstractShape,
+    IN<:AbstractMorphologyParameters,
+    CE<:AbstractMorphologyParameters,
+    CI<:AbstractPhysiologyParameters,
+    RA<:AbstractMorphologyParameters,
+    CO<:AbstractMorphologyParameters,
+    EV<:AbstractMorphologyParameters,
+    HD<:AbstractPhysiologyParameters,
+    RE<:AbstractPhysiologyParameters,
+    ME<:AbstractPhysiologyParameters,
+} <: AbstractFunctionalTraits
     shape_pars::SP
     insulation_pars::IN
     conduction_pars_external::CE
@@ -80,9 +84,7 @@ metabolismpars(o::AbstractOrganism) = metabolismpars(traits(o))
 A concrete implementation of `AbstractOrganism`, it accepts an
 [`AbstractBody`](@ref) and [`AbstractFunctionalTraits`](@ref) object.
 """
-struct Organism{
-        B<:AbstractBody,
-        T<:AbstractFunctionalTraits} <: AbstractOrganism
+struct Organism{B<:AbstractBody,T<:AbstractFunctionalTraits} <: AbstractOrganism
     body::B
     traits::T
 end

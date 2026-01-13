@@ -22,21 +22,29 @@ and both results are reported. Predictions are capped betwen 1 °C and 50 °C bo
 """
 struct AndrewsPough2 <: MetabolicRateEquation end
 #TODO make it so M1 etc. are in AndrewPough2 struct, make them all take mass or mass and temp
-function metabolic_rate(::AndrewsPough2, mass, T_body; M1=0.013, M2=0.8, M3=0.038, M4=0.0, 
-        O2conversion::OxygenJoulesConversion=Typical())
+function metabolic_rate(
+    ::AndrewsPough2,
+    mass,
+    T_body;
+    M1=0.013,
+    M2=0.8,
+    M3=0.038,
+    M4=0.0,
+    O2conversion::OxygenJoulesConversion=Typical(),
+)
     mass_g = ustrip(u"g", mass)
     T_c = ustrip(u"°C", T_body)
 
     if T_c > 1.0
         if T_c > 50.0
             V_O2 = M1 * mass_g^M2 * 10^(M3 * 50.0) * 10.0 ^ M4
-         else
+        else
             V_O2 = M1 * mass_g^M2 * 10^(M3 * T_c) * 10.0 ^ M4
         end
     else
         V_O2 = M1 * mass_g^M2 * 10^(M3 * 1.0) * 10.0 ^ M4
     end
-    
+
     Q_metab = u"W"(O2_to_Joules(O2conversion, (V_O2)u"ml/hr", 0.8))
 
     return (Q_metab)

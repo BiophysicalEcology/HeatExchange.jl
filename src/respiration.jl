@@ -35,11 +35,41 @@ function respiration(;
     gasfrac::GasFractions=GasFractions(),
     O2conversion::OxygenJoulesConversion=Typical(),
 )
-    return respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit,
-        rh_exit, T_air, rh, P_atmos, gasfrac, O2conversion)
+    return respiration(
+        Q_metab,
+        Q_sum,
+        Q_min,
+        T_lung,
+        fO2_extract,
+        pant,
+        rq,
+        mass,
+        T_air_exit,
+        rh_exit,
+        T_air,
+        rh,
+        P_atmos,
+        gasfrac,
+        O2conversion,
+    )
 end
-function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass, T_air_exit,
-        rh_exit, T_air, rh, P_atmos, gasfrac, O2conversion)
+function respiration(
+    Q_metab,
+    Q_sum,
+    Q_min,
+    T_lung,
+    fO2_extract,
+    pant,
+    rq,
+    mass,
+    T_air_exit,
+    rh_exit,
+    T_air,
+    rh,
+    P_atmos,
+    gasfrac,
+    O2conversion,
+)
     (; fO2, fCO2, fN2) = gasfrac
     # adjust O2 to ensure sum to 1
     if fO2 + fCO2 + fN2 != 1
@@ -113,7 +143,17 @@ function respiration(Q_metab, Q_sum, Q_min, T_lung, fO2_extract, pant, rq, mass,
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
     Q_net_check = Q_metab - Q_resp
     balance = Q_net_check - Q_sum
-    molar_fluxes = MolarFluxes(J_air_in, J_air_out, J_H2O_in, J_H2O_out,
-        J_O2_in, J_O2_out, J_CO2_in, J_CO2_out, J_N2_in, J_N2_out)
+    molar_fluxes = MolarFluxes(
+        J_air_in,
+        J_air_out,
+        J_H2O_in,
+        J_H2O_out,
+        J_O2_in,
+        J_O2_out,
+        J_CO2_in,
+        J_CO2_out,
+        J_N2_in,
+        J_N2_out,
+    )
     return (; balance, Q_resp, m_resp, Q_gen=Q_metab, V_air, V_O2_STP, molar_fluxes)
 end
