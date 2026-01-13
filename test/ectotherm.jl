@@ -243,8 +243,14 @@ Q_metab = metabolic_rate(
 @test Q_metab ≈ (ecto_output.QMET)u"W" rtol=1e-9
 
 # respiration
-resp_out = respiration(;
-    T_lung=T_core, Q_metab, fO2_extract, pant, rq, mass, T_air, rh, P_atmos, gasfrac
+resp_out = respiration(
+    mass,
+    T_core,  # T_lung
+    T_air,
+    MetabolicRates(; metabolic=Q_metab),
+    RespirationParameters(; fO2_extract, pant, rq),
+    AtmosphericConditions(rh, wind_speed, P_atmos);
+    gasfrac,
 )
 Q_resp = resp_out.Q_resp
 
@@ -273,45 +279,32 @@ T_skin, T_lung = Tsurf_and_Tlung(; body=geometry, k_flesh, Q_gen_spec, T_core)
 
 # solar radiation
 diffuse_fraction = ecto_input.PDIF
-solar_out = solar(;
-    α_body_dorsal,
-    α_body_ventral,
-    A_silhouette,
-    A_total,
-    A_conduction,
-    F_ground,
-    F_sky,
-    α_ground,
-    shade,
+absorptivities = Absorptivities(;
+    body_dorsal=α_body_dorsal,
+    body_ventral=α_body_ventral,
+    ground=α_ground,
+)
+view_factors = ViewFactors(F_sky, F_ground, 0.0, 0.0)
+solar_conditions = SolarConditions(;
     zenith_angle,
     global_radiation,
     diffuse_fraction,
+    shade,
 )
+solar_out = solar(geometry, absorptivities, view_factors, solar_conditions, A_silhouette, A_conduction)
 Q_solar = solar_out.Q_solar
 
 # longwave radiation
-ir_gain = radin(;
-    A_total,
-    F_sky,
-    F_ground,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
-    ϵ_ground,
-    ϵ_sky,
-    T_sky,
-    T_ground,
+emissivities = Emissivities(;
+    body_dorsal=ϵ_body_dorsal,
+    body_ventral=ϵ_body_ventral,
+    ground=ϵ_ground,
+    sky=ϵ_sky,
 )
+env_temps = EnvironmentTemperatures(T_air, T_sky, T_ground, T_air, T_air, T_substrate)
+ir_gain = radin(geometry, view_factors, emissivities, env_temps; conduction_fraction)
 Q_ir_in = ir_gain.Q_ir_in
-ir_loss = radout(;
-    T_dorsal=T_skin,
-    T_ventral=T_skin,
-    A_total,
-    A_conduction,
-    F_sky,
-    F_ground,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
-)
+ir_loss = radout(geometry, T_skin, T_skin, view_factors, emissivities; conduction_fraction)
 Q_ir_out = ir_loss.Q_ir_out
 
 # conduction
@@ -332,19 +325,10 @@ conv_out = convection(;
 Q_conv = conv_out.Q_conv
 
 # evaporation
-evap_out = evaporation(;
-    T_surface=T_skin,
-    ψ_org,
-    wetness=skin_wetness,
-    area=A_convection,
-    hd=conv_out.hd,
-    hd_free=conv_out.hd_free,
-    eye_fraction,
-    T_air,
-    rh,
-    P_atmos,
-    gasfrac,
-)
+evap_pars_test = EvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction=1.0)
+transfer_test = TransferCoefficients(; heat=conv_out.hc, mass=conv_out.hd, mass_free=conv_out.hd_free)
+atmos_test = AtmosphericConditions(rh, wind_speed, P_atmos)
+evap_out = evaporation(T_skin, T_air, A_convection, evap_pars_test, transfer_test, atmos_test; water_potential=ψ_org, gasfrac)
 Q_evap = evap_out.Q_evap
 
 # energy balance test

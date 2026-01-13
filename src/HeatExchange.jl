@@ -1,6 +1,7 @@
 module HeatExchange
 
 using BiophysicalGeometry
+using ConstructionBase: setproperties
 using FluidProperties
 using ModelParameters
 using Roots
@@ -78,7 +79,14 @@ export ConductanceCoeffs,
     AtmosphericConditions,
     ThermalConductivities,
     MolarFluxes,
-    HeatFluxes
+    HeatFluxes,
+    SolarConditions,
+    TransferCoefficients,
+    MetabolicRates,
+    Emissivities,
+    Absorptivities,
+    InsulationOutput,
+    GeometryVariables
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
 

@@ -41,18 +41,15 @@ function ectotherm(T_x, insulation::Naked, o, e)
     Q_metab = metabolic_rate(metab.model, o.body.shape.mass, T_x)
 
     # respiration
-    resp_out = respiration(;
-        T_lung=T_x,
-        Q_metab,
-        fO2_extract=resp.fO2_extract,
-        pant=resp.pant,
-        rq=resp.rq,
-        mass=o.body.shape.mass,
-        T_air_exit=T_x,
-        rh_exit=resp.rh_exit,
-        T_air=e_vars.T_air,
-        rh=e_vars.rh,
-        P_atmos=e_vars.P_atmos,
+    rates = MetabolicRates(; metabolic=Q_metab)
+    atmos = AtmosphericConditions(e_vars)
+    resp_out = respiration(
+        o.body.shape.mass,
+        T_x,  # T_lung
+        e_vars.T_air,
+        rates,
+        resp,
+        atmos;
         gasfrac=e_pars.gasfrac,
     )
     Q_resp = resp_out.Q_resp
@@ -70,47 +67,39 @@ function ectotherm(T_x, insulation::Naked, o, e)
     T_lung = Tsurf_Tlung_out.T_lung
 
     # solar radiation
-    solar_out = solar(;
-        α_body_dorsal=rad.α_body_dorsal,
-        α_body_ventral=rad.α_body_ventral,
+    absorptivities = Absorptivities(rad, e_pars)
+    view_factors = ViewFactors(rad.F_sky, rad.F_ground, 0.0, 0.0)
+    solar_conditions = SolarConditions(e_vars)
+    solar_out = solar(
+        o.body,
+        absorptivities,
+        view_factors,
+        solar_conditions,
         A_silhouette,
-        A_total,
         A_conduction,
-        F_ground=rad.F_ground,
-        F_sky=rad.F_sky,
-        α_ground=e_pars.α_ground,
-        shade=e_vars.shade,
-        zenith_angle=e_vars.zenith_angle,
-        global_radiation=e_vars.global_radiation,
-        diffuse_fraction=e_vars.diffuse_fraction,
     )
     Q_solar = solar_out.Q_solar
 
     # infrared in
-    ir_gain = radin(;
-        F_sky=rad.F_sky,
-        F_ground=rad.F_ground,
-        ϵ_body_dorsal=rad.ϵ_body_dorsal,
-        ϵ_body_ventral=rad.ϵ_body_ventral,
-        A_total,
-        A_conduction,
-        e_pars.ϵ_ground,
-        e_pars.ϵ_sky,
-        e_vars.T_sky,
-        e_vars.T_ground,
+    emissivities = Emissivities(rad, e_pars)
+    env_temps = EnvironmentTemperatures(e_vars)
+    ir_gain = radin(
+        o.body,
+        view_factors,
+        emissivities,
+        env_temps;
+        conduction_fraction=cond_ex.conduction_fraction,
     )
     Q_ir_in = ir_gain.Q_ir_in
 
     # infrared out
-    ir_loss = radout(;
-        T_dorsal=T_surface,
-        T_ventral=T_surface,
-        A_total,
-        A_conduction,
-        F_sky=rad.F_sky,
-        F_ground=rad.F_ground,
-        ϵ_body_dorsal=rad.ϵ_body_dorsal,
-        ϵ_body_ventral=rad.ϵ_body_ventral,
+    ir_loss = radout(
+        o.body,
+        T_surface,  # T_dorsal
+        T_surface,  # T_ventral
+        view_factors,
+        emissivities;
+        conduction_fraction=cond_ex.conduction_fraction,
     )
     Q_ir_out = ir_loss.Q_ir_out
 
@@ -138,18 +127,15 @@ function ectotherm(T_x, insulation::Naked, o, e)
     Q_conv = conv_out.Q_conv
 
     # evaporation
-    evap_out = evaporation(;
+    transfer = TransferCoefficients(; heat=conv_out.hc, mass=conv_out.hd, mass_free=conv_out.hd_free)
+    evap_out = evaporation(
         T_surface,
-        ψ_org=hyd.water_potential,
-        wetness=evap.skin_wetness,
-        area=A_convection,
-        hd=conv_out.hd,
-        hd_free=conv_out.hd_free,
-        eye_fraction=evap.eye_fraction,
-        bare_fraction=1.0,
-        T_air=e_vars.T_air,
-        rh=e_vars.rh,
-        P_atmos=e_vars.P_atmos,
+        e_vars.T_air,
+        A_convection,
+        evap,
+        transfer,
+        atmos;
+        water_potential=hyd.water_potential,
         gasfrac=e_pars.gasfrac,
     )
     Q_evap = evap_out.Q_evap
