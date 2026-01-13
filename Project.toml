@@ -13,7 +13,7 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [sources]
-FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
+FluidProperties = {path = "/home/raf/.julia/dev/FluidProperties"}
 BiophysicalGeometry = {rev = "main", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
 
 [compat]
