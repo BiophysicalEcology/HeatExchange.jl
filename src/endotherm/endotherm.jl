@@ -14,9 +14,10 @@ Base.@kwdef struct EndothermMetabolicRateOptions{RE,ST,BT} <: AbstractModelParam
     resp_tolerance::BT = Param(1e-5u"K")
 end
 
-function solve_metabolic_rate(T_skin, T_insulation, o::Organism, e, options)
+function solve_metabolic_rate(T_skin, T_insulation, o::Organism, e)
     e_pars = stripparams(e.environment_pars)
     e_vars = e.environment_vars
+    options = optionspars(o)
     ins = insulationpars(o)
     cond_ex = conductionpars_external(o)
     cond_in = conductionpars_internal(o)

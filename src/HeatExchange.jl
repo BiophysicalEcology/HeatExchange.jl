@@ -48,7 +48,8 @@ export body,
     evaporationpars,
     hydraulicpars,
     respirationpars,
-    metabolismpars
+    metabolismpars,
+    optionspars
 
 export get_Tb
 

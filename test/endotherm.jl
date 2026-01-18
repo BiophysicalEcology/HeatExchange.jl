@@ -235,6 +235,12 @@ for shape_number in 1:4
             longwave_depth_fraction=endo_input.XR,
         )
 
+        options = EndothermMetabolicRateOptions(;
+            respire=Bool(endo_input.RESPIRE),
+            simulsol_tolerance=(endo_input.DIFTOL)u"K",
+            resp_tolerance=endo_input.BRENTOL,
+        )
+
         traits = HeatExchangeTraits(
             shape_pars,
             insulation_pars,
@@ -246,24 +252,19 @@ for shape_number in 1:4
             hydraulic_pars,
             respiration_pars,
             metabolism_pars,
+            options,
         )
 
         mammal = Organism(geometry, traits)
 
         environment = (; environment_pars, environment_vars)
 
-        options = EndothermMetabolicRateOptions(;
-            respire=Bool(endo_input.RESPIRE),
-            simulsol_tolerance=(endo_input.DIFTOL)u"K",
-            resp_tolerance=endo_input.BRENTOL,
-        )
-
         # initial conditions
         T_skin = u"K"((endo_input.TS)u"°C")
         T_insulation = u"K"((endo_input.TFA)u"°C")
 
         endotherm_out = solve_metabolic_rate(
-            T_skin, T_insulation, mammal, environment, options
+            T_skin, T_insulation, mammal, environment
         )
 
         thermoregulation = endotherm_out.thermoregulation
@@ -380,7 +381,7 @@ for shape_number in 1:4
 
         rtol = 1e-3
         @testset "endotherm mass flux comparisons" begin
-            if model_pars.respire
+            if options.respire
                 @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_fluxes.V_air) rtol =
                     rtol
                 @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_fluxes.V_O2_STP) rtol =
