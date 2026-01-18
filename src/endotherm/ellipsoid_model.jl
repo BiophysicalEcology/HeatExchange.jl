@@ -120,7 +120,7 @@ function ellipsoid_endotherm(
     # estimate basal metabolism if not provided
     if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
         allometric_estimate =
-            metabolic_rate(metabolic_rate_equation, mass, T_core) * metabolic_multiplier
+            metabolic_rate(metabolic_rate_equation, mass, T_c) * metabolic_multiplier
         Q_gen_min = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
     end
 
