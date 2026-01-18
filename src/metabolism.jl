@@ -2,52 +2,37 @@
     AndrewsPough2 <: MetabolicRateEquation
 
 Empirical model of standard (fasted, inactive period) and resting (fasted, active period)
- metabolic rate of squamates, Eq. 2 in Andrews & Pough 1985. Physiol. Zool. 58:214-231.
+metabolic rate of squamates, Eq. 2 in Andrews & Pough 1985. Physiol. Zool. 58:214-231.
 
 # Arguments
-- `mass` — body mass.
-- `T_body` — body temperature.
-- `M1` — mass normalisation constant.
-- `M2` — mass allometric exponent. 
-- `M3` — thermal senstivity constant. 
-- `M4` — metabolic state (0 = standard, 1 = resting) 
 
-# Outputs
-- Q_metab, metabolic rate (W)
-- V_O2, oxygen consumption rate (ml/h)
+- `M1`: mass normalisation constant.
+- `M2`: mass allometric exponent. 
+- `M3`: thermal senstivity constant. 
+- `M4`: metabolic state (0 = standard, 1 = resting) 
+- `O2conversion`: `OxygenJoulesConversion`, `Typical` by default.
 
-The equation reports metabolic rate as oxygen consumption rate given mass (g) and body
-temperature (°C). The result is internally converted to watts (0.0056 conversion factor)
-and both results are reported. Predictions are capped betwen 1 °C and 50 °C body temperature.
+The `metabolic_rate` equation reports metabolic rate as oxygen consumption rate given mass
+(g) and body temperature (°C). Predictions are capped betwen 1 °C and 50 °C body temperature.
 """
-struct AndrewsPough2 <: MetabolicRateEquation end
-#TODO make it so M1 etc. are in AndrewPough2 struct, make them all take mass or mass and temp
-function metabolic_rate(
-    ::AndrewsPough2,
-    mass,
-    T_body;
-    M1=0.013,
-    M2=0.8,
-    M3=0.038,
-    M4=0.0,
-    O2conversion::OxygenJoulesConversion=Typical(),
-)
-    mass_g = ustrip(u"g", mass)
-    T_c = ustrip(u"°C", T_body)
+@kwdef struct AndrewsPough2 <: MetabolicRateEquation
+    M1::Float64 = 0.013
+    M2::Float64 = 0.8
+    M3::Float64 = 0.038
+    M4::Float64 = 0.0
+    O2conversion::OxygenJoulesConversion = Typical()
+end
 
-    if T_c > 1.0
-        if T_c > 50.0
-            V_O2 = M1 * mass_g^M2 * 10^(M3 * 50.0) * 10.0 ^ M4
-        else
-            V_O2 = M1 * mass_g^M2 * 10^(M3 * T_c) * 10.0 ^ M4
-        end
-    else
-        V_O2 = M1 * mass_g^M2 * 10^(M3 * 1.0) * 10.0 ^ M4
-    end
+function metabolic_rate(eq::AndrewsPough2, mass, T_body)
+    (; M1, M2, M3, M4, O2conversion) = eq
+
+    mass_g = ustrip(u"g", mass)
+    T_c = clamp(ustrip(u"°C", T_body), 1.0, 50.0)
+    V_O2 = M1 * mass_g^M2 * 10^(M3 * T_c) * 10.0 ^ M4
 
     Q_metab = u"W"(O2_to_Joules(O2conversion, (V_O2)u"ml/hr", 0.8))
 
-    return (Q_metab)
+    return Q_metab
 end
 
 """
@@ -56,7 +41,7 @@ end
 Kleiber's empirical model of basal metabolic rate for mammals.
 
 # Arguments
-- `mass` — body mass.
+- `mass`: body mass.
 
 # Outputs
 - Q_metab, metabolic rate (W)
@@ -65,10 +50,11 @@ Kleiber, M. 1947. Body size and metabolic rate. Physiological Reviews 27:511–5
 """
 struct Kleiber <: MetabolicRateEquation end
 
-function metabolic_rate(::Kleiber, mass)
+function metabolic_rate(::Kleiber, mass, T_body=nothing)
     mass_kg = ustrip(u"kg", mass)
     m_rate_kcal_day = 70.0 * mass_kg^0.75 # general equation for mammals, p. 535, kcal/day
     Q_metab = (m_rate_kcal_day * 4.185 / (24 * 3.6))u"W" # convert to Watts
+
     return (Q_metab)
 end
 
@@ -78,7 +64,7 @@ end
 Kleiber's empirical model of basal metabolic rate for birds.
 
 # Arguments
-- `mass` — body mass.
+- `mass`: body mass.
 
 # Outputs
 - Q_metab, metabolic rate (W)
@@ -89,9 +75,10 @@ McKechnie, A. E., and B. O. Wolf. 2004. The Allometry of Avian Basal Metabolic R
 """
 struct McKechnieWolf <: MetabolicRateEquation end
 
-function metabolic_rate(::McKechnieWolf, mass)
+function metabolic_rate(::McKechnieWolf, mass, T_body=nothing)
     mass_g = ustrip(u"g", mass)
     Q_metab = (10.0^(-1.461 + 0.669 * log10(mass_g)))u"W"
+
     return (Q_metab)
 end
 
