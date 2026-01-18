@@ -1,16 +1,16 @@
 """
-    respiration(mass, T_lung, T_air, rates, resp_pars, atmos; kw...)
+    respiration(rates, resp_pars, atmos, mass, T_lung, T_air; kw...)
 
 Computes respiratory heat and water loss via mass flow through the lungs
 given gas concentrations, pressure, respiration rate and humidity.
 
 # Arguments
-- `mass`: Body mass
-- `T_lung`: Lung/core temperature
-- `T_air`: Air temperature
 - `rates::MetabolicRates`: Metabolic rates (metabolic, sum, minimum)
 - `resp_pars::RespirationParameters`: Respiration parameters (fO2_extract, pant, rq, Δ_breath, rh_exit)
 - `atmos::AtmosphericConditions`: Atmospheric conditions (rh, P_atmos)
+- `mass`: Body mass
+- `T_lung`: Lung/core temperature
+- `T_air`: Air temperature
 
 # Keywords
 - `gasfrac::GasFractions`: Gas fractions for O2, CO2, N2 concentrations
@@ -20,12 +20,12 @@ given gas concentrations, pressure, respiration rate and humidity.
 NamedTuple with balance, Q_resp, m_resp, Q_gen, V_air, V_O2_STP, molar_fluxes
 """
 function respiration(
-    mass,
-    T_lung,
-    T_air,
     rates::MetabolicRates,
     resp_pars::RespirationParameters,
-    atmos::AtmosphericConditions;
+    atmos::AtmosphericConditions,
+    mass,
+    T_lung,
+    T_air;
     gasfrac::GasFractions=GasFractions(),
     O2conversion::OxygenJoulesConversion=Typical(),
 )

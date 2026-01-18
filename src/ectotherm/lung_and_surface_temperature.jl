@@ -1,6 +1,6 @@
 """
     Tsurf_and_Tlung(; kw...)
-    Tsurf_and_Tlung(..) 
+    Tsurf_and_Tlung(..)
 
 Computes ...
 
@@ -8,13 +8,15 @@ Computes ...
 - `x`: x
 
 """
-function Tsurf_and_Tlung(; body, k_flesh, Q_gen_spec, T_core)
+function Tsurf_and_Tlung(; body::AbstractBody, k_flesh, Q_gen_spec, T_core)
     return Tsurf_and_Tlung(body, k_flesh, Q_gen_spec, T_core)
 end
+
 function Tsurf_and_Tlung(body::AbstractBody, k_flesh, Q_gen_spec, T_core)
     Tsurf_and_Tlung(shape(body), body, k_flesh, Q_gen_spec, T_core)
 end
-function Tsurf_and_Tlung(shape::Cylinder, body, k_flesh, Q_gen_spec, T_core)
+
+function Tsurf_and_Tlung(shape::Cylinder, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.length[2]
     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_flesh)
@@ -22,7 +24,8 @@ function Tsurf_and_Tlung(shape::Cylinder, body, k_flesh, Q_gen_spec, T_core)
 
     return (; T_surface, T_lung)
 end
-function Tsurf_and_Tlung(shape::DesertIguana, body, k_flesh, Q_gen_spec, T_core)
+
+function Tsurf_and_Tlung(shape::DesertIguana, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.length[1]
     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_flesh)
@@ -30,7 +33,8 @@ function Tsurf_and_Tlung(shape::DesertIguana, body, k_flesh, Q_gen_spec, T_core)
 
     return (; T_surface, T_lung)
 end
-function Tsurf_and_Tlung(shape::LeopardFrog, body, k_flesh, Q_gen_spec, T_core)
+
+function Tsurf_and_Tlung(shape::LeopardFrog, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     R_flesh = body.geometry.length[1]
     T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_flesh)
@@ -38,7 +42,8 @@ function Tsurf_and_Tlung(shape::LeopardFrog, body, k_flesh, Q_gen_spec, T_core)
 
     return (; T_surface, T_lung)
 end
-function Tsurf_and_Tlung(shape::Ellipsoid, body, k_flesh, Q_gen_spec, T_core)
+
+function Tsurf_and_Tlung(shape::Ellipsoid, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
     a = body.geometry.length[1] ^ 2
     b = body.geometry.length[2] ^ 2
     c = body.geometry.length[3] ^ 2

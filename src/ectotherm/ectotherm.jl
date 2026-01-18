@@ -44,12 +44,12 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
     rates = MetabolicRates(; metabolic=Q_metab)
     atmos = AtmosphericConditions(e_vars)
     resp_out = respiration(
-        o.body.shape.mass,
-        T_x,  # T_lung
-        e_vars.T_air,
         rates,
         resp,
-        atmos;
+        atmos,
+        o.body.shape.mass,
+        T_x,  # T_lung
+        e_vars.T_air;
         gasfrac=e_pars.gasfrac,
     )
     Q_resp = resp_out.Q_resp
@@ -95,11 +95,11 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
     # infrared out
     ir_loss = radout(
         o.body,
+        view_factors,
+        emissivities,
+        cond_ex.conduction_fraction,
         T_surface,  # T_dorsal
         T_surface,  # T_ventral
-        view_factors,
-        emissivities;
-        conduction_fraction=cond_ex.conduction_fraction,
     )
     Q_ir_out = ir_loss.Q_ir_out
 
@@ -129,12 +129,12 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
     # evaporation
     transfer = TransferCoefficients(; heat=conv_out.hc, mass=conv_out.hd, mass_free=conv_out.hd_free)
     evap_out = evaporation(
-        T_surface,
-        e_vars.T_air,
-        A_convection,
         evap,
         transfer,
-        atmos;
+        atmos,
+        A_convection,
+        T_surface,
+        e_vars.T_air;
         water_potential=hyd.water_potential,
         gasfrac=e_pars.gasfrac,
     )

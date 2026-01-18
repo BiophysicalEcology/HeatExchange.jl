@@ -14,7 +14,7 @@ Base.@kwdef struct SolveMetabolicRateOptions{RE,ST,BT} <: AbstractModelParameter
     resp_tolerance::BT = Param(1e-5u"K")
 end
 
-function solve_metabolic_rate(T_skin, T_insulation, o::Organism, e)
+function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     e_pars = stripparams(e.environment_pars)
     e_vars = e.environment_vars
     options = optionspars(o)
@@ -204,15 +204,15 @@ function solve_metabolic_rate(T_skin, T_insulation, o::Organism, e)
         )
         # call simulsol
         simulsol_out[side,] = simulsol(;
-            T_skin,
-            T_insulation,
-            simulsol_tolerance=options.simulsol_tolerance,
             geometry_pars,
             insulation_pars=ins,
             insulation_out,
             geom_vars,
             env_vars,
             traits,
+            simulsol_tolerance=options.simulsol_tolerance,
+            T_skin,
+            T_insulation,
         )
 
         T_skin = simulsol_out[side,].T_skin # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
@@ -255,12 +255,12 @@ function solve_metabolic_rate(T_skin, T_insulation, o::Organism, e)
         resp_atmos = AtmosphericConditions(e_vars)
         f =
             x -> respiration(
-                geometry_pars.shape.mass,
-                T_lung,
-                e_vars.T_air,
                 MetabolicRates(; metabolic=x, sum=Q_sum, minimum=Q_min),
                 resp,
-                resp_atmos;
+                resp_atmos,
+                geometry_pars.shape.mass,
+                T_lung,
+                e_vars.T_air;
                 gasfrac=e_pars.gasfrac,
                 O2conversion=Kleiber1961(),
             ).balance
@@ -273,12 +273,12 @@ function solve_metabolic_rate(T_skin, T_insulation, o::Organism, e)
         )
 
         respiration_out = respiration(
-            geometry_pars.shape.mass,
-            T_lung,
-            e_vars.T_air,
             MetabolicRates(; metabolic=Q_gen, sum=Q_sum, minimum=Q_min),
             resp,
-            resp_atmos;
+            resp_atmos,
+            geometry_pars.shape.mass,
+            T_lung,
+            e_vars.T_air;
             gasfrac=e_pars.gasfrac,
             O2conversion=Kleiber1961(),
         )

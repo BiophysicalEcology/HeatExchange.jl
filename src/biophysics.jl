@@ -117,28 +117,28 @@ function radin(
 end
 
 """
-    radout(body, T_dorsal, T_ventral, view_factors, emissivities; conduction_fraction=0.0)
+    radout(body, view_factors, emissivities, conduction_fraction, T_dorsal, T_ventral)
 
 Calculate outgoing longwave radiation from organism.
 
 # Arguments
 - `body::AbstractBody`: Organism body with geometry
-- `T_dorsal`: Dorsal surface temperature
-- `T_ventral`: Ventral surface temperature
 - `view_factors::ViewFactors`: View factors to sky and ground
 - `emissivities::Emissivities`: Body emissivities
-- `conduction_fraction`: Fraction of body in contact with ground (default 0.0)
+- `conduction_fraction`: Fraction of body in contact with ground
+- `T_dorsal`: Dorsal surface temperature
+- `T_ventral`: Ventral surface temperature
 
 # Returns
 NamedTuple with Q_ir_out, Q_ir_to_sky, Q_ir_to_sub
 """
 function radout(
     body::AbstractBody,
+    view_factors::ViewFactors,
+    emissivities::Emissivities,
+    conduction_fraction,
     T_dorsal,
     T_ventral,
-    view_factors::ViewFactors,
-    emissivities::Emissivities;
-    conduction_fraction=0.0,
 )
     (; F_sky, F_ground) = view_factors
     (; body_dorsal, body_ventral) = emissivities
@@ -318,18 +318,18 @@ function nusselt_forced(shape::Union{Ellipsoid,Sphere,DesertIguana,LeopardFrog},
 end
 
 """
-    evaporation(T_surface, T_air, area, evap_pars, transfer, atmos; kw...)
+    evaporation(evap_pars, transfer, atmos, area, T_surface, T_air; kw...)
 
 Compute surface evaporation based on mass transfer coefficient, wetness fractions,
 and vapor density gradient between surface and air.
 
 # Arguments
-- `T_surface`: Surface temperature
-- `T_air`: Air temperature
-- `area`: Total surface area for evaporation
 - `evap_pars::EvaporationParameters`: Evaporation parameters (wetness, eye_fraction, bare_skin_fraction)
 - `transfer::TransferCoefficients`: Heat and mass transfer coefficients
 - `atmos::AtmosphericConditions`: Atmospheric conditions (rh, P_atmos)
+- `area`: Total surface area for evaporation
+- `T_surface`: Surface temperature
+- `T_air`: Air temperature
 
 # Keywords
 - `water_potential`: Body water potential (J/kg), default 0.0
@@ -339,12 +339,12 @@ and vapor density gradient between surface and air.
 NamedTuple with Q_evap, m_cut, m_eyes
 """
 function evaporation(
-    T_surface,
-    T_air,
-    area,
     evap_pars::EvaporationParameters,
     transfer::TransferCoefficients,
-    atmos::AtmosphericConditions;
+    atmos::AtmosphericConditions,
+    area,
+    T_surface,
+    T_air;
     water_potential=0.0u"J/kg",
     gasfrac::GasFractions=GasFractions(),
 )

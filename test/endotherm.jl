@@ -264,7 +264,7 @@ for shape_number in 1:4
         T_insulation = u"K"((endo_input.TFA)u"°C")
 
         endotherm_out = solve_metabolic_rate(
-            T_skin, T_insulation, mammal, environment
+            mammal, environment, T_skin, T_insulation
         )
 
         thermoregulation = endotherm_out.thermoregulation
