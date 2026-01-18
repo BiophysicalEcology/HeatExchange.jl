@@ -235,7 +235,7 @@ for shape_number in 1:4
             longwave_depth_fraction=endo_input.XR,
         )
 
-        options = EndothermMetabolicRateOptions(;
+        options = SolveMetabolicRateOptions(;
             respire=Bool(endo_input.RESPIRE),
             simulsol_tolerance=(endo_input.DIFTOL)u"K",
             resp_tolerance=endo_input.BRENTOL,

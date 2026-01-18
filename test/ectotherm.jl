@@ -388,7 +388,7 @@ traits = HeatExchangeTraits(
     hydraulic_pars,
     respiration_pars,
     metabolism_pars,
-    EndothermMetabolicRateOptions(),
+    SolveMetabolicRateOptions(),
 )
 # construct the Model which holds the parameters of the organism in the Organism concrete struct, of type AbstractOrganism
 #lizard = Model(Organism(geometry, traits))

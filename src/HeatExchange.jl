@@ -25,7 +25,7 @@ using BiophysicalGeometry: AbstractBody, shape
 
 export Organism,
     HeatExchangeTraits,
-    EndothermMetabolicRateOptions,
+    SolveMetabolicRateOptions,
     InsulationParameters,
     ExternalConductionParameters,
     InternalConductionParameters,

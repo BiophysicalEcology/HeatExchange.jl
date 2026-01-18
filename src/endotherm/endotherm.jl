@@ -1,5 +1,5 @@
 """
-    EndothermMetabolicRateOptions
+    SolveMetabolicRateOptions
 
 Options controlling the endotherm metabolic rate solver.
 
@@ -8,7 +8,7 @@ Options controlling the endotherm metabolic rate solver.
 - `simulsol_tolerance`: Convergence tolerance for simultaneous temperature solution (default: 1e-3 K)
 - `resp_tolerance`: Convergence tolerance for respiration root finding (default: 1e-5 K)
 """
-Base.@kwdef struct EndothermMetabolicRateOptions{RE,ST,BT} <: AbstractModelParameters
+Base.@kwdef struct SolveMetabolicRateOptions{RE,ST,BT} <: AbstractModelParameters
     respire::RE = Param(true)
     simulsol_tolerance::ST = Param(1e-3u"K")
     resp_tolerance::BT = Param(1e-5u"K")
