@@ -157,6 +157,14 @@ function O2_to_Joules(::Kleiber1961, V_O2_STP, rq)
     return (Q_metab)
 end
 
+
+# Fallbacks: why are these needed ?
+O2_to_Joules(::Missing) = missing
+Joules_to_O2(::Missing) = missing
+
+Joules_to_O2(Q_metab) = Joules_to_O2(Typical(), Q_metab, one(Q_metab))
+O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(V_O2_STP))
+
 # TODO
 # """
 #     ElliottDavison <: OxygenJoulesConversion
@@ -206,20 +214,3 @@ end
 #     end
 #     return (Q_metab)
 # end
-
-"""
-    vapour_pressure(T)
-    vapour_pressure(formulation, T)
-
-Calculates saturation vapour pressure (Pa) for a given air temperature.
-
-# Arguments
-- `T`: air temperature in K.
-
-The `Typical` formulation is used by default.
-"""
-O2_to_Joules(::Missing) = missing
-Joules_to_O2(::Missing) = missing
-
-Joules_to_O2(Q_metab) = Joules_to_O2(Typical(), Q_metab, one(Q_metab))
-O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(V_O2_STP))
