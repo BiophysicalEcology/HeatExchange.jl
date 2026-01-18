@@ -25,7 +25,7 @@ evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
 hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
 respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
 metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
-optionspars(t::AbstractFunctionalTraits) = stripparams(t.options)
+options(t::AbstractFunctionalTraits) = stripparams(t.options)
 
 # TODO more specific subtypes
 struct HeatExchangeTraits{
@@ -78,7 +78,7 @@ evaporationpars(o::AbstractOrganism) = evaporationpars(traits(o))
 hydraulicpars(o::AbstractOrganism) = hydraulicpars(traits(o))
 respirationpars(o::AbstractOrganism) = respirationpars(traits(o))
 metabolismpars(o::AbstractOrganism) = metabolismpars(traits(o))
-optionspars(o::AbstractOrganism) = optionspars(traits(o))
+options(o::AbstractOrganism) = options(traits(o))
 
 """
     Organism <: AbstractOrganism

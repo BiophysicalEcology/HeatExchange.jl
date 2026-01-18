@@ -17,7 +17,7 @@ end
 function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     e_pars = stripparams(e.environment_pars)
     e_vars = e.environment_vars
-    options = optionspars(o)
+    opts = options(o)
     ins = insulationpars(o)
     cond_ex = conductionpars_external(o)
     cond_in = conductionpars_internal(o)
@@ -31,7 +31,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     simulsol_out = Vector{NamedTuple}(undef, 2) # TODO preallocate
     respiration_out = Vector{NamedTuple}(undef, 1) # TODO preallocate
     geometry_pars = nothing
-    simulsol_tolerance = options.simulsol_tolerance
+    simulsol_tolerance = opts.simulsol_tolerance
 
     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3
     insulation_out = insulation_properties(;
@@ -210,7 +210,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             geom_vars,
             env_vars,
             traits,
-            simulsol_tolerance=options.simulsol_tolerance,
+            simulsol_tolerance=opts.simulsol_tolerance,
             T_skin,
             T_insulation,
         )
@@ -244,7 +244,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     T_lung = (metab.T_core + T_skin) * 0.5 # average of skin and core
     T_air_exit = min(e_vars.T_air + resp.Δ_breath, T_lung) # temperature of exhaled air, deg C
 
-    if options.respire
+    if opts.respire
         # now guess for metabolic rate that balances the heat budget via root-finder ZBRENT
         Q_min = metab.Q_metabolism
         Q_m1 = metab.Q_metabolism * (-2.0)
@@ -269,7 +269,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             f,
             ustrip(u"W", Q_m1),
             ustrip(u"W", Q_m2),
-            options.resp_tolerance * ustrip(u"W", metab.Q_metabolism),
+            opts.resp_tolerance * ustrip(u"W", metab.Q_metabolism),
         )
 
         respiration_out = respiration(
@@ -314,7 +314,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     success_ventral = simulsol_out[2].success  # success?
     k_insulation_ventral = simulsol_out[2].k_insulation  # fur conductivity? (same as FORTRAN)
     # respiration outputs
-    if options.respire
+    if opts.respire
         balance = respiration_out.balance
         Q_resp = respiration_out.Q_resp
         m_resp = respiration_out.m_resp
@@ -351,7 +351,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     # evaporation calculations
     L_v = enthalpy_of_vaporisation(e_vars.T_air)
     m_sweat = u"g/hr"((Q_evap_skin_dorsal + Q_evap_skin_ventral) * 0.5 / L_v)
-    if options.respire
+    if opts.respire
         m_evap = u"g/hr"(m_resp + m_sweat)
     else
         m_evap = u"g/hr"(m_sweat)
