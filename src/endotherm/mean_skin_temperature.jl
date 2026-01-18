@@ -1,7 +1,7 @@
 function mean_skin_temperature(;
     body::AbstractBody,
-    insulation,
-    insulation_pars,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_env,
     Q_evap_skin,
     ks::ThermalConductivities,
@@ -29,9 +29,9 @@ end
 
 function mean_skin_temperature(
     shape::Union{Cylinder,Plate},
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_env,
     Q_evap_skin,
     ks::ThermalConductivities,
@@ -72,9 +72,9 @@ end
 
 function mean_skin_temperature(
     shape::Sphere,
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_env,
     Q_evap_skin,
     ks::ThermalConductivities,
@@ -116,9 +116,9 @@ end
 
 function mean_skin_temperature(
     shape::Ellipsoid,
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_env,
     Q_evap_skin,
     ks::ThermalConductivities,

@@ -75,6 +75,16 @@ struct EnvironmentTemperatures{T1,T2,T3,T4,T5,T6}
     T_bush::T5
     T_substrate::T6
 end
+function EnvironmentTemperatures(e_vars::AbstractEnvironmentalVars)
+    EnvironmentTemperatures(
+        e_vars.T_air,
+        e_vars.T_sky,
+        e_vars.T_ground,
+        e_vars.T_vegetation,
+        e_vars.T_bush,
+        e_vars.T_substrate,
+    )
+end
 
 """
     OrganismTemperatures{T1,T2,T3}
@@ -124,6 +134,9 @@ struct AtmosphericConditions{T1,T2,T3}
     rh::T1
     wind_speed::T2
     P_atmos::T3
+end
+function AtmosphericConditions(e_vars::AbstractEnvironmentalVars)
+    AtmosphericConditions(e_vars.rh, e_vars.wind_speed, e_vars.P_atmos)
 end
 
 """
@@ -202,4 +215,163 @@ struct HeatFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
     Q_rad_bush::T9
     Q_rad_vegetation::T10
     Q_rad_ground::T11
+end
+
+"""
+    SolarConditions
+
+Solar radiation conditions for heat exchange calculations.
+
+# Fields
+- `zenith_angle` — Solar zenith angle
+- `global_radiation` — Total incoming solar radiation (W/m²)
+- `diffuse_fraction` — Fraction of radiation that is diffuse (0-1)
+- `shade` — Fraction of organism in shade (0-1)
+"""
+Base.@kwdef struct SolarConditions{Z,G,D,S}
+    zenith_angle::Z
+    global_radiation::G
+    diffuse_fraction::D
+    shade::S
+end
+function SolarConditions(e_vars::AbstractEnvironmentalVars)
+    SolarConditions(;
+        zenith_angle=e_vars.zenith_angle,
+        global_radiation=e_vars.global_radiation,
+        diffuse_fraction=e_vars.diffuse_fraction,
+        shade=e_vars.shade,
+    )
+end
+
+"""
+    TransferCoefficients
+
+Heat and mass transfer coefficients from convection calculations.
+
+# Fields
+- `heat` — Heat transfer coefficient (W/m²/K)
+- `mass` — Mass transfer coefficient, combined free + forced (m/s)
+- `mass_free` — Mass transfer coefficient, free convection only (m/s)
+"""
+Base.@kwdef struct TransferCoefficients{HC,HD,HDF}
+    heat::HC
+    mass::HD
+    mass_free::HDF = 0.0u"m/s"
+end
+
+"""
+    MetabolicRates
+
+Metabolic heat generation rates for respiration calculations.
+
+# Fields
+- `metabolic` — Current metabolic heat rate (W)
+- `sum` — Sum of heat fluxes for balance (W), defaults to metabolic
+- `minimum` — Minimum metabolic rate (W), defaults to metabolic
+"""
+Base.@kwdef struct MetabolicRates{M,S,N}
+    metabolic::M
+    sum::S = metabolic
+    minimum::N = metabolic
+end
+
+"""
+    Emissivities
+
+Longwave emissivity values for radiation exchange.
+
+# Fields
+- `body_dorsal` — Dorsal body surface emissivity (0-1)
+- `body_ventral` — Ventral body surface emissivity (0-1)
+- `ground` — Ground surface emissivity (0-1)
+- `sky` — Effective sky emissivity (0-1)
+"""
+Base.@kwdef struct Emissivities{BD,BV,G,S}
+    body_dorsal::BD
+    body_ventral::BV
+    ground::G
+    sky::S
+end
+function Emissivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
+    Emissivities(;
+        body_dorsal=rad.ϵ_body_dorsal,
+        body_ventral=rad.ϵ_body_ventral,
+        ground=env.ϵ_ground,
+        sky=env.ϵ_sky,
+    )
+end
+
+"""
+    Absorptivities
+
+Shortwave absorptivity values for solar radiation.
+
+# Fields
+- `body_dorsal` — Dorsal body surface absorptivity (0-1)
+- `body_ventral` — Ventral body surface absorptivity (0-1)
+- `ground` — Ground surface absorptivity (0-1)
+"""
+Base.@kwdef struct Absorptivities{BD,BV,G}
+    body_dorsal::BD
+    body_ventral::BV
+    ground::G
+end
+function Absorptivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
+    Absorptivities(;
+        body_dorsal=rad.α_body_dorsal,
+        body_ventral=rad.α_body_ventral,
+        ground=env.α_ground,
+    )
+end
+
+"""
+    InsulationOutput
+
+Output from `insulation_properties()` containing computed thermal properties of insulation layers.
+
+The arrays contain values for [average, dorsal, ventral] regions (indices 1, 2, 3).
+
+# Fields
+- `effective_conductivities` — Effective thermal conductivities (W/m/K) for [avg, dorsal, ventral]
+- `absorption_coefficients` — Absorption coefficients (m⁻¹) for [avg, dorsal, ventral]
+- `optical_thickness_factors` — Optical thickness factors for [avg, dorsal, ventral]
+- `fibre_diameters` — Fibre diameters (m) for [avg, dorsal, ventral]
+- `fibre_lengths` — Fibre lengths (m) for [avg, dorsal, ventral]
+- `fibre_densities` — Fibre densities (m⁻²) for [avg, dorsal, ventral]
+- `insulation_depths` — Insulation depths (m) for [avg, dorsal, ventral]
+- `insulation_reflectances` — Solar reflectances for [avg, dorsal, ventral]
+- `insulation_test` — Bare-skin test parameter (m)
+- `insulation_conductivity_compressed` — Conductivity of compressed ventral insulation (W/m/K)
+"""
+struct InsulationOutput{EC,AC,OT,FD,FL,FR,ID,IR,IT,IC}
+    effective_conductivities::EC
+    absorption_coefficients::AC
+    optical_thickness_factors::OT
+    fibre_diameters::FD
+    fibre_lengths::FL
+    fibre_densities::FR
+    insulation_depths::ID
+    insulation_reflectances::IR
+    insulation_test::IT
+    insulation_conductivity_compressed::IC
+end
+
+"""
+    GeometryVariables
+
+Geometric and thermal parameters for heat exchange calculations on a body side.
+
+# Fields
+- `side` — Body side index (1 = dorsal, 2 = ventral)
+- `substrate_conductance` — Thermal conductance to substrate (W/K), Q_cond = substrate_conductance × ΔT
+- `ventral_fraction` — Fraction of body surface that is ventral (0-1)
+- `conduction_fraction` — Fraction of surface area in contact with substrate (0-1)
+- `longwave_depth_fraction` — Fraction of insulation depth for longwave radiation exchange (0-1)
+"""
+Base.@kwdef struct GeometryVariables{S,SC,VF,CF,LDF}
+    side::S
+    substrate_conductance::SC
+    ventral_fraction::VF
+    conduction_fraction::CF
+    longwave_depth_fraction::LDF
 end

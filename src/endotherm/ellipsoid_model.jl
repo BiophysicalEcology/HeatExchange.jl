@@ -151,7 +151,8 @@ function ellipsoid_endotherm(
     R_ins = (b_o - b) / (k_insulation * A_o) # insulation radius
 
     # air properties
-    (; μ, k_air, ρ_air) = dry_air_properties(T_f, P_atmos)
+    (; dynamic_viscosity, thermal_conductivity, density) = dry_air_properties(T_f, P_atmos)
+    μ, k_air, ρ_air = dynamic_viscosity, thermal_conductivity, density
 
     V = (4 / 3) * π * a * b * c # recompute volume
     L_c = V^(1 / 3) # characteristic dimension
@@ -184,8 +185,8 @@ function ellipsoid_endotherm(
     Q_gen_final = max(Q_gen_required, Q_gen_min)
 
     O2_consumption_rate = u"ml/hr"(Joules_to_O2(Q_gen_final))
-    ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).ρ_vap # inhaled air
-    ρ_vap_c = wet_air_properties(T_c, 1, P_atmos).ρ_vap # exhaled air (saturated)
+    ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).vapour_density # inhaled air
+    ρ_vap_c = wet_air_properties(T_c, 1, P_atmos).vapour_density # exhaled air (saturated)
 
     respiratory_water_loss_rate = u"g/hr"(
         (O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) * (ρ_vap_c - ρ_vap_f)

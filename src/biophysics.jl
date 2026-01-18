@@ -18,65 +18,60 @@ function conduction(A_conduction, L, T_surface, T_substrate, k_substrate)
 end
 
 """
-    solar(; kw...)
-    solar(α_body_dorsal, α_body_ventral, A_silhouette, A_total, A_conduction, F_ground, F_sky, α_ground, Q_solar, Q_direct, Q_diffuse)
+    solar(body, absorptivities, view_factors, solar_conditions; conduction_fraction=0.0)
+    solar(body, absorptivities, view_factors, solar_conditions, A_silhouette, A_conduction)
 
 Calculate solar energy balance.
+
+# Arguments
+- `body::AbstractBody`: Organism body with geometry
+- `absorptivities::Absorptivities`: Body and ground absorptivities
+- `view_factors::ViewFactors`: View factors to sky and ground
+- `solar_conditions::SolarConditions`: Solar radiation conditions
+- `conduction_fraction`: Fraction of body in contact with ground (default 0.0)
+
+# Returns
+NamedTuple with Q_solar, Q_direct, Q_solar_sky, Q_solar_substrate
 """
-function solar(;
-    α_body_dorsal,
-    α_body_ventral,
-    A_silhouette,
-    A_total,
-    A_conduction=0.0u"m^2",
-    F_ground,
-    F_sky,
-    α_ground,
-    shade,
-    zenith_angle,
-    global_radiation,
-    diffuse_fraction,
-)
-    return solar(
-        α_body_dorsal,
-        α_body_ventral,
-        A_silhouette,
-        A_total,
-        A_conduction,
-        F_ground,
-        F_sky,
-        α_ground,
-        shade,
-        zenith_angle,
-        global_radiation,
-        diffuse_fraction,
-    )
-end
 function solar(
-    α_body_dorsal,
-    α_body_ventral,
-    A_silhouette,
-    A_total,
-    A_conduction,
-    F_ground,
-    F_sky,
-    α_ground,
-    shade,
-    zenith_angle,
-    global_radiation,
-    diffuse_fraction,
+    body::AbstractBody,
+    absorptivities::Absorptivities,
+    view_factors::ViewFactors,
+    solar_conditions::SolarConditions;
+    conduction_fraction=0.0,
 )
+    A_total = total_area(body)
+    A_silhouette = silhouette_area(body, solar_conditions.zenith_angle)
+    A_conduction = A_total * conduction_fraction
+    return solar(body, absorptivities, view_factors, solar_conditions, A_silhouette, A_conduction)
+end
+
+function solar(
+    body::AbstractBody,
+    absorptivities::Absorptivities,
+    view_factors::ViewFactors,
+    solar_conditions::SolarConditions,
+    A_silhouette,
+    A_conduction,
+)
+    (; body_dorsal, body_ventral, ground) = absorptivities
+    α_d, α_v, α_g = body_dorsal, body_ventral, ground
+    (; F_sky, F_ground) = view_factors
+    (; zenith_angle, global_radiation, diffuse_fraction, shade) = solar_conditions
+
+    A_total = total_area(body)
+
     direct_radiation = global_radiation * (1 - diffuse_fraction)
     diffuse_radiation = global_radiation * diffuse_fraction
     beam_radiation =
         zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
-    Q_direct = α_body_dorsal * A_silhouette * beam_radiation * (1 - shade)
-    Q_solar_sky = α_body_dorsal * F_sky * A_total * diffuse_radiation * (1 - shade)
+    Q_direct = α_d * A_silhouette * beam_radiation * (1 - shade)
+    Q_solar_sky = α_d * F_sky * A_total * diffuse_radiation * (1 - shade)
     Q_solar_substrate =
-        α_body_ventral *
+        α_v *
         F_ground *
         (A_total - A_conduction) *
-        (1 - α_ground) *
+        (1 - α_g) *
         global_radiation *
         (1 - shade)
     Q_solar = (Q_direct + Q_solar_substrate + Q_solar_sky)
@@ -85,96 +80,76 @@ function solar(
 end
 
 """
-    radout(; kw...)
-    radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+    radin(body, view_factors, emissivities, env_temps; conduction_fraction=0.0)
 
-Calculate incoming radiation.
+Calculate incoming longwave radiation from environment.
+
+# Arguments
+- `body::AbstractBody`: Organism body with geometry
+- `view_factors::ViewFactors`: View factors to sky and ground
+- `emissivities::Emissivities`: Body and environment emissivities
+- `env_temps::EnvironmentTemperatures`: Environmental temperatures
+- `conduction_fraction`: Fraction of body in contact with ground (default 0.0)
+
+# Returns
+NamedTuple with Q_ir_in, Q_ir_sky, Q_ir_sub
 """
-function radin(;
-    A_total,
-    A_conduction=0.0u"m^2",
-    F_sky,
-    F_ground,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
-    ϵ_ground,
-    ϵ_sky,
-    T_sky,
-    T_ground,
-)
-    return radin(
-        A_total,
-        A_conduction,
-        F_sky,
-        F_ground,
-        ϵ_body_dorsal,
-        ϵ_body_ventral,
-        ϵ_ground,
-        ϵ_sky,
-        T_sky,
-        T_ground,
-    )
-end
 function radin(
-    A_total,
-    A_conduction,
-    F_sky,
-    F_ground,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
-    ϵ_ground,
-    ϵ_sky,
-    T_sky,
-    T_ground,
+    body::AbstractBody,
+    view_factors::ViewFactors,
+    emissivities::Emissivities,
+    env_temps::EnvironmentTemperatures;
+    conduction_fraction=0.0,
 )
+    (; F_sky, F_ground) = view_factors
+    (; body_dorsal, body_ventral, ground, sky) = emissivities
+    ϵ_d, ϵ_v, ϵ_g, ϵ_s = body_dorsal, body_ventral, ground, sky
+    (; T_sky, T_ground) = env_temps
+
+    A_total = total_area(body)
+    A_conduction = A_total * conduction_fraction
+
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    Q_ir_sky = ϵ_body_dorsal * F_sky * A_total * ϵ_sky * σ * T_sky^4
-    Q_ir_sub =
-        ϵ_body_ventral * F_ground * (A_total - A_conduction) * ϵ_ground * σ * T_ground^4
+    Q_ir_sky = ϵ_d * F_sky * A_total * ϵ_s * σ * T_sky^4
+    Q_ir_sub = ϵ_v * F_ground * (A_total - A_conduction) * ϵ_g * σ * T_ground^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
     return (; Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
 
 """
-    radout(; kw...)
-    radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+    radout(body, T_dorsal, T_ventral, view_factors, emissivities; conduction_fraction=0.0)
 
-Calculate outgoing radiation.
+Calculate outgoing longwave radiation from organism.
+
+# Arguments
+- `body::AbstractBody`: Organism body with geometry
+- `T_dorsal`: Dorsal surface temperature
+- `T_ventral`: Ventral surface temperature
+- `view_factors::ViewFactors`: View factors to sky and ground
+- `emissivities::Emissivities`: Body emissivities
+- `conduction_fraction`: Fraction of body in contact with ground (default 0.0)
+
+# Returns
+NamedTuple with Q_ir_out, Q_ir_to_sky, Q_ir_to_sub
 """
-function radout(;
-    T_dorsal,
-    T_ventral,
-    A_total,
-    A_conduction,
-    F_sky,
-    F_ground,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
-)
-    radout(
-        T_dorsal,
-        T_ventral,
-        A_total,
-        A_conduction,
-        F_sky,
-        F_ground,
-        ϵ_body_dorsal,
-        ϵ_body_ventral,
-    )
-end
 function radout(
+    body::AbstractBody,
     T_dorsal,
     T_ventral,
-    A_total,
-    A_conduction,
-    F_sky,
-    F_ground,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
+    view_factors::ViewFactors,
+    emissivities::Emissivities;
+    conduction_fraction=0.0,
 )
+    (; F_sky, F_ground) = view_factors
+    (; body_dorsal, body_ventral) = emissivities
+    ϵ_d, ϵ_v = body_dorsal, body_ventral
+
+    A_total = total_area(body)
+    A_conduction = A_total * conduction_fraction
+
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    Q_ir_to_sky = A_total * F_sky * ϵ_body_dorsal * σ * T_dorsal^4
-    Q_ir_to_sub = (A_total - A_conduction) * F_ground * ϵ_body_ventral * σ * T_ventral^4
+    Q_ir_to_sky = A_total * F_sky * ϵ_d * σ * T_dorsal^4
+    Q_ir_to_sub = (A_total - A_conduction) * F_ground * ϵ_v * σ * T_ventral^4
     Q_ir_out = Q_ir_to_sky + Q_ir_to_sub
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end
@@ -193,19 +168,19 @@ function convection(;
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
     dry_air_out = dry_air_properties(T_air, P_atmos; gasfrac)
-    D_w = dry_air_out.D_w
+    D_w = dry_air_out.vapour_diffusivity
     # checking to see if the fluid is water, not air
     if fluid == 1
         water_prop_out = water_properties(T_air)
-        cp_fluid = water_prop_out.c_p_H2O
-        ρ_air = water_prop_out.ρ_H2O
-        k_fluid = water_prop_out.k_H2O
-        μ = water_prop_out.μ_H2O
+        cp_fluid = water_prop_out.specific_heat
+        ρ_air = water_prop_out.density
+        k_fluid = water_prop_out.thermal_conductivity
+        μ = water_prop_out.dynamic_viscosity
     else
         cp_fluid = 1.0057E+3u"J/K/kg"
-        ρ_air = dry_air_out.ρ_air
-        k_fluid = dry_air_out.k_air
-        μ = dry_air_out.μ
+        ρ_air = dry_air_out.density
+        k_fluid = dry_air_out.thermal_conductivity
+        μ = dry_air_out.dynamic_viscosity
     end
 
     # free convection
@@ -343,73 +318,55 @@ function nusselt_forced(shape::Union{Ellipsoid,Sphere,DesertIguana,LeopardFrog},
 end
 
 """
-    evaporation(; kw...)
-    evaporation(T_core, T_surface, ψ_org, surface_wetness, A_total, hd, eye_fraction, bare_fraction, T_air, rh, elevation, P_atmos)
-    # this subroutine computes surface evaporation based on the mass transfer
-    # coefficient, fraction of surface of the skin acting as a free water surface
-    # and exposed to the air, and the vapor density gradient between the
-    # surface and the air, each at their own temperature.
+    evaporation(T_surface, T_air, area, evap_pars, transfer, atmos; kw...)
 
-	# effective areas for evaporation, partitioned into eye, insulated and bare
+Compute surface evaporation based on mass transfer coefficient, wetness fractions,
+and vapor density gradient between surface and air.
 
+# Arguments
+- `T_surface`: Surface temperature
+- `T_air`: Air temperature
+- `area`: Total surface area for evaporation
+- `evap_pars::EvaporationParameters`: Evaporation parameters (wetness, eye_fraction, bare_skin_fraction)
+- `transfer::TransferCoefficients`: Heat and mass transfer coefficients
+- `atmos::AtmosphericConditions`: Atmospheric conditions (rh, P_atmos)
+
+# Keywords
+- `water_potential`: Body water potential (J/kg), default 0.0
+- `gasfrac::GasFractions`: Gas fractions for air properties
+
+# Returns
+NamedTuple with Q_evap, m_cut, m_eyes
 """
-function evaporation(;
-    T_surface,
-    ψ_org=0.0u"J/kg",
-    wetness,
-    area,
-    hd,
-    hd_free=0.0u"m/s",
-    eye_fraction,
-    bare_fraction=1.0,
-    T_air,
-    rh,
-    P_atmos,
-    gasfrac::GasFractions=GasFractions(),
-)
-    return evaporation(
-        T_surface,
-        ψ_org,
-        wetness,
-        area,
-        hd,
-        hd_free,
-        eye_fraction,
-        bare_fraction,
-        T_air,
-        rh,
-        P_atmos,
-        gasfrac,
-    )
-end
 function evaporation(
     T_surface,
-    ψ_org,
-    wetness,
-    area,
-    hd,
-    hd_free,
-    eye_fraction,
-    bare_fraction,
     T_air,
-    rh,
-    P_atmos,
-    gasfrac,
+    area,
+    evap_pars::EvaporationParameters,
+    transfer::TransferCoefficients,
+    atmos::AtmosphericConditions;
+    water_potential=0.0u"J/kg",
+    gasfrac::GasFractions=GasFractions(),
 )
+    (; skin_wetness, eye_fraction, bare_skin_fraction) = evap_pars
+    (; mass, mass_free) = transfer
+    hd, hd_free = mass, mass_free
+    (; rh, P_atmos) = atmos
+
     # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction
-    effective_area_insulated = (area - effective_area_eye) * wetness * (1 - bare_fraction)
-    effective_area_bare = (area - effective_area_eye) * wetness * bare_fraction
+    effective_area_insulated = (area - effective_area_eye) * skin_wetness * (1 - bare_skin_fraction)
+    effective_area_bare = (area - effective_area_eye) * skin_wetness * bare_skin_fraction
 
     # get vapour density at surface based on water potential of body
     M_w = (u"kg"(1u"molH₂O")) / 1u"mol" # molar mass of water
-    rh_surf = exp(ψ_org / (Unitful.R / M_w * T_surface))
+    rh_surf = exp(water_potential / (Unitful.R / M_w * T_surface))
     wet_air_out = wet_air_properties(T_surface, rh_surf, P_atmos; gasfrac)
-    ρ_vap_surf = wet_air_out.ρ_vap
+    ρ_vap_surf = wet_air_out.vapour_density
 
     # get air vapour density
     wet_air_out = wet_air_properties(T_air, rh, P_atmos; gasfrac)
-    ρ_vap_air = wet_air_out.ρ_vap
+    ρ_vap_air = wet_air_out.vapour_density
 
     # mass of water lost
     m_eyes = hd * effective_area_eye * (ρ_vap_surf - ρ_vap_air) # forced + free

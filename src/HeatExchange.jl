@@ -1,6 +1,7 @@
 module HeatExchange
 
 using BiophysicalGeometry
+using ConstructionBase: setproperties
 using FluidProperties
 using ModelParameters
 using Roots
@@ -24,7 +25,7 @@ using BiophysicalGeometry: AbstractBody, shape
 
 export Organism,
     HeatExchangeTraits,
-    EndoModelPars,
+    SolveMetabolicRateOptions,
     InsulationParameters,
     ExternalConductionParameters,
     InternalConductionParameters,
@@ -47,7 +48,8 @@ export body,
     evaporationpars,
     hydraulicpars,
     respirationpars,
-    metabolismpars
+    metabolismpars,
+    optionspars
 
 export get_Tb
 
@@ -78,7 +80,14 @@ export ConductanceCoeffs,
     AtmosphericConditions,
     ThermalConductivities,
     MolarFluxes,
-    HeatFluxes
+    HeatFluxes,
+    SolarConditions,
+    TransferCoefficients,
+    MetabolicRates,
+    Emissivities,
+    Absorptivities,
+    InsulationOutput,
+    GeometryVariables
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
 

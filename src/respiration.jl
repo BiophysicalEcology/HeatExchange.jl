@@ -1,75 +1,39 @@
 """
-    respiration(; kw...)
-    respiration(T_lung, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, gasfrac)
+    respiration(mass, T_lung, T_air, rates, resp_pars, atmos; kw...)
 
 Computes respiratory heat and water loss via mass flow through the lungs
 given gas concentrations, pressure, respiration rate and humidity.
 
+# Arguments
+- `mass`: Body mass
+- `T_lung`: Lung/core temperature
+- `T_air`: Air temperature
+- `rates::MetabolicRates`: Metabolic rates (metabolic, sum, minimum)
+- `resp_pars::RespirationParameters`: Respiration parameters (fO2_extract, pant, rq, Δ_breath, rh_exit)
+- `atmos::AtmosphericConditions`: Atmospheric conditions (rh, P_atmos)
+
 # Keywords
-- `T_lung`: current core temperature guess, K
-- `Q_metab`: metabolic rate, W
-- `fO2_extract`: extraction efficiency, fractional
-- `pant`: multiplier on breathing rate due to panting, -
-- `rq`: respiratory quotient, (mol CO2 / mol O2)
-- `T_air`: air temperature, K
-- `rh`: relative humidity, fractional
-- `elevation`: elevation, m
-- `P_atmos`: barometric pressure, Pa
-- `gasfrac`: GasFractions with O2, CO2, N2 concentrations
-- `O2conversion`: model to be used to convert O2 to Watts
+- `gasfrac::GasFractions`: Gas fractions for O2, CO2, N2 concentrations
+- `O2conversion::OxygenJoulesConversion`: Model to convert O2 to Watts
+
+# Returns
+NamedTuple with balance, Q_resp, m_resp, Q_gen, V_air, V_O2_STP, molar_fluxes
 """
-function respiration(;
-    Q_metab,
-    Q_sum=Q_metab,
-    Q_min=Q_metab,
-    T_lung,
-    fO2_extract=0.2,
-    pant=1.0,
-    rq=0.8,
+function respiration(
     mass,
-    T_air_exit=T_lung,
-    rh_exit=1.0,
+    T_lung,
     T_air,
-    rh,
-    P_atmos=101325u"Pa",
+    rates::MetabolicRates,
+    resp_pars::RespirationParameters,
+    atmos::AtmosphericConditions;
     gasfrac::GasFractions=GasFractions(),
     O2conversion::OxygenJoulesConversion=Typical(),
 )
-    return respiration(
-        Q_metab,
-        Q_sum,
-        Q_min,
-        T_lung,
-        fO2_extract,
-        pant,
-        rq,
-        mass,
-        T_air_exit,
-        rh_exit,
-        T_air,
-        rh,
-        P_atmos,
-        gasfrac,
-        O2conversion,
-    )
-end
-function respiration(
-    Q_metab,
-    Q_sum,
-    Q_min,
-    T_lung,
-    fO2_extract,
-    pant,
-    rq,
-    mass,
-    T_air_exit,
-    rh_exit,
-    T_air,
-    rh,
-    P_atmos,
-    gasfrac,
-    O2conversion,
-)
+    (; metabolic, sum, minimum) = rates
+    Q_metab, Q_sum, Q_min = metabolic, sum, minimum
+    (; fO2_extract, pant, rq, Δ_breath, rh_exit) = resp_pars
+    T_air_exit = T_lung  # exhaled air at lung temperature (original default)
+    (; rh, P_atmos) = atmos
     (; fO2, fCO2, fN2) = gasfrac
     # adjust O2 to ensure sum to 1
     if fO2 + fCO2 + fN2 != 1
@@ -137,8 +101,10 @@ function respiration(
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
     L_v = enthalpy_of_vaporisation(T_lung)
-    (; M_a) = dry_air_properties(T_air, P_atmos; gasfrac)
-    (; c_p) = wet_air_properties(T_air, rh, P_atmos; gasfrac)
+    (; molar_mass) = dry_air_properties(T_air, P_atmos; gasfrac)
+    M_a = molar_mass
+    (; specific_heat) = wet_air_properties(T_air, rh, P_atmos; gasfrac)
+    c_p = specific_heat
     Q_air = c_p * J_air_in * M_a * (T_air - T_lung)
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
     Q_net_check = Q_metab - Q_resp

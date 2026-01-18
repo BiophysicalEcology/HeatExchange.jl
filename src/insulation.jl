@@ -157,7 +157,7 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
     ) = insulation
 
     # Physical constants
-    air_conductivity = dry_air_properties(insulation_temperature).k_air
+    air_conductivity = dry_air_properties(insulation_temperature).thermal_conductivity
 
     # Initialisation
     insulation_conductivity_compressed = 0.0u"W/m/K"
@@ -254,7 +254,7 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
         end
     end
 
-    return (;
+    return InsulationOutput(
         effective_conductivities,
         absorption_coefficients,
         optical_thickness_factors,

@@ -1,7 +1,7 @@
 function compressed_radiant_temperature(;
     body::AbstractBody,
     insulation,
-    insulation_pars,
+    insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     T_core,
     T_substrate,
@@ -15,9 +15,9 @@ end
 
 function compressed_radiant_temperature(
     shape::Union{Cylinder,Plate},
-    body,
+    body::AbstractBody,
     insulation,
-    insulation_pars,
+    insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     T_core,
     T_substrate,
@@ -43,9 +43,9 @@ end
 
 function compressed_radiant_temperature(
     shape::Sphere,
-    body,
+    body::AbstractBody,
     insulation,
-    insulation_pars,
+    insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     T_core,
     T_substrate,
@@ -72,9 +72,9 @@ end
 
 function compressed_radiant_temperature(
     shape::Ellipsoid,
-    body,
+    body::AbstractBody,
     insulation,
-    insulation_pars,
+    insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     T_core,
     T_substrate,
@@ -83,10 +83,10 @@ function compressed_radiant_temperature(
 )
     (; k_flesh, k_fat) = ks
     volume = flesh_volume(body)
-    if side == 1
-        insulation_depth = insulation_pars.insulation_depth_dorsal
+    insulation_depth = if side == 1
+        insulation_pars.insulation_depth_dorsal
     else
-        insulation_depth = insulation_pars.insulation_depth_ventral
+        insulation_pars.insulation_depth_ventral
     end
     k_compressed = insulation.insulation_conductivity_compressed
 

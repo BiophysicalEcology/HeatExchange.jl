@@ -1,7 +1,7 @@
 function insulation_radiant_temperature(;
     body::AbstractBody,
-    insulation,
-    insulation_pars,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     T_core,
     T_ins_compressed,
     env_temps::EnvironmentTemperatures,
@@ -43,9 +43,9 @@ end
 
 function insulation_radiant_temperature(
     shape::Union{Cylinder,Plate},
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     T_core,
     T_ins_compressed,
     env_temps::EnvironmentTemperatures,
@@ -132,9 +132,9 @@ end
 
 function insulation_radiant_temperature(
     shape::Sphere,
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     T_core,
     T_ins_compressed,
     env_temps::EnvironmentTemperatures,
@@ -219,9 +219,9 @@ end
 
 function insulation_radiant_temperature(
     shape::Ellipsoid,
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     T_core,
     T_ins_compressed,
     env_temps::EnvironmentTemperatures,

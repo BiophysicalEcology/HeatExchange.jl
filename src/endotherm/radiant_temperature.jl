@@ -1,7 +1,7 @@
 function radiant_temperature(;
     body::AbstractBody,
-    insulation,
-    insulation_pars,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_evap,
     org_temps::OrganismTemperatures,
     T_substrate,
@@ -29,9 +29,9 @@ end
 
 function radiant_temperature(
     shape::Union{Cylinder,Plate},
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_evap,
     org_temps::OrganismTemperatures,
     T_substrate,
@@ -107,9 +107,9 @@ end
 
 function radiant_temperature(
     shape::Sphere,
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_evap,
     org_temps::OrganismTemperatures,
     T_substrate,
@@ -195,9 +195,9 @@ end
 
 function radiant_temperature(
     ::Ellipsoid,
-    body,
-    insulation,
-    insulation_pars,
+    body::AbstractBody,
+    insulation::InsulationOutput,
+    insulation_pars::InsulationParameters,
     Q_evap,
     org_temps::OrganismTemperatures,
     T_substrate,
