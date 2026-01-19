@@ -244,12 +244,12 @@ Q_metab = metabolic_rate(
 
 # respiration
 resp_out = respiration(
-    mass,
-    T_core,  # T_lung
-    T_air,
     MetabolicRates(; metabolic=Q_metab),
     RespirationParameters(; fO2_extract, pant, rq),
-    AtmosphericConditions(rh, wind_speed, P_atmos);
+    AtmosphericConditions(rh, wind_speed, P_atmos),
+    mass,
+    T_core,  # T_lung
+    T_air;
     gasfrac,
 )
 Q_resp = resp_out.Q_resp
@@ -304,7 +304,7 @@ emissivities = Emissivities(;
 env_temps = EnvironmentTemperatures(T_air, T_sky, T_ground, T_air, T_air, T_substrate)
 ir_gain = radin(geometry, view_factors, emissivities, env_temps; conduction_fraction)
 Q_ir_in = ir_gain.Q_ir_in
-ir_loss = radout(geometry, T_skin, T_skin, view_factors, emissivities; conduction_fraction)
+ir_loss = radout(geometry, view_factors, emissivities, conduction_fraction, T_skin, T_skin)
 Q_ir_out = ir_loss.Q_ir_out
 
 # conduction
@@ -328,7 +328,7 @@ Q_conv = conv_out.Q_conv
 evap_pars_test = EvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction=1.0)
 transfer_test = TransferCoefficients(; heat=conv_out.hc, mass=conv_out.hd, mass_free=conv_out.hd_free)
 atmos_test = AtmosphericConditions(rh, wind_speed, P_atmos)
-evap_out = evaporation(T_skin, T_air, A_convection, evap_pars_test, transfer_test, atmos_test; water_potential=ψ_org, gasfrac)
+evap_out = evaporation(evap_pars_test, transfer_test, atmos_test, A_convection, T_skin, T_air; water_potential=ψ_org, gasfrac)
 Q_evap = evap_out.Q_evap
 
 # energy balance test

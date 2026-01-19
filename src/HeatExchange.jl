@@ -49,7 +49,7 @@ export body,
     hydraulicpars,
     respirationpars,
     metabolismpars,
-    optionspars
+    options
 
 export get_Tb
 

@@ -2,28 +2,28 @@ function radiant_temperature(;
     body::AbstractBody,
     insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
-    Q_evap,
     org_temps::OrganismTemperatures,
-    T_substrate,
     ks::ThermalConductivities,
+    side,
     cd,
     longwave_depth_fraction,
     conduction_fraction,
-    side,
+    Q_evap,
+    T_substrate,
 )
     radiant_temperature(
         shape(body),
         body,
         insulation,
         insulation_pars,
-        Q_evap,
         org_temps,
-        T_substrate,
         ks,
+        side,
         cd,
         longwave_depth_fraction,
         conduction_fraction,
-        side,
+        Q_evap,
+        T_substrate,
     )
 end
 
@@ -32,14 +32,14 @@ function radiant_temperature(
     body::AbstractBody,
     insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
-    Q_evap,
     org_temps::OrganismTemperatures,
-    T_substrate,
     ks::ThermalConductivities,
+    side,
     cd,
     longwave_depth_fraction,
     conduction_fraction,
-    side,
+    Q_evap,
+    T_substrate,
 )
     (; T_core, T_skin, T_insulation) = org_temps
     (; k_flesh, k_fat, k_insulation) = ks
@@ -110,14 +110,14 @@ function radiant_temperature(
     body::AbstractBody,
     insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
-    Q_evap,
     org_temps::OrganismTemperatures,
-    T_substrate,
     ks::ThermalConductivities,
+    side,
     cd,
     longwave_depth_fraction,
     conduction_fraction,
-    side,
+    Q_evap,
+    T_substrate,
 )
     (; T_core, T_skin, T_insulation) = org_temps
     (; k_flesh, k_fat, k_insulation) = ks
@@ -194,18 +194,18 @@ function radiant_temperature(
 end
 
 function radiant_temperature(
-    ::Ellipsoid,
+    shape::Ellipsoid,
     body::AbstractBody,
     insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
-    Q_evap,
     org_temps::OrganismTemperatures,
-    T_substrate,
     ks::ThermalConductivities,
+    side,
     cd,
     longwave_depth_fraction,
     conduction_fraction,
-    side,
+    Q_evap,
+    T_substrate,
 )
     (; T_core, T_skin, T_insulation) = org_temps
     (; k_flesh, k_fat, k_insulation) = ks

@@ -1,28 +1,28 @@
 function compressed_radiant_temperature(;
     body::AbstractBody,
-    insulation,
+    insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
+    side,
+    cd,
     T_core,
     T_substrate,
-    cd,
-    side,
 )
     compressed_radiant_temperature(
-        shape(body), body, insulation, insulation_pars, ks, T_core, T_substrate, cd, side
+        shape(body), body, insulation, insulation_pars, ks, side, cd, T_core, T_substrate
     )
 end
 
 function compressed_radiant_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
-    insulation,
+    insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
+    side,
+    cd,
     T_core,
     T_substrate,
-    cd,
-    side,
 )
     (; k_flesh, k_fat) = ks
     r_skin = get_r_skin(body)
@@ -44,13 +44,13 @@ end
 function compressed_radiant_temperature(
     shape::Sphere,
     body::AbstractBody,
-    insulation,
+    insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
+    side,
+    cd,
     T_core,
     T_substrate,
-    cd,
-    side,
 )
     (; k_flesh, k_fat) = ks
     r_skin = get_r_skin(body)
@@ -73,13 +73,13 @@ end
 function compressed_radiant_temperature(
     shape::Ellipsoid,
     body::AbstractBody,
-    insulation,
+    insulation::InsulationOutput,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
+    side,
+    cd,
     T_core,
     T_substrate,
-    cd,
-    side,
 )
     (; k_flesh, k_fat) = ks
     volume = flesh_volume(body)
