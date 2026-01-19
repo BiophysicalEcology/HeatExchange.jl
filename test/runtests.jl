@@ -11,12 +11,7 @@ using Test
     Aqua.test_deps_compat(HeatExchange)
 end
 
-@safetestset "ectotherm" begin
-    include("ectotherm.jl")
-end
-@safetestset "endotherm" begin
-    include("endotherm.jl")
-end
-@safetestset "ellipsoid" begin
-    include("ellipsoid.jl")
-end
+@safetestset "ectotherm" begin include("ectotherm.jl") end
+@safetestset "endotherm" begin include("endotherm.jl") end
+@safetestset "ellipsoid" begin include("ellipsoid.jl") end
+@safetestset "metabolism" begin include("metabolism.jl") end

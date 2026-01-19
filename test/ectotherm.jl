@@ -236,7 +236,7 @@ T_core = u"K"((ecto_output.TC)u"°C")
 
 # metabolism|
 Q_metab = metabolic_rate(
-    AndrewsPough2(), mass, T_core; M1, M2, M3, M4, O2conversion=Typical()
+    AndrewsPough2(; M1, M2, M3, M4, O2conversion=Typical()), mass, T_core 
 )
 
 # metabolism test
