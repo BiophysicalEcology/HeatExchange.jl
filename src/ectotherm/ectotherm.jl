@@ -1,9 +1,27 @@
 # ectotherm heat balance
 
 """
-    ectotherm(T, organism::Union{Model,Organism}, pars::AbstractEnvironmentalPars, vars::AbstractEnvironmentalVars)
+    ectotherm(T_x, organism::Organism, e)
 
-Calculate heat balance for an organism at temperature T.
+Calculate heat balance for an ectotherm at a given body temperature.
+
+Computes all heat flux components (solar, infrared, convection, evaporation,
+conduction, respiration, metabolism) and returns the energy balance.
+
+# Arguments
+- `T_x`: Body temperature to evaluate
+- `organism::Organism`: Organism with body geometry and traits
+- `e`: Environment containing `environment_pars` and `environment_vars`
+
+# Returns
+NamedTuple with:
+- `Q_bal`: Net heat balance (should be zero at equilibrium)
+- `T_core`: Core temperature (same as T_x for ectotherms)
+- `T_surface`: Surface temperature
+- `T_lung`: Lung temperature
+- `enbal`: Energy balance components
+- `masbal`: Mass balance components
+- `resp_out`, `solar_out`, `ir_gain`, `ir_loss`, `conv_out`, `evap_out`: Detailed outputs
 """
 function ectotherm end
 
@@ -16,7 +34,6 @@ function ectotherm end
 #    integumentpars(o), physiopars(o), thermoregpars(o), thermoregvars(o), e_pars, vars)
 # A method for Naked organisms
 ectotherm(T_x, o::Organism, e) = ectotherm(T_x, insulation(body(o)), o, e)
-
 function ectotherm(T_x, insulation::Naked, o::Organism, e)
     e_pars = stripparams(e.environment_pars) # TODO make small function to get this, or extract all?
     e_vars = e.environment_vars # TODO make small function to get this, or extract all?
@@ -167,6 +184,22 @@ function ectotherm(T_x, insulation::Fur, pars, organism, vars) # A method for or
     #....
 end
 
+"""
+    get_Tb(mod::Model, e_pars, vars)
+
+Find the equilibrium body temperature for an ectotherm.
+
+Uses root-finding (bisection) to find the body temperature where the heat
+balance equals zero.
+
+# Arguments
+- `mod::Model`: Organism model
+- `e_pars`: Environmental parameters
+- `vars`: Environmental variables
+
+# Returns
+Full ectotherm output at the equilibrium body temperature.
+"""
 function get_Tb(mod::Model, e_pars, vars)
     T_air = vars.environment.T_air
     T_c = find_zero(

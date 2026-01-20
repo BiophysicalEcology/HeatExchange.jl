@@ -1,3 +1,32 @@
+"""
+    simulsol(; geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits, simulsol_tolerance, T_skin, T_insulation)
+
+Simultaneously solve for skin and insulation surface temperatures.
+
+Iteratively finds temperatures that satisfy heat balance equations for an endotherm,
+accounting for convection, radiation, evaporation, and conduction through insulation.
+
+# Keywords
+- `geometry_pars::AbstractBody`: Body geometry
+- `insulation_pars::InsulationParameters`: Insulation parameters
+- `insulation_out::InsulationOutput`: Computed insulation properties
+- `geom_vars::GeometryVariables`: Geometric variables (side, conduction_fraction, etc.)
+- `env_vars::NamedTuple`: Environmental variables (temperatures, wind, humidity, etc.)
+- `traits::NamedTuple`: Organism traits (T_core, conductivities, emissivity, etc.)
+- `simulsol_tolerance`: Convergence tolerance for temperature iteration
+- `T_skin`: Initial guess for skin temperature
+- `T_insulation`: Initial guess for insulation surface temperature
+
+# Returns
+NamedTuple with:
+- `T_insulation`: Converged insulation surface temperature
+- `T_skin`: Converged mean skin temperature
+- `fluxes::HeatFluxes`: Heat flux components
+- `k_insulation`: Effective insulation conductivity
+- `tolerance`: Final tolerance used
+- `success`: Whether convergence was achieved
+- `ntry`: Number of iterations
+"""
 function simulsol(;
     geometry_pars::AbstractBody,
     insulation_pars::InsulationParameters,

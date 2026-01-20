@@ -14,6 +14,28 @@ Base.@kwdef struct SolveMetabolicRateOptions{RE,ST,BT} <: AbstractModelParameter
     resp_tolerance::BT = Param(1e-5)
 end
 
+"""
+    solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
+
+Solve for the metabolic rate that balances heat production with heat loss for an endotherm.
+
+This is the main entry point for endotherm heat balance calculations. It computes heat
+fluxes for dorsal and ventral body surfaces separately, then uses root-finding to
+determine the metabolic rate that satisfies the respiratory heat balance.
+
+# Arguments
+- `o::Organism`: Organism with body geometry and traits
+- `e`: Environment containing `environment_pars` and `environment_vars`
+- `T_skin`: Initial guess for skin temperature
+- `T_insulation`: Initial guess for insulation surface temperature
+
+# Returns
+NamedTuple with:
+- `thermoregulation`: Temperature and conductivity outputs
+- `morphology`: Body geometry and areas
+- `energy_fluxes`: Heat flux components (solar, longwave, convection, etc.)
+- `mass_fluxes`: Water and gas exchange rates
+"""
 function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     e_pars = stripparams(e.environment_pars)
     e_vars = e.environment_vars

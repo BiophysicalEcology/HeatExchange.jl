@@ -11,21 +11,17 @@ abstract type AbstractModelParameters end
 
 abstract type AbstractFunctionalTraits end
 
-shapepars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
-insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
-function conductionpars_external(t::AbstractFunctionalTraits)
-    stripparams(t.conduction_pars_external)
-end
-function conductionpars_internal(t::AbstractFunctionalTraits)
-    stripparams(t.conduction_pars_internal)
-end
-convectionpars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
-radiationpars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
-evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
-hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
-respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
-metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
-options(t::AbstractFunctionalTraits) = stripparams(t.options)
+shapepars(t::AbstractFunctionalTraits) = t.shape_pars
+insulationpars(t::AbstractFunctionalTraits) = t.insulation_pars
+conductionpars_external(t::AbstractFunctionalTraits) = t.conduction_pars_external
+conductionpars_internal(t::AbstractFunctionalTraits) = t.conduction_pars_internal
+convectionpars(t::AbstractFunctionalTraits) = t.convection_pars
+radiationpars(t::AbstractFunctionalTraits) = t.radiation_pars
+evaporationpars(t::AbstractFunctionalTraits) = t.evaporation_pars
+hydraulicpars(t::AbstractFunctionalTraits) = t.hydraulic_pars
+respirationpars(t::AbstractFunctionalTraits) = t.respiration_pars
+metabolismpars(t::AbstractFunctionalTraits) = t.metabolism_pars
+options(t::AbstractFunctionalTraits) = t.options
 
 # TODO more specific subtypes
 struct HeatExchangeTraits{
@@ -64,8 +60,6 @@ abstract type AbstractOrganism end
 # With some generic methods to get the params and body
 body(o::AbstractOrganism) = o.body # gets the body from an object of type AbstractOrganism
 traits(o::AbstractOrganism) = o.traits
-#shape(o::AbstractOrganism) = shape(body(o)) # gets the shape from an object of type AbstractOrganism
-#insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
 
 # Forwarding methods from organism to traits
 shapepars(o::AbstractOrganism) = shapepars(traits(o))

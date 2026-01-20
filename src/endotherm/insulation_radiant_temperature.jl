@@ -1,3 +1,36 @@
+"""
+    insulation_radiant_temperature(; body, insulation, insulation_pars, env_temps, Q_rads, cds, dvs, side, area_convection, hc, cd, k_insulation, longwave_depth_fraction, conduction_fraction, Q_solar, Q_evap_insulation, T_core, T_ins_compressed)
+
+Calculate insulation surface temperature and radiant temperature for heat exchange.
+
+Solves the heat balance at the insulation-air interface accounting for convection,
+longwave radiation, solar radiation, and evaporation from the insulation surface.
+
+# Keywords
+- `body::AbstractBody`: Body geometry
+- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation_pars::InsulationParameters`: Insulation parameters
+- `env_temps::EnvironmentTemperatures`: Environmental temperatures
+- `Q_rads::RadiationCoeffs`: Radiation coefficients to sky, bush, vegetation, ground
+- `cds::ConductanceCoeffs`: Conductance coefficients
+- `dvs::DivisorCoeffs`: Divisor coefficients
+- `side`: Body side (1 = dorsal, 2 = ventral)
+- `area_convection`: Surface area for convection
+- `hc`: Convective heat transfer coefficient
+- `cd`: Substrate conductance coefficient
+- `k_insulation`: Effective insulation thermal conductivity
+- `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
+- `conduction_fraction`: Fraction of body in contact with substrate
+- `Q_solar`: Solar heat gain
+- `Q_evap_insulation`: Evaporative heat loss from insulation
+- `T_core`: Core body temperature
+- `T_ins_compressed`: Compressed insulation temperature
+
+# Returns
+NamedTuple with:
+- `T_insulation_calc`: Calculated insulation surface temperature
+- `T_radiant2`: Radiant temperature for longwave exchange
+"""
 function insulation_radiant_temperature(;
     body::AbstractBody,
     insulation::InsulationOutput,
@@ -40,7 +73,6 @@ function insulation_radiant_temperature(;
         T_ins_compressed,
     )
 end
-
 function insulation_radiant_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
@@ -129,7 +161,6 @@ function insulation_radiant_temperature(
 
     return (; T_insulation_calc, T_radiant2)
 end
-
 function insulation_radiant_temperature(
     shape::Sphere,
     body::AbstractBody,

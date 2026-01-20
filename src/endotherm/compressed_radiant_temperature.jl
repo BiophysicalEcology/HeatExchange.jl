@@ -1,3 +1,26 @@
+"""
+    compressed_radiant_temperature(; body, insulation, insulation_pars, ks, side, cd, T_core, T_substrate)
+
+Calculate temperature at compressed insulation interface when body is in contact with substrate.
+
+Used when conduction_fraction = 1 (full contact with ground), computing the temperature
+at the compressed insulation-substrate interface.
+
+# Keywords
+- `body::AbstractBody`: Body geometry
+- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation_pars::InsulationParameters`: Insulation parameters
+- `ks::ThermalConductivities`: Thermal conductivities (flesh, fat)
+- `side`: Body side (1 = dorsal, 2 = ventral)
+- `cd`: Substrate conductance coefficient
+- `T_core`: Core body temperature
+- `T_substrate`: Substrate temperature
+
+# Returns
+NamedTuple with:
+- `cf1`: Compression factor coefficient
+- `T_ins_compressed`: Temperature at compressed insulation interface
+"""
 function compressed_radiant_temperature(;
     body::AbstractBody,
     insulation::InsulationOutput,

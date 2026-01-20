@@ -223,11 +223,10 @@ end
 
 A collection of physiological parameters relating to metabolic rate.
 
-# Parameters
+# Keywords
 - `T_core::B` — Core body temperature (K)
 - `Q_metabolism::B` — Metabolic heat generation rate (W)
 - `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
-
 """
 Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysiologyParameters
     T_core::TC = Param(u"K"(37u"°C"))
