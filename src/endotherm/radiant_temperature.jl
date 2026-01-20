@@ -12,7 +12,7 @@ heat conduction equations through the insulation layer.
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `org_temps::OrganismTemperatures`: Organism temperatures (core, skin, insulation)
 - `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
-- `side`: Body side (1 = dorsal, 2 = ventral)
+- `side`: Body side (`:dorsal` or `:ventral`)
 - `cd`: Substrate conductance coefficient
 - `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
 - `conduction_fraction`: Fraction of body in contact with substrate
@@ -75,10 +75,10 @@ function radiant_temperature(
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
-    insulation_depth = insulation.insulation_depths[side + 1]
+    insulation_depth = get_side(insulation.fibres, side).depth
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
-    k_compressed = insulation.insulation_conductivity_compressed
-    r_compressed = r_skin + insulation_pars.insulation_depth_compressed
+    k_compressed = insulation.conductivity_compressed
+    r_compressed = r_skin + insulation_pars.depth_compressed
     length = body.geometry.length.length_skin
 
     compression_fraction =
@@ -152,10 +152,10 @@ function radiant_temperature(
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
-    insulation_depth = insulation.insulation_depths[side + 1]
+    insulation_depth = get_side(insulation.fibres, side).depth
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
-    k_compressed = insulation.insulation_conductivity_compressed
-    r_compressed = r_skin + insulation_pars.insulation_depth_compressed
+    k_compressed = insulation.conductivity_compressed
+    r_compressed = r_skin + insulation_pars.depth_compressed
 
     compression_fraction =
         (conduction_fraction * 4 * π * k_compressed * r_compressed * r_skin) /
@@ -245,9 +245,9 @@ function radiant_temperature(
     b_semi_minor_flesh = b_semi_minor - fat
     c_semi_minor_flesh = c_semi_minor - fat
 
-    insulation_depth = insulation.insulation_depths[side + 1]
-    k_compressed = insulation.insulation_conductivity_compressed
-    bl_compressed = b_semi_minor + insulation_pars.insulation_depth_compressed
+    insulation_depth = get_side(insulation.fibres, side).depth
+    k_compressed = insulation.conductivity_compressed
+    bl_compressed = b_semi_minor + insulation_pars.depth_compressed
 
     a_square = min(a_semi_major_flesh^2, a_semi_major^2)
     b_square = min(b_semi_minor_flesh^2, b_semi_minor^2)

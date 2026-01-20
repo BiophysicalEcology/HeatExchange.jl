@@ -218,19 +218,23 @@ for shape_number in 1:4
             insulation_conductivity = (endo_input.FURTHRMK)u"W/m/K"
         end
         insulation_pars = InsulationParameters(;
-            insulation_conductivity_dorsal=insulation_conductivity,
-            insulation_conductivity_ventral=insulation_conductivity,
-            fibre_diameter_dorsal=(endo_input.DHAIRD)u"m",
-            fibre_diameter_ventral=(endo_input.DHAIRV)u"m",
-            fibre_length_dorsal=(endo_input.LHAIRD)u"m",
-            fibre_length_ventral=(endo_input.LHAIRV)u"m",
-            insulation_depth_dorsal=(endo_input.ZFURD)u"m",
-            insulation_depth_ventral=(endo_input.ZFURV)u"m",
-            fibre_density_dorsal=(endo_input.RHOD)u"1/m^2",
-            fibre_density_ventral=(endo_input.RHOV)u"1/m^2",
-            insulation_reflectance_dorsal=endo_input.REFLD,
-            insulation_reflectance_ventral=endo_input.REFLV,
-            insulation_depth_compressed=(endo_input.ZFURCOMP)u"m",
+            dorsal=FibreProperties(;
+                diameter=(endo_input.DHAIRD)u"m",
+                length=(endo_input.LHAIRD)u"m",
+                density=(endo_input.RHOD)u"1/m^2",
+                depth=(endo_input.ZFURD)u"m",
+                reflectance=endo_input.REFLD,
+            ),
+            ventral=FibreProperties(;
+                diameter=(endo_input.DHAIRV)u"m",
+                length=(endo_input.LHAIRV)u"m",
+                density=(endo_input.RHOV)u"1/m^2",
+                depth=(endo_input.ZFURV)u"m",
+                reflectance=endo_input.REFLV,
+            ),
+            conductivity_dorsal=insulation_conductivity,
+            conductivity_ventral=insulation_conductivity,
+            depth_compressed=(endo_input.ZFURCOMP)u"m",
             fibre_conductivity=(endo_input.KHAIR)u"W/m/K",
             longwave_depth_fraction=endo_input.XR,
         )

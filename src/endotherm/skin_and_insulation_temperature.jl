@@ -328,56 +328,55 @@ function solve_with_insulation!(
             else
                 Q_evap_insulation = 0.0u"W"
             end
-            if side == 1
+            # Create side-specific InsulationParameters using the appropriate fibre properties
+            if side == :dorsal
+                side_fibres = FibreProperties(;
+                    diameter=ins.dorsal.diameter,
+                    length=ins.dorsal.length,
+                    density=ins.dorsal.density,
+                    depth=insulation_out.fibres.dorsal.depth,
+                    reflectance=ins.dorsal.reflectance,
+                )
                 insulation_side = InsulationParameters(;
-                    insulation_conductivity_dorsal=ins.insulation_conductivity_dorsal,
-                    insulation_conductivity_ventral=ins.insulation_conductivity_dorsal,
-                    fibre_diameter_dorsal=ins.fibre_diameter_dorsal,
-                    fibre_diameter_ventral=ins.fibre_diameter_dorsal,
-                    fibre_length_dorsal=ins.fibre_length_dorsal,
-                    fibre_length_ventral=ins.fibre_length_dorsal,
-                    insulation_depth_dorsal=insulation_out.insulation_depths[2],
-                    insulation_depth_ventral=insulation_out.insulation_depths[2],
-                    fibre_density_dorsal=ins.fibre_density_dorsal,
-                    fibre_density_ventral=ins.fibre_density_dorsal,
-                    insulation_reflectance_dorsal=ins.insulation_reflectance_dorsal,
-                    insulation_reflectance_ventral=ins.insulation_reflectance_dorsal,
-                    insulation_depth_compressed=insulation_out.insulation_depths[2],
+                    dorsal=side_fibres,
+                    ventral=side_fibres,
+                    conductivity_dorsal=ins.conductivity_dorsal,
+                    conductivity_ventral=ins.conductivity_dorsal,
+                    depth_compressed=insulation_out.fibres.dorsal.depth,
                     fibre_conductivity=ins.fibre_conductivity,
                     longwave_depth_fraction=ins.longwave_depth_fraction,
                 )
             else
+                side_fibres = FibreProperties(;
+                    diameter=ins.ventral.diameter,
+                    length=ins.ventral.length,
+                    density=ins.ventral.density,
+                    depth=insulation_out.fibres.ventral.depth,
+                    reflectance=ins.ventral.reflectance,
+                )
                 insulation_side = InsulationParameters(;
-                    insulation_conductivity_dorsal=ins.insulation_conductivity_ventral,
-                    insulation_conductivity_ventral=ins.insulation_conductivity_ventral,
-                    fibre_diameter_dorsal=ins.fibre_diameter_ventral,
-                    fibre_diameter_ventral=ins.fibre_diameter_ventral,
-                    fibre_length_dorsal=ins.fibre_length_ventral,
-                    fibre_length_ventral=ins.fibre_length_ventral,
-                    insulation_depth_dorsal=insulation_out.insulation_depths[3],
-                    insulation_depth_ventral=insulation_out.insulation_depths[3],
-                    fibre_density_dorsal=ins.fibre_density_ventral,
-                    fibre_density_ventral=ins.fibre_density_ventral,
-                    insulation_reflectance_dorsal=ins.insulation_reflectance_ventral,
-                    insulation_reflectance_ventral=ins.insulation_reflectance_ventral,
-                    insulation_depth_compressed=insulation_out.insulation_depths[3], # TODO this should be ins.insulation_depth_compressed here and in Fortran
+                    dorsal=side_fibres,
+                    ventral=side_fibres,
+                    conductivity_dorsal=ins.conductivity_ventral,
+                    conductivity_ventral=ins.conductivity_ventral,
+                    depth_compressed=insulation_out.fibres.ventral.depth, # TODO this should be ins.depth_compressed here and in Fortran
                     fibre_conductivity=ins.fibre_conductivity,
                     longwave_depth_fraction=ins.longwave_depth_fraction,
                 )
             end
 
             # recompute insulation radiation properties
-            (; effective_conductivities, insulation_conductivity_compressed) = insulation_properties(;
+            (; conductivities, conductivity_compressed) = insulation_properties(;
                 insulation=insulation_side,
                 insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
                 ventral_fraction,
             )
-            absorption_coefficient = insulation_out.absorption_coefficients[side + 1]
-            k_eff = effective_conductivities[side + 1]
+            absorption_coefficient = get_side(insulation_out.absorption_coefficients, side)
+            k_eff = get_side(conductivities, side)
             # update thermally sensitive insulation parameters for current skin/insulation temperature
             insulation_out = setproperties(insulation_out;
-                insulation_conductivity_compressed,
-                effective_conductivities,
+                conductivity_compressed,
+                conductivities,
             )
             # Effective insulation conductivity
             if !isnothing(insulation_conductivity)

@@ -140,81 +140,39 @@ Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE} <: AbstractPhysiologyPa
 end
 
 """
-    InsulationPars(; kwargs...) <: AbstractMorphologyParameters
+    InsulationParameters(; kwargs...) <: AbstractMorphologyParameters
 
 Parameters describing the physical and optical properties of fur or other
-insulative pelage layers on an animal. These values control heat retention,
-radiation exchange, and conduction through the insulation.
-
-All parameters may be overridden at construction. Defaults are based on
-typical small-mammal pelage properties.
+insulative pelage layers on an animal.
 
 # Parameters
-
-## Thermal Conductivity
-- `insulation_conductivity_dorsal` — User-specified dorsal fur conductivity
-  (W/m/K). If `nothing`, conductivity is computed from fibre properties.
-- `insulation_conductivity_ventral` — Same as above, but for ventral fur.
-
-## Fibre Geometry
-- `fibre_diameter_dorsal` — Mean dorsal hair diameter (μm).
-- `fibre_diameter_ventral` — Mean ventral hair diameter (μm).
-- `fibre_length_dorsal` — Dorsal hair length (mm). Also defines maximum
-  achievable dorsal fur depth.
-- `fibre_length_ventral` — Ventral hair length (mm).
-
-## Fur Depth
-- `insulation_depth_dorsal` — Actual dorsal fur depth (mm).
-- `insulation_depth_ventral` — Actual ventral fur depth (mm).
-- `max_insulation_depth_dorsal` — Maximum dorsal fur depth (mm), typically equal
-  to fibre length.
-- `max_insulation_depth_ventral` — Maximum ventral fur depth (mm).
-
-## Fur Density
-- `fibre_density_dorsal` — Dorsal hair density (cm⁻²).
-- `fibre_density_ventral` — Ventral hair density (cm⁻²).
-
-## Optical/Reflective Properties
-- `insulation_reflectance_dorsal` — Dorsal fur reflectance (fraction, 0–1).
-- `insulation_reflectance_ventral` — Ventral fur reflectance (fraction, 0–1).
-
-## Compressed Fur (Conduction Layer)
-- `insulation_depth_compressed` — Effective depth of compressed fur during
-  conduction contact (mm).
-
-## Fibre Material Properties
-- `fibre_conductivity` — Thermal conductivity of keratin fibres (W/m/K).
-
-## Radiative Exchange
-- `longwave_depth_fraction` — Fraction (0–1) of the fur depth at which
-  longwave radiation is exchanged. A value of 1 means radiation interacts at
-  the full fur depth; lower values represent radiation being absorbed higher
-  in the pelage.
-
-# Notes
-- All defaults use `Param` wrappers with units (Unitful.jl).
-- Users may specify custom conductivity values to override internally computed
-  pelage conductivities.
-- This struct represents both dorsal and ventral insulation separately,
-  allowing asymmetric fur properties.
+- `dorsal::FibreProperties` — Fibre properties for dorsal (back) surface
+- `ventral::FibreProperties` — Fibre properties for ventral (belly) surface
+- `conductivity_dorsal` — User-specified dorsal conductivity (W/m/K), or `nothing` to compute
+- `conductivity_ventral` — User-specified ventral conductivity (W/m/K), or `nothing` to compute
+- `depth_compressed` — Depth of compressed insulation during ground contact (mm)
+- `fibre_conductivity` — Thermal conductivity of keratin fibres (W/m/K)
+- `longwave_depth_fraction` — Fraction of insulation depth for longwave exchange (0-1)
 """
-Base.@kwdef struct InsulationParameters{
-    ICD,ICV,FDD,FDV,FLD,FLV,IDD,IDV,FRD,FRV,IRD,IRV,IDC,FCN,LDF
-} <: AbstractMorphologyParameters
-    insulation_conductivity_dorsal::ICD = nothing
-    insulation_conductivity_ventral::ICV = nothing
-    fibre_diameter_dorsal::FDD = Param(30.0u"μm")
-    fibre_diameter_ventral::FDV = Param(30.0u"μm")
-    fibre_length_dorsal::FLD = Param(23.9u"mm")
-    fibre_length_ventral::FLV = Param(23.9u"mm")
-    insulation_depth_dorsal::IDD = Param(2.0u"mm")
-    insulation_depth_ventral::IDV = Param(2.0u"mm")
-    fibre_density_dorsal::FRD = Param(3000.0u"cm^-2")
-    fibre_density_ventral::FRV = Param(3000.0u"cm^-2")
-    insulation_reflectance_dorsal::IRD = Param(0.301, bounds=(0.0, 1.0))
-    insulation_reflectance_ventral::IRV = Param(0.301, bounds=(0.0, 1.0))
-    insulation_depth_compressed::IDC = Param(2.0u"mm")
-    fibre_conductivity::FCN = Param(0.209u"W/m/K")
+Base.@kwdef struct InsulationParameters{D,V,CD,CV,DC,FC,LDF} <: AbstractMorphologyParameters
+    dorsal::D = FibreProperties(;
+        diameter=Param(30.0u"μm"),
+        length=Param(23.9u"mm"),
+        density=Param(3000.0u"cm^-2"),
+        depth=Param(2.0u"mm"),
+        reflectance=Param(0.301, bounds=(0.0, 1.0)),
+    )
+    ventral::V = FibreProperties(;
+        diameter=Param(30.0u"μm"),
+        length=Param(23.9u"mm"),
+        density=Param(3000.0u"cm^-2"),
+        depth=Param(2.0u"mm"),
+        reflectance=Param(0.301, bounds=(0.0, 1.0)),
+    )
+    conductivity_dorsal::CD = nothing
+    conductivity_ventral::CV = nothing
+    depth_compressed::DC = Param(2.0u"mm")
+    fibre_conductivity::FC = Param(0.209u"W/m/K")
     longwave_depth_fraction::LDF = Param(1, bounds=(0.0, 1.0))
 end
 

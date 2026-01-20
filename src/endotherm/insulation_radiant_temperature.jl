@@ -14,7 +14,7 @@ longwave radiation, solar radiation, and evaporation from the insulation surface
 - `Q_rads::RadiationCoeffs`: Radiation coefficients to sky, bush, vegetation, ground
 - `cds::ConductanceCoeffs`: Conductance coefficients
 - `dvs::DivisorCoeffs`: Divisor coefficients
-- `side`: Body side (1 = dorsal, 2 = ventral)
+- `side`: Body side (`:dorsal` or `:ventral`)
 - `area_convection`: Surface area for convection
 - `hc`: Convective heat transfer coefficient
 - `cd`: Substrate conductance coefficient
@@ -103,16 +103,16 @@ function insulation_radiant_temperature(
     r_insulation = insulation_radius(body)
     length = body.geometry.length.length_skin
 
-    if side == 1
+    if side == :dorsal
         r_radiation =
             r_skin +
             insulation_pars.longwave_depth_fraction *
-            insulation_pars.insulation_depth_dorsal
+            insulation_pars.dorsal.depth
     else
         r_radiation =
             r_skin +
             insulation_pars.longwave_depth_fraction *
-            insulation_pars.insulation_depth_ventral
+            insulation_pars.ventral.depth
     end
 
     if longwave_depth_fraction < 1
@@ -190,16 +190,16 @@ function insulation_radiant_temperature(
     r_skin = skin_radius(body)
     r_insulation = insulation_radius(body)
 
-    if side == 1
+    if side == :dorsal
         r_radiation =
             r_skin +
             insulation_pars.longwave_depth_fraction *
-            insulation_pars.insulation_depth_dorsal
+            insulation_pars.dorsal.depth
     else
         r_radiation =
             r_skin +
             insulation_pars.longwave_depth_fraction *
-            insulation_pars.insulation_depth_ventral
+            insulation_pars.ventral.depth
     end
 
     if longwave_depth_fraction < 1
@@ -285,10 +285,10 @@ function insulation_radiant_temperature(
     b_semi_minor_flesh = b_semi_minor - fat
     c_semi_minor_flesh = c_semi_minor - fat
 
-    if side == 1
-        insulation_depth = insulation_pars.insulation_depth_dorsal
+    if side == :dorsal
+        insulation_depth = insulation_pars.dorsal.depth
     else
-        insulation_depth = insulation_pars.insulation_depth_ventral
+        insulation_depth = insulation_pars.ventral.depth
     end
 
     a_square = min(a_semi_major_flesh^2, a_semi_major^2)

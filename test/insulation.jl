@@ -1,16 +1,20 @@
 
 insulation = InsulationParameters(;
-    fibre_diameter_dorsal=Param(30.0u"μm"), # hair diameter, dorsal (m)
-    fibre_diameter_ventral=Param(30.0u"μm"), # hair diameter, ventral (m)
-    fibre_length_dorsal=Param(23.9u"mm"), # hair length, dorsal (m)
-    fibre_length_ventral=Param(23.9u"mm"), # hair length, ventral (m)
-    insulation_depth_dorsal=Param(9.0u"mm"), # fur depth, dorsal (m)
-    insulation_depth_ventral=(9.0u"mm"), # fur depth, ventral (m)
-    fibre_density_dorsal=Param(3000u"cm^-2"), # hair density, dorsal (1/m2)
-    fibre_density_ventral=Param(3000u"cm^-2"), # hair density, ventral (1/m2)
-    insulation_reflectance_dorsal=Param(0.301),  # fur reflectivity dorsal (fractional, 0-1)
-    insulation_reflectance_ventral=Param(0.301),  # fur reflectivity ventral (fractional, 0-1)
-    insulation_depth_compressed=Param(9.0u"mm"), # depth of compressed fur (for conduction) (m)
+    dorsal=FibreProperties(;
+        diameter=Param(30.0u"μm"), # hair diameter, dorsal (m)
+        length=Param(23.9u"mm"), # hair length, dorsal (m)
+        density=Param(3000u"cm^-2"), # hair density, dorsal (1/m2)
+        depth=Param(9.0u"mm"), # fur depth, dorsal (m)
+        reflectance=Param(0.301), # fur reflectivity dorsal (fractional, 0-1)
+    ),
+    ventral=FibreProperties(;
+        diameter=Param(30.0u"μm"), # hair diameter, ventral (m)
+        length=Param(23.9u"mm"), # hair length, ventral (m)
+        density=Param(3000u"cm^-2"), # hair density, ventral (1/m2)
+        depth=(9.0u"mm"), # fur depth, ventral (m)
+        reflectance=Param(0.301), # fur reflectivity ventral (fractional, 0-1)
+    ),
+    depth_compressed=Param(9.0u"mm"), # depth of compressed fur (for conduction) (m)
     fibre_conductivity=Param(0.209u"W/m/K"), # hair thermal conductivity (W/m°C)
     longwave_depth_fraction=Param(1.0),
 )
@@ -31,9 +35,9 @@ fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
 fur = Fur(
-    insulation_out.insulation_depths[1],
-    insulation_out.fibre_diameters[1],
-    insulation_out.fibre_densities[1],
+    insulation_out.fibres.average.depth,
+    insulation_out.fibres.average.diameter,
+    insulation_out.fibres.average.density,
 )
 composite_insulation = (fat, fur)
 
@@ -52,9 +56,9 @@ fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
 fur = Fur(
-    insulation_out.insulation_depths[1],
-    insulation_out.fibre_diameters[1],
-    insulation_out.fibre_densities[1],
+    insulation_out.fibres.average.depth,
+    insulation_out.fibres.average.diameter,
+    insulation_out.fibres.average.density,
 )
 composite_insulation = (fat, fur)
 
@@ -67,9 +71,9 @@ fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
 fur = Fur(
-    insulation_out.insulation_depths[1],
-    insulation_out.fibre_diameters[1],
-    insulation_out.fibre_densities[1],
+    insulation_out.fibres.average.depth,
+    insulation_out.fibres.average.diameter,
+    insulation_out.fibres.average.density,
 )
 composite_insulation = (fat, fur)
 
@@ -83,9 +87,9 @@ fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = Fat(fat_fraction, fat_density)
 fur = Fur(
-    insulation_out.insulation_depths[1],
-    insulation_out.fibre_diameters[1],
-    insulation_out.fibre_densities[1],
+    insulation_out.fibres.average.depth,
+    insulation_out.fibres.average.diameter,
+    insulation_out.fibres.average.density,
 )
 composite_insulation = (fat, fur)
 
