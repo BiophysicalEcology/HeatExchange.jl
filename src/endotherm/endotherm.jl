@@ -6,12 +6,12 @@ Options controlling the endotherm metabolic rate solver.
 # Fields
 - `respire`: Whether to include respiration in the heat balance (default: true)
 - `simulsol_tolerance`: Convergence tolerance for simultaneous temperature solution (default: 1e-3 K)
-- `resp_tolerance`: Convergence tolerance for respiration root finding (default: 1e-5 K)
+- `resp_tolerance`: Relative convergence tolerance for respiration root finding (default: 1e-5)
 """
 Base.@kwdef struct SolveMetabolicRateOptions{RE,ST,BT} <: AbstractModelParameters
     respire::RE = Param(true)
     simulsol_tolerance::ST = Param(1e-3u"K")
-    resp_tolerance::BT = Param(1e-5u"K")
+    resp_tolerance::BT = Param(1e-5)
 end
 
 function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
