@@ -368,19 +368,19 @@ function Absorptivities(rad::RadiationParameters, env::AbstractEnvironmentalPars
 end
 
 """
-    InsulationOutput
+    InsulationProperties{F,C,A,O,IT,CC}
 
-Output from `insulation_properties()` containing computed thermal properties of insulation layers.
+Computed thermal properties of insulation layers, returned by `insulation_properties()`.
 
 # Fields
-- `fibres::BodyRegionValues{FibreProperties}` — Fibre properties for average/dorsal/ventral
-- `conductivities::BodyRegionValues` — Effective thermal conductivities (W/m/K)
-- `absorption_coefficients::BodyRegionValues` — Absorption coefficients (m⁻¹)
-- `optical_thickness::BodyRegionValues` — Optical thickness factors
-- `insulation_test` — Bare-skin test parameter (m)
-- `conductivity_compressed` — Conductivity of compressed ventral insulation (W/m/K)
+- `fibres::BodyRegionValues{<:FibreProperties}` — Fibre properties for average/dorsal/ventral.
+- `conductivities::BodyRegionValues` — Effective thermal conductivities (W/m/K).
+- `absorption_coefficients::BodyRegionValues` — Absorption coefficients (m⁻¹).
+- `optical_thickness::BodyRegionValues` — Optical thickness factors (dimensionless).
+- `insulation_test` — Bare-skin test parameter (m⁴); zero indicates no insulation.
+- `conductivity_compressed` — Conductivity of compressed ventral insulation (W/m/K).
 """
-struct InsulationOutput{F,C,A,O,IT,CC}
+struct InsulationProperties{F<:BodyRegionValues,C<:BodyRegionValues,A<:BodyRegionValues,O<:BodyRegionValues,IT,CC}
     fibres::F
     conductivities::C
     absorption_coefficients::A

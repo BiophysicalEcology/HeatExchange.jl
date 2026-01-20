@@ -19,14 +19,7 @@ insulation = InsulationParameters(;
     longwave_depth_fraction=Param(1.0),
 )
 
-insulation_out = insulation_properties(;
-    insulation, insulation_temperature=(273.15 + 20.0)u"K", ventral_fraction=0.3
-)
-insulation_properties(;
-    insulation=insulation_pars,
-    insulation_temperature=thermoregulation.T_insulation,
-    ventral_fraction=radiation_pars.ventral_fraction,
-)
+insulation_out = insulation_properties(insulation, (273.15 + 20.0)u"K", 0.3)
 density = 1000.0u"kg/m^3"
 mass = 0.04u"kg"
 shapeb = 2

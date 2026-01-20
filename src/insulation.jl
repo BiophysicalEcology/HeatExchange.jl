@@ -111,25 +111,25 @@ function insulation_thermal_conductivity(;
 end
 
 """
-    insulation_properties(; insulation, insulation_temperature, ventral_fraction)
+    insulation_properties(insulation, insulation_temperature, ventral_fraction) -> InsulationProperties
 
 Compute parameters for heat conduction and infrared radiation through insulation (fur or plumage).
 
-# Keywords
-- `insulation::InsulationParameters`: Insulation parameters with dorsal/ventral FibreProperties
-- `insulation_temperature`: Temperature of insulation (for computing air conductivity)
-- `ventral_fraction`: Fraction of body surface that is ventral
+# Arguments
+- `insulation::InsulationParameters`: Insulation parameters with dorsal/ventral `FibreProperties`.
+- `insulation_temperature`: Temperature of insulation for computing air conductivity (K).
+- `ventral_fraction`: Fraction of body surface that is ventral (0-1).
 
 # Returns
-`InsulationOutput` with:
-- `fibres::BodyRegionValues{FibreProperties}`: Fibre properties for average/dorsal/ventral
-- `conductivities`: Effective thermal conductivities
-- `absorption_coefficients`: Absorption coefficients for radiation
-- `optical_thickness`: Optical thickness factors
-- `insulation_test`: Bare-skin test parameter (zero if no insulation)
-- `conductivity_compressed`: Conductivity of compressed ventral insulation
+`InsulationProperties` containing:
+- `fibres`: `BodyRegionValues{FibreProperties}` for average/dorsal/ventral regions.
+- `conductivities`: Effective thermal conductivities (W/m/K).
+- `absorption_coefficients`: Absorption coefficients for radiation (m⁻¹).
+- `optical_thickness`: Optical thickness factors (dimensionless).
+- `insulation_test`: Bare-skin test parameter (zero if no insulation).
+- `conductivity_compressed`: Conductivity of compressed ventral insulation (W/m/K).
 """
-function insulation_properties(; insulation, insulation_temperature, ventral_fraction)
+function insulation_properties(insulation::InsulationParameters, insulation_temperature, ventral_fraction)
     (; dorsal, ventral, depth_compressed, fibre_conductivity) = insulation
 
     # Physical constants
@@ -211,7 +211,7 @@ function insulation_properties(; insulation, insulation_temperature, ventral_fra
         conductivity_compressed = vent_compressed.effective_conductivity
     end
 
-    return InsulationOutput(
+    return InsulationProperties(
         fibres,
         conductivities,
         absorption_coefficients,

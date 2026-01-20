@@ -8,7 +8,7 @@ heat conduction equations through flesh and fat layers.
 
 # Keywords
 - `body::AbstractBody`: Body geometry
-- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation::InsulationProperties`: Computed insulation properties
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
 - `cds::ConductanceCoeffs`: Conductance coefficients
@@ -26,7 +26,7 @@ NamedTuple with:
 """
 function mean_skin_temperature(;
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     cds::ConductanceCoeffs,
@@ -55,7 +55,7 @@ end
 function mean_skin_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     cds::ConductanceCoeffs,
@@ -98,7 +98,7 @@ end
 function mean_skin_temperature(
     shape::Sphere,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     cds::ConductanceCoeffs,
@@ -142,7 +142,7 @@ end
 function mean_skin_temperature(
     shape::Ellipsoid,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     cds::ConductanceCoeffs,

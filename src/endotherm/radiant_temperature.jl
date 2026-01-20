@@ -8,7 +8,7 @@ heat conduction equations through the insulation layer.
 
 # Keywords
 - `body::AbstractBody`: Body geometry
-- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation::InsulationProperties`: Computed insulation properties
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `org_temps::OrganismTemperatures`: Organism temperatures (core, skin, insulation)
 - `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
@@ -28,7 +28,7 @@ NamedTuple with:
 """
 function radiant_temperature(;
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
     ks::ThermalConductivities,
@@ -57,7 +57,7 @@ end
 function radiant_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
     ks::ThermalConductivities,
@@ -134,7 +134,7 @@ end
 function radiant_temperature(
     shape::Sphere,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
     ks::ThermalConductivities,
@@ -221,7 +221,7 @@ end
 function radiant_temperature(
     shape::Ellipsoid,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
     ks::ThermalConductivities,

@@ -8,7 +8,7 @@ at the compressed insulation-substrate interface.
 
 # Keywords
 - `body::AbstractBody`: Body geometry
-- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation::InsulationProperties`: Computed insulation properties
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `ks::ThermalConductivities`: Thermal conductivities (flesh, fat)
 - `side`: Body side (`:dorsal` or `:ventral`)
@@ -23,7 +23,7 @@ NamedTuple with:
 """
 function compressed_radiant_temperature(;
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,
@@ -39,7 +39,7 @@ end
 function compressed_radiant_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,
@@ -67,7 +67,7 @@ end
 function compressed_radiant_temperature(
     shape::Sphere,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,
@@ -96,7 +96,7 @@ end
 function compressed_radiant_temperature(
     shape::Ellipsoid,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,

@@ -56,9 +56,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     simulsol_tolerance = opts.simulsol_tolerance
 
     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3
-    insulation_out = insulation_properties(;
-        insulation=ins, insulation_temperature, ventral_fraction=rad.ventral_fraction
-    )
+    insulation_out = insulation_properties(ins, insulation_temperature, rad.ventral_fraction)
     fibres = insulation_out.fibres
     # if no insulation, reset bare_skin_fraction if necessary
     if insulation_out.insulation_test <= 0.0u"m" && evap.bare_skin_fraction < 1.0
@@ -218,10 +216,8 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             #ψ_body = hyd.ψ_body,
         )
 
-        insulation_out = insulation_properties(;
-            insulation=ins,
-            insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
-            rad.ventral_fraction,
+        insulation_out = insulation_properties(
+            ins, T_insulation * 0.7 + T_skin * 0.3, rad.ventral_fraction
         )
         # call simulsol
         simulsol_out[side_idx] = simulsol(;
@@ -425,10 +421,8 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     Q_convection = Q_convection_dorsal * dmult + Q_convection_ventral * vmult
     Q_conduction = Q_conduction_dorsal * dmult + Q_conduction_ventral * vmult
 
-    insulation_out = insulation_properties(;
-        insulation=ins,
-        insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
-        rad.ventral_fraction,
+    insulation_out = insulation_properties(
+        ins, T_insulation * 0.7 + T_skin * 0.3, rad.ventral_fraction
     )
     k_insulation_effective = insulation_out.conductivities.average
     k_insulation_compressed = insulation_out.conductivity_compressed

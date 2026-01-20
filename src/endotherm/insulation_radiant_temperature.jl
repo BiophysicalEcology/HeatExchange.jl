@@ -8,7 +8,7 @@ longwave radiation, solar radiation, and evaporation from the insulation surface
 
 # Keywords
 - `body::AbstractBody`: Body geometry
-- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation::InsulationProperties`: Computed insulation properties
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `env_temps::EnvironmentTemperatures`: Environmental temperatures
 - `Q_rads::RadiationCoeffs`: Radiation coefficients to sky, bush, vegetation, ground
@@ -33,7 +33,7 @@ NamedTuple with:
 """
 function insulation_radiant_temperature(;
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     env_temps::EnvironmentTemperatures,
     Q_rads::RadiationCoeffs,
@@ -76,7 +76,7 @@ end
 function insulation_radiant_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     env_temps::EnvironmentTemperatures,
     Q_rads::RadiationCoeffs,
@@ -164,7 +164,7 @@ end
 function insulation_radiant_temperature(
     shape::Sphere,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     env_temps::EnvironmentTemperatures,
     Q_rads::RadiationCoeffs,
@@ -251,7 +251,7 @@ end
 function insulation_radiant_temperature(
     shape::Ellipsoid,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     env_temps::EnvironmentTemperatures,
     Q_rads::RadiationCoeffs,

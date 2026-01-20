@@ -276,10 +276,8 @@ for shape_number in 1:4
         energy_fluxes = endotherm_out.energy_fluxes
         mass_fluxes = endotherm_out.mass_fluxes
 
-        (; insulation_test) = insulation_properties(;
-            insulation=insulation_pars,
-            insulation_temperature=thermoregulation.T_insulation,
-            ventral_fraction=radiation_pars.ventral_fraction,
+        (; insulation_test) = insulation_properties(
+            insulation_pars, thermoregulation.T_insulation, radiation_pars.ventral_fraction
         )
 
         rtol = 1e-3

@@ -9,7 +9,7 @@ accounting for convection, radiation, evaporation, and conduction through insula
 # Keywords
 - `geometry_pars::AbstractBody`: Body geometry
 - `insulation_pars::InsulationParameters`: Insulation parameters
-- `insulation_out::InsulationOutput`: Computed insulation properties
+- `insulation_out::InsulationProperties`: Computed insulation properties
 - `geom_vars::GeometryVariables`: Geometric variables (side, conduction_fraction, etc.)
 - `env_vars::NamedTuple`: Environmental variables (temperatures, wind, humidity, etc.)
 - `traits::NamedTuple`: Organism traits (T_core, conductivities, emissivity, etc.)
@@ -30,7 +30,7 @@ NamedTuple with:
 function simulsol(;
     geometry_pars::AbstractBody,
     insulation_pars::InsulationParameters,
-    insulation_out::InsulationOutput,
+    insulation_out::InsulationProperties,
     geom_vars::GeometryVariables,
     env_vars::NamedTuple,
     traits::NamedTuple,
@@ -223,7 +223,7 @@ end
 function solve_with_insulation!(
     geometry_pars::AbstractBody,
     ins::InsulationParameters,
-    insulation_out::InsulationOutput,
+    insulation_out::InsulationProperties,
     geom_vars::GeometryVariables,
     env_vars::NamedTuple,
     traits::NamedTuple,
@@ -366,10 +366,8 @@ function solve_with_insulation!(
             end
 
             # recompute insulation radiation properties
-            (; conductivities, conductivity_compressed) = insulation_properties(;
-                insulation=insulation_side,
-                insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
-                ventral_fraction,
+            (; conductivities, conductivity_compressed) = insulation_properties(
+                insulation_side, T_insulation * 0.7 + T_skin * 0.3, ventral_fraction
             )
             absorption_coefficient = get_side(insulation_out.absorption_coefficients, side)
             k_eff = get_side(conductivities, side)
