@@ -1,3 +1,31 @@
+"""
+    radiant_temperature(; body, insulation, insulation_pars, org_temps, ks, side, cd, longwave_depth_fraction, conduction_fraction, Q_evap, T_substrate)
+
+Calculate the radiant temperature at the insulation surface for longwave radiation exchange.
+
+Dispatches on body shape (Cylinder, Plate, Sphere, Ellipsoid) to use shape-specific
+heat conduction equations through the insulation layer.
+
+# Keywords
+- `body::AbstractBody`: Body geometry
+- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation_pars::InsulationParameters`: Insulation parameters
+- `org_temps::OrganismTemperatures`: Organism temperatures (core, skin, insulation)
+- `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
+- `side`: Body side (1 = dorsal, 2 = ventral)
+- `cd`: Substrate conductance coefficient
+- `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
+- `conduction_fraction`: Fraction of body in contact with substrate
+- `Q_evap`: Evaporative heat loss
+- `T_substrate`: Substrate temperature
+
+# Returns
+NamedTuple with:
+- `T_radiant`: Radiant temperature for longwave exchange
+- `T_ins_compressed`: Compressed insulation temperature
+- `cds::ConductanceCoeffs`: Conductance coefficients
+- `dvs::DivisorCoeffs`: Divisor coefficients for calculations
+"""
 function radiant_temperature(;
     body::AbstractBody,
     insulation::InsulationOutput,
@@ -26,7 +54,6 @@ function radiant_temperature(;
         T_substrate,
     )
 end
-
 function radiant_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
@@ -104,7 +131,6 @@ function radiant_temperature(
     dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
     return (; T_radiant, T_ins_compressed, cds, dvs)
 end
-
 function radiant_temperature(
     shape::Sphere,
     body::AbstractBody,
@@ -192,7 +218,6 @@ function radiant_temperature(
     dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
     return (; T_radiant, T_ins_compressed, cds, dvs)
 end
-
 function radiant_temperature(
     shape::Ellipsoid,
     body::AbstractBody,

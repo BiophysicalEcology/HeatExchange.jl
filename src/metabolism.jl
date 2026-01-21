@@ -23,6 +23,19 @@ The `metabolic_rate` equation reports metabolic rate as oxygen consumption rate 
     O2conversion::OxygenJoulesConversion = Typical()
 end
 
+"""
+    metabolic_rate(eq::MetabolicRateEquation, mass, T_body)
+
+Calculate metabolic rate using an empirical allometric equation.
+
+# Arguments
+- `eq::MetabolicRateEquation`: The metabolic rate model (e.g., `Kleiber()`, `McKechnieWolf()`, `AndrewsPough2()`)
+- `mass`: Body mass
+- `T_body`: Body temperature (required for `AndrewsPough2`, ignored for others)
+
+# Returns
+- `Q_metab`: Metabolic heat generation rate (W)
+"""
 function metabolic_rate(eq::AndrewsPough2, mass, T_body)
     (; M1, M2, M3, M4, O2conversion) = eq
 
@@ -40,12 +53,6 @@ end
 
 Kleiber's empirical model of basal metabolic rate for mammals.
 
-# Arguments
-- `mass`: body mass.
-
-# Outputs
-- Q_metab, metabolic rate (W)
-
 Kleiber, M. 1947. Body size and metabolic rate. Physiological Reviews 27:511–541.
 """
 struct Kleiber <: MetabolicRateEquation end
@@ -61,16 +68,10 @@ end
 """
     McKechnieWolf <: MetabolicRateEquation
 
-Kleiber's empirical model of basal metabolic rate for birds.
+McKechnie & Wolf's empirical model of basal metabolic rate for birds.
 
-# Arguments
-- `mass`: body mass.
-
-# Outputs
-- Q_metab, metabolic rate (W)
-
-McKechnie, A. E., and B. O. Wolf. 2004. The Allometry of Avian Basal Metabolic Rate: 
-    Good Predictions Need Good Data. Physiological and Biochemical Zoology: 
+McKechnie, A. E., and B. O. Wolf. 2004. The Allometry of Avian Basal Metabolic Rate:
+    Good Predictions Need Good Data. Physiological and Biochemical Zoology:
     Ecological and Evolutionary Approaches 77:502–521.
 """
 struct McKechnieWolf <: MetabolicRateEquation end
@@ -99,12 +100,40 @@ TODO - add a ref?
 """
 struct Typical <: OxygenJoulesConversion end
 
+"""
+    O2_to_Joules(conversion::OxygenJoulesConversion, V_O2_STP, rq)
+    O2_to_Joules(V_O2_STP)
+
+Convert oxygen consumption rate to metabolic heat rate.
+
+# Arguments
+- `conversion::OxygenJoulesConversion`: Conversion model (e.g., `Typical()`, `Kleiber1961()`)
+- `V_O2_STP`: Oxygen consumption rate at STP
+- `rq`: Respiratory quotient (CO₂ produced / O₂ consumed)
+
+# Returns
+- `Q_metab`: Metabolic heat rate (W)
+"""
 function O2_to_Joules(::Typical, V_O2_STP, rq)
     Q_ox = 20.1u"J/ml"
     Q_metab = V_O2_STP * Q_ox
     return (Q_metab)
 end
 
+"""
+    Joules_to_O2(conversion::OxygenJoulesConversion, Q_metab, rq)
+    Joules_to_O2(Q_metab)
+
+Convert metabolic heat rate to oxygen consumption rate.
+
+# Arguments
+- `conversion::OxygenJoulesConversion`: Conversion model (e.g., `Typical()`, `Kleiber1961()`)
+- `Q_metab`: Metabolic heat rate (W)
+- `rq`: Respiratory quotient (CO₂ produced / O₂ consumed)
+
+# Returns
+- `V_O2_STP`: Oxygen consumption rate at STP
+"""
 function Joules_to_O2(::Typical, Q_metab, rq)
     Q_ox = 20.1u"J/ml"
     V_O2_STP = Q_metab / Q_ox

@@ -1,12 +1,21 @@
 """
-    Tsurf_and_Tlung(; kw...)
-    Tsurf_and_Tlung(..)
+    Tsurf_and_Tlung(; body, k_flesh, Q_gen_spec, T_core)
 
-Computes ...
+Calculate surface and lung temperatures from core temperature and metabolic heat generation.
+
+Uses shape-specific heat conduction equations (cylinder, ellipsoid, etc.) to compute
+temperature gradients from core to surface.
 
 # Keywords
-- `x`: x
+- `body::AbstractBody`: Body geometry
+- `k_flesh`: Thermal conductivity of flesh
+- `Q_gen_spec`: Specific metabolic heat generation (per unit volume)
+- `T_core`: Core body temperature
 
+# Returns
+NamedTuple with:
+- `T_surface`: Surface temperature
+- `T_lung`: Lung temperature (intermediate between core and surface)
 """
 function Tsurf_and_Tlung(; body::AbstractBody, k_flesh, Q_gen_spec, T_core)
     return Tsurf_and_Tlung(body, k_flesh, Q_gen_spec, T_core)

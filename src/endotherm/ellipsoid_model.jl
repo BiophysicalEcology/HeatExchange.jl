@@ -84,7 +84,6 @@ function ellipsoid_endotherm(
         stress_factor,
     )
 end
-
 function ellipsoid_endotherm(
     air_temperature::Quantity,
     wind_speed::Quantity,

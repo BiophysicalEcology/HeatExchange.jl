@@ -1,3 +1,29 @@
+"""
+    mean_skin_temperature(; body, insulation, insulation_pars, ks, cds, conduction_fraction, Q_env, Q_evap_skin, T_core, T_insulation_calc, T_ins_compressed)
+
+Calculate the mean skin temperature for an endotherm given heat fluxes and body geometry.
+
+Dispatches on body shape (Cylinder, Plate, Sphere, Ellipsoid) to use shape-specific
+heat conduction equations through flesh and fat layers.
+
+# Keywords
+- `body::AbstractBody`: Body geometry
+- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation_pars::InsulationParameters`: Insulation parameters
+- `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
+- `cds::ConductanceCoeffs`: Conductance coefficients
+- `conduction_fraction`: Fraction of body in contact with substrate
+- `Q_env`: Environmental heat flux
+- `Q_evap_skin`: Evaporative heat loss from skin
+- `T_core`: Core body temperature
+- `T_insulation_calc`: Calculated insulation surface temperature
+- `T_ins_compressed`: Compressed insulation temperature
+
+# Returns
+NamedTuple with:
+- `T_skin_mean`: Mean skin temperature
+- `T_skin_calc1`: Skin temperature from core-to-skin heat flow
+"""
 function mean_skin_temperature(;
     body::AbstractBody,
     insulation::InsulationOutput,
@@ -26,7 +52,6 @@ function mean_skin_temperature(;
         T_ins_compressed,
     )
 end
-
 function mean_skin_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
@@ -69,7 +94,6 @@ function mean_skin_temperature(
     T_skin_mean = (T_skin_calc1 + T_skin_calc2) / 2
     return (; T_skin_mean, T_skin_calc1)
 end
-
 function mean_skin_temperature(
     shape::Sphere,
     body::AbstractBody,
@@ -113,7 +137,6 @@ function mean_skin_temperature(
     T_skin_mean = (T_skin_calc1 + T_skin_calc2) / 2
     return (; T_skin_mean, T_skin_calc1)
 end
-
 function mean_skin_temperature(
     shape::Ellipsoid,
     body::AbstractBody,

@@ -1,8 +1,20 @@
 # Biophysics
 
 """
-    conduction(; kw...)
-    conduction(A_conduction, L, T_surface, T_substrate, k_sub)
+    conduction(; A_conduction, L, T_surface, T_substrate, k_substrate)
+    conduction(A_conduction, L, T_surface, T_substrate, k_substrate)
+
+Calculate conductive heat transfer between organism and substrate.
+
+# Arguments / Keywords
+- `A_conduction`: Contact area with substrate
+- `L`: Conduction path length (depth into substrate)
+- `T_surface`: Organism surface temperature
+- `T_substrate`: Substrate temperature
+- `k_substrate`: Thermal conductivity of substrate
+
+# Returns
+- Heat flux from organism to substrate (W). Positive = heat loss.
 """
 function conduction(;
     A_conduction=0.0u"m^2",
@@ -45,7 +57,6 @@ function solar(
     A_conduction = A_total * conduction_fraction
     return solar(body, absorptivities, view_factors, solar_conditions, A_silhouette, A_conduction)
 end
-
 function solar(
     body::AbstractBody,
     absorptivities::Absorptivities,
@@ -154,6 +165,33 @@ function radout(
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end
 
+"""
+    convection(; body, area, T_air, T_surface, wind_speed, P_atmos, fluid, gasfrac, convection_enhancement)
+
+Calculate combined free and forced convective heat transfer for an organism.
+
+# Keywords
+- `body`: Organism body with geometry (must have `shape` and `geometry.characteristic_dimension`)
+- `area`: Surface area for convection
+- `T_air`: Air temperature
+- `T_surface`: Surface temperature
+- `wind_speed`: Wind speed
+- `P_atmos`: Atmospheric pressure
+- `fluid`: Fluid type (0 = air, 1 = water)
+- `gasfrac::GasFractions`: Gas fractions for air properties (default: `GasFractions()`)
+- `convection_enhancement`: Enhancement factor for forced convection (default: 1.0)
+
+# Returns
+NamedTuple with:
+- `Q_conv`: Total convective heat loss
+- `hc`: Combined heat transfer coefficient
+- `hd`: Combined mass transfer coefficient
+- `Sh`: Combined Sherwood number
+- `Q_free`, `Q_forc`: Free and forced convective components
+- `hc_free`, `hc_forc`: Free and forced heat transfer coefficients
+- `Sh_free`, `Sh_forc`: Free and forced Sherwood numbers
+- `hd_free`, `hd_forc`: Free and forced mass transfer coefficients
+"""
 function convection(;
     body,
     area,
@@ -236,6 +274,19 @@ function convection(;
     )
 end
 
+"""
+    nusselt_free(shape, Gr, Pr)
+
+Calculate the Nusselt number for free convection based on body shape.
+
+# Arguments
+- `shape`: Body shape (Cylinder, Plate, Sphere, Ellipsoid, or animal-specific shapes)
+- `Gr`: Grashof number (dimensionless)
+- `Pr`: Prandtl number (dimensionless)
+
+# Returns
+- `Nu_free`: Free convection Nusselt number (dimensionless)
+"""
 function nusselt_free(shape::Union{Cylinder,DesertIguana,LeopardFrog}, Gr, Pr)
     #  free convection for a cylinder
     #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
@@ -283,6 +334,18 @@ function nusselt_free(shape::Union{Sphere,Ellipsoid}, Gr, Pr)
     return Nu_free
 end
 
+"""
+    nusselt_forced(shape, Re)
+
+Calculate the Nusselt number for forced convection based on body shape.
+
+# Arguments
+- `shape`: Body shape (Cylinder, Plate, Sphere, Ellipsoid, or animal-specific shapes)
+- `Re`: Reynolds number (dimensionless)
+
+# Returns
+- `Nu`: Forced convection Nusselt number (dimensionless)
+"""
 function nusselt_forced(shape::Cylinder, Re)
     #  forced convection of a cylinder
     #  adjusting Nu - Re correlation for Re number (p. 260 McAdams, 1954)

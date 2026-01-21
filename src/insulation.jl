@@ -106,39 +106,30 @@ function insulation_thermal_conductivity(;
     # Absorption and optical parameters
     absorption_coefficient = (0.67 / π) * u"m^-2"(effective_density) * u"m"(fibre_diameter)
     optical_thickness_factor = absorption_coefficient * u"m"(insulation_depth)
+
     return (; effective_conductivity, absorption_coefficient, optical_thickness_factor)
 end
 
 """
-    insulation_properties(insulation)
+    insulation_properties(; insulation, insulation_temperature, ventral_fraction)
 
 Compute parameters for heat conduction and infrared radiation through insulation (fur or plumage).
 
-# Arguments
-`insulation`, an InsulationPars struct containing
-- `fibre_diameter_dorsal`, `fibre_diameter_ventral` : fibre diameters
-- `fibre_length_dorsal`, `fibre_length_ventral` : fibre lengths
-- `fibre_density_dorsal`, `fibre_density_ventral` : fibre densities (fibres/area)
-- `insulation_reflectance_dorsal`, `insulation_reflectance_ventral` : insulation solar reflectance
-- `insulation_depth_compressed` : Compressed insulation depth for ventral insulation
-- `ventral_fraction` : Fraction of ventral surface covered by insulation
-- `fibre_conductivity` : Thermal conductivity of fibre fibre (energy per time per length per unit temperature)
-
-- `insulation_temperature` : Temperature of insulation
-- `ventral_fraction` : Fraction of body surface that is ventral insulation
-- `insulation_depth_dorsal`, `insulation_depth_ventral` : Insulation depths (m)
+# Keywords
+- `insulation::InsulationParameters`: Insulation parameters containing fibre geometry,
+  density, reflectance, and conductivity for dorsal and ventral surfaces
+- `insulation_temperature`: Temperature of insulation (for computing air conductivity)
+- `ventral_fraction`: Fraction of body surface that is ventral
 
 # Returns
-`effective_conductivity` (avg, dorsal, ventral)  
-`absorption_coefficient` (avg, dorsal, ventral)  
-`optical_thickness_factor` (avg, dorsal, ventral)  
-`fibre_diameter` (avg, dorsal, ventral)  
-`fibre_length` (avg, dorsal, ventral)  
-`fibre_density` (avg, dorsal, ventral)  
-`insulation_depths` (avg, dorsal, ventral)  
-`insulation_reflectance` (avg, dorsal, ventral)
-`insulation_test` : Bare-skin test parameter  
-`insulation_conductivity_compressed` 
+`InsulationOutput` with arrays indexed [1]=average, [2]=dorsal, [3]=ventral:
+- `effective_conductivities`: Effective thermal conductivity
+- `absorption_coefficients`: Absorption coefficient for radiation
+- `optical_thickness_factors`: Optical thickness
+- `fibre_diameters`, `fibre_lengths`, `fibre_densities`: Fibre properties
+- `insulation_depths`, `insulation_reflectances`: Depth and reflectance
+- `insulation_test`: Bare-skin test parameter (zero if no insulation)
+- `insulation_conductivity_compressed`: Conductivity of compressed ventral insulation
 """
 function insulation_properties(; insulation, insulation_temperature, ventral_fraction)
     (;

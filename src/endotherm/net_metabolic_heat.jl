@@ -1,7 +1,23 @@
+"""
+    net_metabolic_heat(; body, ks, T_core, T_skin)
+
+Calculate net metabolic heat generation required to maintain core-to-skin temperature gradient.
+
+Uses shape-specific heat conduction equations through flesh and fat layers to compute
+the metabolic heat production needed.
+
+# Keywords
+- `body::AbstractBody`: Body geometry
+- `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
+- `T_core`: Core body temperature
+- `T_skin`: Skin temperature
+
+# Returns
+- `Q_gen_net`: Net metabolic heat generation (W)
+"""
 function net_metabolic_heat(; body::AbstractBody, ks::ThermalConductivities, T_core, T_skin)
     net_metabolic_heat(shape(body), body, ks, T_core, T_skin)
 end
-
 function net_metabolic_heat(
     shape::Union{Cylinder,Plate}, body::AbstractBody, ks::ThermalConductivities, T_core, T_skin
 )
@@ -16,7 +32,6 @@ function net_metabolic_heat(
         )
     return Q_gen_net
 end
-
 function net_metabolic_heat(
     shape::Sphere, body::AbstractBody, ks::ThermalConductivities, T_core, T_skin
 )
@@ -31,7 +46,6 @@ function net_metabolic_heat(
         )
     return Q_gen_net
 end
-
 function net_metabolic_heat(
     shape::Ellipsoid, body::AbstractBody, ks::ThermalConductivities, T_core, T_skin
 )
