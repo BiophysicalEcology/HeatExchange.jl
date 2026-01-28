@@ -55,6 +55,49 @@ struct RadiationCoeffs{T1,T2,T3,T4}
 end
 
 """
+    BodyRegionValues{T}
+
+Container for average, dorsal, and ventral surface values.
+
+# Fields
+- `average::T` — Weighted average value across body surface
+- `dorsal::T` — Dorsal (upper/back) surface value
+- `ventral::T` — Ventral (lower/belly) surface value
+"""
+struct BodyRegionValues{T}
+    average::T
+    dorsal::T
+    ventral::T
+end
+
+"""
+    FibreProperties{D,L,N,I,R}
+
+Physical properties of insulation fibres (fur/feathers) for a body region.
+
+# Fields
+- `diameter::D` — Fibre diameter
+- `length::L` — Fibre length
+- `density::N` — Fibre density (count per area)
+- `depth::I` — Insulation depth
+- `reflectance::R` — Solar reflectance (0-1)
+"""
+Base.@kwdef struct FibreProperties{D,L,N,I,R}
+    diameter::D
+    length::L
+    density::N
+    depth::I
+    reflectance::R
+end
+
+"""
+    get_side(v::BodyRegionValues, side::Symbol)
+
+Access dorsal or ventral value by side symbol (`:dorsal` or `:ventral`).
+"""
+get_side(v::BodyRegionValues, side::Symbol) = getproperty(v, side)
+
+"""
     EnvironmentTemperatures{T1,T2,T3,T4,T5,T6}
 
 Temperatures of environmental surfaces for radiation exchange.
@@ -325,35 +368,25 @@ function Absorptivities(rad::RadiationParameters, env::AbstractEnvironmentalPars
 end
 
 """
-    InsulationOutput
+    InsulationProperties{F,C,A,O,IT,CC}
 
-Output from `insulation_properties()` containing computed thermal properties of insulation layers.
-
-The arrays contain values for [average, dorsal, ventral] regions (indices 1, 2, 3).
+Computed thermal properties of insulation layers, returned by `insulation_properties()`.
 
 # Fields
-- `effective_conductivities` — Effective thermal conductivities (W/m/K) for [avg, dorsal, ventral]
-- `absorption_coefficients` — Absorption coefficients (m⁻¹) for [avg, dorsal, ventral]
-- `optical_thickness_factors` — Optical thickness factors for [avg, dorsal, ventral]
-- `fibre_diameters` — Fibre diameters (m) for [avg, dorsal, ventral]
-- `fibre_lengths` — Fibre lengths (m) for [avg, dorsal, ventral]
-- `fibre_densities` — Fibre densities (m⁻²) for [avg, dorsal, ventral]
-- `insulation_depths` — Insulation depths (m) for [avg, dorsal, ventral]
-- `insulation_reflectances` — Solar reflectances for [avg, dorsal, ventral]
-- `insulation_test` — Bare-skin test parameter (m)
-- `insulation_conductivity_compressed` — Conductivity of compressed ventral insulation (W/m/K)
+- `fibres::BodyRegionValues{<:FibreProperties}` — Fibre properties for average/dorsal/ventral.
+- `conductivities::BodyRegionValues` — Effective thermal conductivities (W/m/K).
+- `absorption_coefficients::BodyRegionValues` — Absorption coefficients (m⁻¹).
+- `optical_thickness::BodyRegionValues` — Optical thickness factors (dimensionless).
+- `insulation_test` — Bare-skin test parameter (m⁴); zero indicates no insulation.
+- `conductivity_compressed` — Conductivity of compressed ventral insulation (W/m/K).
 """
-struct InsulationOutput{EC,AC,OT,FD,FL,FR,ID,IR,IT,IC}
-    effective_conductivities::EC
-    absorption_coefficients::AC
-    optical_thickness_factors::OT
-    fibre_diameters::FD
-    fibre_lengths::FL
-    fibre_densities::FR
-    insulation_depths::ID
-    insulation_reflectances::IR
+struct InsulationProperties{F<:BodyRegionValues,C<:BodyRegionValues,A<:BodyRegionValues,O<:BodyRegionValues,IT,CC}
+    fibres::F
+    conductivities::C
+    absorption_coefficients::A
+    optical_thickness::O
     insulation_test::IT
-    insulation_conductivity_compressed::IC
+    conductivity_compressed::CC
 end
 
 """
@@ -362,7 +395,7 @@ end
 Geometric and thermal parameters for heat exchange calculations on a body side.
 
 # Fields
-- `side` — Body side index (1 = dorsal, 2 = ventral)
+- `side` — Body side (`:dorsal` or `:ventral`)
 - `substrate_conductance` — Thermal conductance to substrate (W/K), Q_cond = substrate_conductance × ΔT
 - `ventral_fraction` — Fraction of body surface that is ventral (0-1)
 - `conduction_fraction` — Fraction of surface area in contact with substrate (0-1)

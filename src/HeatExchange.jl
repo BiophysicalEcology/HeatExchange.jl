@@ -73,6 +73,9 @@ export simulsol, mean_skin_temperature, respiration
 export ConductanceCoeffs,
     DivisorCoeffs,
     RadiationCoeffs,
+    BodyRegionValues,
+    FibreProperties,
+    get_side,
     EnvironmentTemperatures,
     OrganismTemperatures,
     GasFractions,
@@ -86,7 +89,7 @@ export ConductanceCoeffs,
     MetabolicRates,
     Emissivities,
     Absorptivities,
-    InsulationOutput,
+    InsulationProperties,
     GeometryVariables
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf

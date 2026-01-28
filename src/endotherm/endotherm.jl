@@ -56,12 +56,8 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     simulsol_tolerance = opts.simulsol_tolerance
 
     insulation_temperature = T_insulation * 0.7 + T_skin * 0.3
-    insulation_out = insulation_properties(;
-        insulation=ins, insulation_temperature, ventral_fraction=rad.ventral_fraction
-    )
-    fibre_diameters = insulation_out.fibre_diameters
-    fibre_densities = insulation_out.fibre_densities
-    insulation_depths = insulation_out.insulation_depths
+    insulation_out = insulation_properties(ins, insulation_temperature, rad.ventral_fraction)
+    fibres = insulation_out.fibres
     # if no insulation, reset bare_skin_fraction if necessary
     if insulation_out.insulation_test <= 0.0u"m" && evap.bare_skin_fraction < 1.0
         evap_temp = EvaporationParameters(;
@@ -107,7 +103,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     F_ground_ref = F_ground # ground
     F_vegetation_ref = F_vegetation # vegetation
 
-    for side in 1:2
+    for (side_idx, side) in enumerate((:dorsal, :ventral))
 
         # Calculating solar intensity entering insulation. This will depend on whether we are calculating 
         # the insulation temperature for the dorsal side or the ventral side. The dorsal side will have 
@@ -116,7 +112,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         # Resetting config factors and solar depending on whether the dorsal side (side=1) or 
         # ventral side (side=2) is being estimated.
         if Q_solar > 0.0u"W"
-            if side == 1
+            if side == :dorsal
                 F_sky = F_sky_ref * 2.0 # proportion of upward view that is sky
                 F_vegetation = F_vegetation_ref * 2.0 # proportion of upward view that is vegetation (shade)
                 F_ground = 0.0
@@ -133,7 +129,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             end
         else
             Q_sol = 0.0u"W"
-            if side == 1
+            if side == :dorsal
                 F_sky = F_sky_ref * 2.0
                 F_vegetation = F_vegetation_ref * 2.0
                 F_ground = 0.0
@@ -146,35 +142,36 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             end
         end
 
-        if side == 1
+        if side == :dorsal
             ϵ_body = rad.ϵ_body_dorsal
         else
             ϵ_body = rad.ϵ_body_ventral
         end
 
         # set fur depth and conductivity
+        side_fibres = get_side(fibres, side)
         insulation = Fur(
-            insulation_depths[side + 1],
-            fibre_diameters[side + 1],
-            fibre_densities[side + 1],
+            side_fibres.depth,
+            side_fibres.diameter,
+            side_fibres.density,
         )
-        if side == 1
-            insulation_conductivity = ins.insulation_conductivity_dorsal
+        if side == :dorsal
+            insulation_conductivity = ins.conductivity_dorsal
         else
-            insulation_conductivity = ins.insulation_conductivity_ventral
+            insulation_conductivity = ins.conductivity_ventral
         end
         geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
         A_total = total_area(geometry_pars)
         r_skin = skin_radius(geometry_pars) # body radius (including fat), m
         r_insulation = r_skin + insulation.thickness # body radius including fur, m
         if geometry_pars.shape isa Cylinder || geometry_pars.shape isa Sphere
-            r_compressed = r_skin + ins.insulation_depth_compressed
+            r_compressed = r_skin + ins.depth_compressed
         else
             r_compressed = r_insulation # Note that this value is never used if conduction not being modeled, but need to have a value for the calculations
         end
 
         # Calculating the "cd" variable: Qcond = cd(Tskin-Tsub), where cd = Conduction area*ksub/subdepth
-        if side == 2 # doing ventral side, add conduction
+        if side == :ventral # doing ventral side, add conduction
             area_conduction = A_total * cond_ex.conduction_fraction * 2
             cd = (area_conduction * e_vars.k_substrate) / e_pars.conduction_depth # assume conduction happens from 2.5 cm depth
         else  # doing dorsal side, no conduction. No need to adjust areas used for convection.
@@ -219,13 +216,11 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             #ψ_body = hyd.ψ_body,
         )
 
-        insulation_out = insulation_properties(;
-            insulation=ins,
-            insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
-            rad.ventral_fraction,
+        insulation_out = insulation_properties(
+            ins, T_insulation * 0.7 + T_skin * 0.3, rad.ventral_fraction
         )
         # call simulsol
-        simulsol_out[side,] = simulsol(;
+        simulsol_out[side_idx] = simulsol(;
             geometry_pars,
             insulation_pars=ins,
             insulation_out,
@@ -237,9 +232,9 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             T_insulation,
         )
 
-        T_skin = simulsol_out[side,].T_skin # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
-        T_insulation = simulsol_out[side,].T_insulation # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
-        simulsol_tolerance = simulsol_out[side,].tolerance # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
+        T_skin = simulsol_out[side_idx].T_skin # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
+        T_insulation = simulsol_out[side_idx].T_insulation # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
+        simulsol_tolerance = simulsol_out[side_idx].tolerance # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
     end
 
     T_skin_max = max(simulsol_out[1].T_skin, simulsol_out[2].T_skin)
@@ -380,7 +375,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     end
 
     # geometric outputs
-    insulation = Fur(insulation_depths[1], fibre_diameters[1], fibre_densities[1])
+    insulation = Fur(fibres.average.depth, fibres.average.diameter, fibres.average.density)
     geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
 
     fat_mass = geometry_pars.shape.mass * fat.fraction
@@ -426,13 +421,11 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     Q_convection = Q_convection_dorsal * dmult + Q_convection_ventral * vmult
     Q_conduction = Q_conduction_dorsal * dmult + Q_conduction_ventral * vmult
 
-    insulation_out = insulation_properties(;
-        insulation=ins,
-        insulation_temperature=T_insulation * 0.7 + T_skin * 0.3,
-        rad.ventral_fraction,
+    insulation_out = insulation_properties(
+        ins, T_insulation * 0.7 + T_skin * 0.3, rad.ventral_fraction
     )
-    k_insulation_effective = insulation_out.effective_conductivities[1]
-    k_insulation_compressed = insulation_out.insulation_conductivity_compressed
+    k_insulation_effective = insulation_out.conductivities.average
+    k_insulation_compressed = insulation_out.conductivity_compressed
     T_skin = T_skin_dorsal * dmult + T_skin_ventral * vmult
     T_insulation = T_insulation_dorsal * dmult + T_insulation_ventral * vmult
     if o.body.shape isa Sphere
@@ -457,8 +450,8 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         k_insulation_dorsal,
         k_insulation_ventral,
         k_insulation_compressed,
-        ins.insulation_depth_dorsal,
-        ins.insulation_depth_ventral,
+        insulation_depth_dorsal=ins.dorsal.depth,
+        insulation_depth_ventral=ins.ventral.depth,
         metab.q10,
     )
 

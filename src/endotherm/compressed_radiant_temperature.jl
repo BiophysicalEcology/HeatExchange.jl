@@ -8,10 +8,10 @@ at the compressed insulation-substrate interface.
 
 # Keywords
 - `body::AbstractBody`: Body geometry
-- `insulation::InsulationOutput`: Computed insulation properties
+- `insulation::InsulationProperties`: Computed insulation properties
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `ks::ThermalConductivities`: Thermal conductivities (flesh, fat)
-- `side`: Body side (1 = dorsal, 2 = ventral)
+- `side`: Body side (`:dorsal` or `:ventral`)
 - `cd`: Substrate conductance coefficient
 - `T_core`: Core body temperature
 - `T_substrate`: Substrate temperature
@@ -23,7 +23,7 @@ NamedTuple with:
 """
 function compressed_radiant_temperature(;
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,
@@ -39,7 +39,7 @@ end
 function compressed_radiant_temperature(
     shape::Union{Cylinder,Plate},
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,
@@ -50,8 +50,8 @@ function compressed_radiant_temperature(
     (; k_flesh, k_fat) = ks
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
-    r_compressed = r_skin + insulation.insulation_depth_compressed
-    k_compressed = insulation.insulation_conductivity_compressed
+    r_compressed = r_skin + insulation_pars.depth_compressed
+    k_compressed = insulation.conductivity_compressed
 
     cf1 = (2 * π * k_compressed * length) / (log(r_compressed / r_skin))
     dv5 =
@@ -67,7 +67,7 @@ end
 function compressed_radiant_temperature(
     shape::Sphere,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,
@@ -78,8 +78,8 @@ function compressed_radiant_temperature(
     (; k_flesh, k_fat) = ks
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
-    r_compressed = r_skin + insulation.insulation_depth_compressed
-    k_compressed = insulation.insulation_conductivity_compressed
+    r_compressed = r_skin + insulation_pars.depth_compressed
+    k_compressed = insulation.conductivity_compressed
 
     cf1 = (4 * π * k_compressed * r_compressed) / (r_compressed - r_skin)
     dv5 =
@@ -96,7 +96,7 @@ end
 function compressed_radiant_temperature(
     shape::Ellipsoid,
     body::AbstractBody,
-    insulation::InsulationOutput,
+    insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     ks::ThermalConductivities,
     side,
@@ -106,12 +106,12 @@ function compressed_radiant_temperature(
 )
     (; k_flesh, k_fat) = ks
     volume = flesh_volume(body)
-    insulation_depth = if side == 1
-        insulation_pars.insulation_depth_dorsal
+    insulation_depth = if side == :dorsal
+        insulation_pars.dorsal.depth
     else
-        insulation_pars.insulation_depth_ventral
+        insulation_pars.ventral.depth
     end
-    k_compressed = insulation.insulation_conductivity_compressed
+    k_compressed = insulation.conductivity_compressed
 
     a_semi_major = body.geometry.length.a_semi_major
     b_semi_minor = body.geometry.length.b_semi_minor
@@ -132,7 +132,7 @@ function compressed_radiant_temperature(
 
     bs = b_semi_minor
     bl = b_semi_minor + insulation_depth
-    bl_compressed = b_semi_minor + insulation_pars.insulation_depth_compressed
+    bl_compressed = b_semi_minor + insulation_pars.depth_compressed
     bg = min(b_semi_minor, b_semi_minor_flesh)
 
     cf1 =
