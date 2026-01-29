@@ -1,5 +1,5 @@
 """
-    simulsol(; geometry_pars, insulation_pars, insulation_out, geom_vars, env_vars, traits, simulsol_tolerance, T_skin, T_insulation)
+    simulsol(; body, insulation_pars, insulation_out, geom_vars, env_vars, traits, simulsol_tolerance, T_skin, T_insulation)
 
 Simultaneously solve for skin and insulation surface temperatures.
 
@@ -7,7 +7,7 @@ Iteratively finds temperatures that satisfy heat balance equations for an endoth
 accounting for convection, radiation, evaporation, and conduction through insulation.
 
 # Keywords
-- `geometry_pars::AbstractBody`: Body geometry
+- `body::AbstractBody`: Body geometry
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `insulation_out::InsulationProperties`: Computed insulation properties
 - `geom_vars::GeometryVariables`: Geometric variables (side, conduction_fraction, etc.)
@@ -28,7 +28,7 @@ NamedTuple with:
 - `ntry`: Number of iterations
 """
 function simulsol(;
-    geometry_pars::AbstractBody,
+    body::AbstractBody,
     insulation_pars::InsulationParameters,
     insulation_out::InsulationProperties,
     geom_vars::GeometryVariables,
@@ -43,7 +43,7 @@ function simulsol(;
 
     if insulation_test > 0.0u"m"
         return solve_with_insulation!(
-            geometry_pars,
+            body,
             insulation_pars,
             insulation_out,
             geom_vars,
@@ -55,7 +55,7 @@ function simulsol(;
         )
     else
         return solve_without_insulation!(
-            geometry_pars,
+            body,
             geom_vars,
             env_vars,
             traits,
@@ -67,34 +67,37 @@ function simulsol(;
 end
 
 function solve_without_insulation!(
-    geometry_pars::AbstractBody, geom_vars::GeometryVariables, env_vars::NamedTuple, traits::NamedTuple, simulsol_tolerance, T_skin, T_insulation
+    body::AbstractBody, geom_vars::GeometryVariables, env_vars::NamedTuple, traits::NamedTuple, simulsol_tolerance, T_skin, T_insulation
 )
-    #(; conduction_fraction) = geom_vars
     (;
+        temperature,
         view_factors,
         atmos,
         fluid,
-        T_air,
-        T_bush,
-        T_vegetation,
-        T_ground,
-        T_sky,
         Q_solar,
         gasfrac,
         convection_enhancement,
     ) = env_vars
-    (; F_sky, F_ground, F_bush, F_vegetation) = view_factors
+    T_air = temperature.air
+    T_sky = temperature.sky
+    T_ground = temperature.ground
+    T_vegetation = temperature.vegetation
+    T_bush = temperature.bush
+    F_sky = view_factors.sky
+    F_ground = view_factors.ground
+    F_bush = view_factors.bush
+    F_vegetation = view_factors.vegetation
     (; rh, wind_speed, P_atmos) = atmos
     (; T_core, k_flesh, ϵ_body, skin_wetness, bare_skin_fraction, eye_fraction) = traits
     tolerance = simulsol_tolerance
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
     ntry = 0
-    volume = flesh_volume(geometry_pars)
-    area_total = total_area(geometry_pars)
+    volume = flesh_volume(body)
+    area_total = total_area(body)
     area_evaporation = area_total
     area_convection = area_total #* (1 - conduction_fraction)
-    r_skin = skin_radius(geometry_pars)
+    r_skin = skin_radius(body)
     Q_evap_insulation = 0.0u"W"
     Q_conduction = 0.0u"W"
 
@@ -104,7 +107,7 @@ function solve_without_insulation!(
 
             # Evaporative heat loss
             (; hc, hd, hd_free) = convection(;
-                body=geometry_pars,
+                body=body,
                 area=area_convection,
                 T_air,
                 T_surface=T_skin,
@@ -221,7 +224,7 @@ function solve_without_insulation!(
 end
 
 function solve_with_insulation!(
-    geometry_pars::AbstractBody,
+    body::AbstractBody,
     ins::InsulationParameters,
     insulation_out::InsulationProperties,
     geom_vars::GeometryVariables,
@@ -234,20 +237,24 @@ function solve_with_insulation!(
     (; side, substrate_conductance, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geom_vars
     cd = substrate_conductance  # short name for math
     (;
+        temperature,
         view_factors,
         atmos,
         fluid,
-        T_air,
-        T_substrate,
-        T_bush,
-        T_vegetation,
-        T_ground,
-        T_sky,
         Q_solar,
         gasfrac,
         convection_enhancement,
     ) = env_vars
-    (; F_sky, F_ground, F_bush, F_vegetation) = view_factors
+    T_air = temperature.air
+    T_sky = temperature.sky
+    T_ground = temperature.ground
+    T_vegetation = temperature.vegetation
+    T_bush = temperature.bush
+    T_substrate = temperature.substrate
+    F_sky = view_factors.sky
+    F_ground = view_factors.ground
+    F_bush = view_factors.bush
+    F_vegetation = view_factors.vegetation
     (; rh, wind_speed, P_atmos) = atmos
     (;
         T_core,
@@ -258,15 +265,14 @@ function solve_with_insulation!(
         insulation_wetness,
         bare_skin_fraction,
         eye_fraction,
-        insulation_conductivity,
     ) = traits
 
     tolerance = simulsol_tolerance
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
-    area_evaporation = evaporation_area(geometry_pars)
-    area_total = total_area(geometry_pars)
+    area_evaporation = evaporation_area(body)
+    area_total = total_area(body)
     area_convection = area_total * (1 - conduction_fraction)
     insulation_test = insulation_out.insulation_test
 
@@ -282,7 +288,7 @@ function solve_with_insulation!(
             # Evaporative heat loss
             # first from the skin
             (; hc, hd, hd_free) = convection(;
-                body=geometry_pars,
+                body=body,
                 area=area_convection,
                 T_air,
                 T_surface=T_insulation,
@@ -328,68 +334,36 @@ function solve_with_insulation!(
             else
                 Q_evap_insulation = 0.0u"W"
             end
-            # Create side-specific InsulationParameters using the appropriate fibre properties
-            if side == :dorsal
-                side_fibres = FibreProperties(;
-                    diameter=ins.dorsal.diameter,
-                    length=ins.dorsal.length,
-                    density=ins.dorsal.density,
-                    depth=insulation_out.fibres.dorsal.depth,
-                    reflectance=ins.dorsal.reflectance,
-                )
-                insulation_side = InsulationParameters(;
-                    dorsal=side_fibres,
-                    ventral=side_fibres,
-                    conductivity_dorsal=ins.conductivity_dorsal,
-                    conductivity_ventral=ins.conductivity_dorsal,
-                    depth_compressed=insulation_out.fibres.dorsal.depth,
-                    fibre_conductivity=ins.fibre_conductivity,
-                    longwave_depth_fraction=ins.longwave_depth_fraction,
-                )
-            else
-                side_fibres = FibreProperties(;
-                    diameter=ins.ventral.diameter,
-                    length=ins.ventral.length,
-                    density=ins.ventral.density,
-                    depth=insulation_out.fibres.ventral.depth,
-                    reflectance=ins.ventral.reflectance,
-                )
-                insulation_side = InsulationParameters(;
-                    dorsal=side_fibres,
-                    ventral=side_fibres,
-                    conductivity_dorsal=ins.conductivity_ventral,
-                    conductivity_ventral=ins.conductivity_ventral,
-                    depth_compressed=insulation_out.fibres.ventral.depth, # TODO this should be ins.depth_compressed here and in Fortran
-                    fibre_conductivity=ins.fibre_conductivity,
-                    longwave_depth_fraction=ins.longwave_depth_fraction,
-                )
-            end
+            # Recompute insulation thermal properties for current temperatures
+            insulation_temp = T_insulation * 0.7 + T_skin * 0.3
+            air_k = dry_air_properties(insulation_temp).thermal_conductivity
+            side_depth = getproperty(insulation_out.fibres, side).depth
+            side_fibres = setproperties(getproperty(ins, side); depth=side_depth)
+            side_thermal = insulation_thermal_conductivity(side_fibres, air_k)
 
-            # recompute insulation radiation properties
-            (; conductivities, conductivity_compressed) = insulation_properties(
-                insulation_side, T_insulation * 0.7 + T_skin * 0.3, ventral_fraction
-            )
-            absorption_coefficient = get_side(insulation_out.absorption_coefficients, side)
-            k_eff = get_side(conductivities, side)
+            # Update conductivities for the current side
+            conductivities = if side == :dorsal
+                setproperties(insulation_out.conductivities; dorsal=side_thermal.effective_conductivity)
+            else
+                setproperties(insulation_out.conductivities; ventral=side_thermal.effective_conductivity)
+            end
+            absorption_coefficient = getproperty(insulation_out.absorption_coefficients, side)
+            k_eff = getproperty(conductivities, side)
             # update thermally sensitive insulation parameters for current skin/insulation temperature
             insulation_out = setproperties(insulation_out;
-                conductivity_compressed,
+                conductivity_compressed=side_thermal.effective_conductivity,
                 conductivities,
             )
             # Effective insulation conductivity
-            if !isnothing(insulation_conductivity)
-                k_insulation = insulation_conductivity
-            else
-                T_rad_approx =
-                    T_skin * (1 - longwave_depth_fraction) +
-                    T_insulation * longwave_depth_fraction
-                k_rad = (16 * σ * T_rad_approx^3) / (3 * absorption_coefficient)
-                k_insulation = k_eff + k_rad
-            end
+            T_rad_approx =
+                T_skin * (1 - longwave_depth_fraction) +
+                T_insulation * longwave_depth_fraction
+            k_rad = (16 * σ * T_rad_approx^3) / (3 * absorption_coefficient)
+            k_insulation = k_eff + k_rad
             ks = ThermalConductivities(k_flesh, k_fat, k_insulation)
             org_temps = OrganismTemperatures(T_core, T_skin, T_insulation)
             (; T_radiant, T_ins_compressed, cds, dvs) = radiant_temperature(;
-                body=geometry_pars,
+                body=body,
                 insulation=insulation_out,
                 insulation_pars=ins,
                 org_temps,
@@ -423,7 +397,7 @@ function solve_with_insulation!(
                 # The term Q_evap_insulation is included for heat lost due to evaporation from
                 # the insulation surface
                 (; T_insulation_calc, T_radiant2) = insulation_radiant_temperature(;
-                    body=geometry_pars,
+                    body=body,
                     insulation=insulation_out,
                     insulation_pars=ins,
                     env_temps,
@@ -452,7 +426,7 @@ function solve_with_insulation!(
                 Q_conduction = u"W"(cd * (T_ins_compressed - T_substrate))
             else
                 (; T_ins_compressed) = compressed_radiant_temperature(;
-                    body=geometry_pars,
+                    body=body,
                     insulation=insulation_out,
                     insulation_pars=ins,
                     ks,
@@ -474,7 +448,7 @@ function solve_with_insulation!(
             end
             Q_env = Q_longwave + Q_convection + Q_conduction + Q_evap_insulation - Q_solar
             T_skin_mean, T_skin_calc1 = mean_skin_temperature(;
-                body=geometry_pars,
+                body=body,
                 insulation=insulation_out,
                 insulation_pars=ins,
                 ks,
@@ -509,7 +483,7 @@ function solve_with_insulation!(
             if ΔT_insulation < tolerance
                 # Next check T_skin convergence
                 if ΔT_skin < tolerance
-                    Q_gen_net = net_metabolic_heat(; body=geometry_pars, ks, T_core, T_skin)
+                    Q_gen_net = net_metabolic_heat(; body=body, ks, T_core, T_skin)
                     fluxes = setproperties(fluxes; Q_gen_net)
                     return (;
                         T_insulation,
@@ -526,7 +500,7 @@ function solve_with_insulation!(
                         T_skin = T_skin_calc1
                         continue
                     else
-                        Q_gen_net = net_metabolic_heat(; body=geometry_pars, ks, T_core, T_skin)
+                        Q_gen_net = net_metabolic_heat(; body=body, ks, T_core, T_skin)
                         fluxes = setproperties(fluxes; Q_gen_net)
                         return (;
                             T_insulation,

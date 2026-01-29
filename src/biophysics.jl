@@ -67,7 +67,7 @@ function solar(
 )
     (; body_dorsal, body_ventral, ground) = absorptivities
     α_d, α_v, α_g = body_dorsal, body_ventral, ground
-    (; F_sky, F_ground) = view_factors
+    F = view_factors
     (; zenith_angle, global_radiation, diffuse_fraction, shade) = solar_conditions
 
     A_total = total_area(body)
@@ -77,10 +77,10 @@ function solar(
     beam_radiation =
         zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
     Q_direct = α_d * A_silhouette * beam_radiation * (1 - shade)
-    Q_solar_sky = α_d * F_sky * A_total * diffuse_radiation * (1 - shade)
+    Q_solar_sky = α_d * F.sky * A_total * diffuse_radiation * (1 - shade)
     Q_solar_substrate =
         α_v *
-        F_ground *
+        F.ground *
         (A_total - A_conduction) *
         (1 - α_g) *
         global_radiation *
@@ -112,17 +112,17 @@ function radin(
     env_temps::EnvironmentTemperatures;
     conduction_fraction=0.0,
 )
-    (; F_sky, F_ground) = view_factors
+    F = view_factors
     (; body_dorsal, body_ventral, ground, sky) = emissivities
     ϵ_d, ϵ_v, ϵ_g, ϵ_s = body_dorsal, body_ventral, ground, sky
-    (; T_sky, T_ground) = env_temps
+    T = env_temps
 
     A_total = total_area(body)
     A_conduction = A_total * conduction_fraction
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    Q_ir_sky = ϵ_d * F_sky * A_total * ϵ_s * σ * T_sky^4
-    Q_ir_sub = ϵ_v * F_ground * (A_total - A_conduction) * ϵ_g * σ * T_ground^4
+    Q_ir_sky = ϵ_d * F.sky * A_total * ϵ_s * σ * T.sky^4
+    Q_ir_sub = ϵ_v * F.ground * (A_total - A_conduction) * ϵ_g * σ * T.ground^4
     Q_ir_in = Q_ir_sky + Q_ir_sub
     return (; Q_ir_in, Q_ir_sky, Q_ir_sub)
 end
@@ -151,7 +151,7 @@ function radout(
     T_dorsal,
     T_ventral,
 )
-    (; F_sky, F_ground) = view_factors
+    F = view_factors
     (; body_dorsal, body_ventral) = emissivities
     ϵ_d, ϵ_v = body_dorsal, body_ventral
 
@@ -159,8 +159,8 @@ function radout(
     A_conduction = A_total * conduction_fraction
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    Q_ir_to_sky = A_total * F_sky * ϵ_d * σ * T_dorsal^4
-    Q_ir_to_sub = (A_total - A_conduction) * F_ground * ϵ_v * σ * T_ventral^4
+    Q_ir_to_sky = A_total * F.sky * ϵ_d * σ * T_dorsal^4
+    Q_ir_to_sub = (A_total - A_conduction) * F.ground * ϵ_v * σ * T_ventral^4
     Q_ir_out = Q_ir_to_sky + Q_ir_to_sub
     return (; Q_ir_out, Q_ir_to_sky, Q_ir_to_sub)
 end

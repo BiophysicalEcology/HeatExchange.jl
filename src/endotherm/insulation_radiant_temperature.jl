@@ -94,7 +94,7 @@ function insulation_radiant_temperature(
     T_core,
     T_ins_compressed,
 )
-    (; T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate) = env_temps
+    T = env_temps
     (; cd1, cd2, cd3) = cds
     (; dv1, dv2, dv3, dv4) = dvs
     (; Q_rad1, Q_rad2, Q_rad3, Q_rad4) = Q_rads
@@ -117,12 +117,12 @@ function insulation_radiant_temperature(
 
     if longwave_depth_fraction < 1
         T_ins1 =
-            Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground -
+            Q_rad1 * T.sky + Q_rad2 * T.bush + Q_rad3 * T.vegetation + Q_rad4 * T.ground -
             (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) *
             ((dv3 / dv4) + ((T_ins_compressed * cd2) / dv4))
         T_ins2 = ((2 * π * LEN) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins3 =
-            hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate -
+            hc * area_convection * T.air - cd * T_ins_compressed + cd * T.substrate -
             Q_evap_insulation + Q_solar
         T_ins4 =
             (2 * π * length * cd3) / dv1 +
@@ -146,10 +146,10 @@ function insulation_radiant_temperature(
         )
     else
         T_ins1 =
-            Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
+            Q_rad1 * T.sky + Q_rad2 * T.bush + Q_rad3 * T.vegetation + Q_rad4 * T.ground
         T_ins2 = ((2 * π * length) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins3 =
-            hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate -
+            hc * area_convection * T.air - cd * T_ins_compressed + cd * T.substrate -
             Q_evap_insulation + Q_solar
         T_ins4 =
             (2 * π * length * cd3) / dv1 +
@@ -182,7 +182,7 @@ function insulation_radiant_temperature(
     T_core,
     T_ins_compressed,
 )
-    (; T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate) = env_temps
+    T = env_temps
     (; cd1, cd2, cd3) = cds
     (; dv1, dv2, dv3, dv4) = dvs
     (; Q_rad1, Q_rad2, Q_rad3, Q_rad4) = Q_rads
@@ -205,11 +205,11 @@ function insulation_radiant_temperature(
     if longwave_depth_fraction < 1
         T_ins1 = ((4 * π * r_skin) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins2 =
-            Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground -
+            Q_rad1 * T.sky + Q_rad2 * T.bush + Q_rad3 * T.vegetation + Q_rad4 * T.ground -
             (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) *
             ((dv3 / dv4) + ((T_ins_compressed * cd2) / dv4))
         T_ins3 =
-            hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate -
+            hc * area_convection * T.air - cd * T_ins_compressed + cd * T.substrate -
             Q_evap_insulation + Q_solar
         T_ins4 =
             (4 * π * r_skin * cd3) / dv1 +
@@ -234,9 +234,9 @@ function insulation_radiant_temperature(
     else
         T_ins1 = ((4 * π * r_skin) / dv1) * (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins2 =
-            Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
+            Q_rad1 * T.sky + Q_rad2 * T.bush + Q_rad3 * T.vegetation + Q_rad4 * T.ground
         T_ins3 =
-            hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate -
+            hc * area_convection * T.air - cd * T_ins_compressed + cd * T.substrate -
             Q_evap_insulation + Q_solar
         T_ins4 =
             (4 * π * r_skin * cd3) / dv1 +
@@ -269,7 +269,7 @@ function insulation_radiant_temperature(
     T_core,
     T_ins_compressed,
 )
-    (; T_air, T_sky, T_ground, T_vegetation, T_bush, T_substrate) = env_temps
+    T = env_temps
     (; cd1, cd2, cd3) = cds
     (; dv1, dv2, dv3, dv4) = dvs
     (; Q_rad1, Q_rad2, Q_rad3, Q_rad4) = Q_rads
@@ -305,14 +305,14 @@ function insulation_radiant_temperature(
 
     if longwave_depth_fraction < 1
         T_ins1 =
-            Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground -
+            Q_rad1 * T.sky + Q_rad2 * T.bush + Q_rad3 * T.vegetation + Q_rad4 * T.ground -
             (Q_rad1 + Q_rad2 + Q_rad3 + Q_rad4) *
             ((dv3 / dv4) + ((T_ins_compressed * cd2) / dv4))
         T_ins2 =
             ((3 * volume * bs) / ((((3 * ssqg)^0.5)^3) * dv1)) *
             (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins3 =
-            hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate -
+            hc * area_convection * T.air - cd * T_ins_compressed + cd * T.substrate -
             Q_evap_insulation + Q_solar
         T_ins4 =
             (3 * volume * bs * cd3) / ((((3 * ssqg)^0.5)^3) * dv1) +
@@ -333,9 +333,9 @@ function insulation_radiant_temperature(
             ((3 * volume * bs) / ((((3 * ssqg)^0.5)^3) * dv1)) *
             (T_core * cd1 - dv2 - T_ins_compressed * cd2)
         T_ins2 =
-            Q_rad1 * T_sky + Q_rad2 * T_bush + Q_rad3 * T_vegetation + Q_rad4 * T_ground
+            Q_rad1 * T.sky + Q_rad2 * T.bush + Q_rad3 * T.vegetation + Q_rad4 * T.ground
         T_ins3 =
-            hc * area_convection * T_air - cd * T_ins_compressed + cd * T_substrate -
+            hc * area_convection * T.air - cd * T_ins_compressed + cd * T.substrate -
             Q_evap_insulation + Q_solar
         T_ins4 =
             (3 * volume * bs * cd3) / ((((3 * ssqg)^0.5)^3) * dv1) +

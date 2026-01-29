@@ -148,19 +148,17 @@ insulative pelage layers on an animal.
 # Parameters
 - `dorsal::FibreProperties` — Fibre properties for dorsal (back) surface
 - `ventral::FibreProperties` — Fibre properties for ventral (belly) surface
-- `conductivity_dorsal` — User-specified dorsal conductivity (W/m/K), or `nothing` to compute
-- `conductivity_ventral` — User-specified ventral conductivity (W/m/K), or `nothing` to compute
 - `depth_compressed` — Depth of compressed insulation during ground contact (mm)
-- `fibre_conductivity` — Thermal conductivity of keratin fibres (W/m/K)
 - `longwave_depth_fraction` — Fraction of insulation depth for longwave exchange (0-1)
 """
-Base.@kwdef struct InsulationParameters{D,V,CD,CV,DC,FC,LDF} <: AbstractMorphologyParameters
+Base.@kwdef struct InsulationParameters{D,V,DC,LDF} <: AbstractMorphologyParameters
     dorsal::D = FibreProperties(;
         diameter=Param(30.0u"μm"),
         length=Param(23.9u"mm"),
         density=Param(3000.0u"cm^-2"),
         depth=Param(2.0u"mm"),
         reflectance=Param(0.301, bounds=(0.0, 1.0)),
+        conductivity=Param(0.209u"W/m/K"),
     )
     ventral::V = FibreProperties(;
         diameter=Param(30.0u"μm"),
@@ -168,11 +166,9 @@ Base.@kwdef struct InsulationParameters{D,V,CD,CV,DC,FC,LDF} <: AbstractMorpholo
         density=Param(3000.0u"cm^-2"),
         depth=Param(2.0u"mm"),
         reflectance=Param(0.301, bounds=(0.0, 1.0)),
+        conductivity=Param(0.209u"W/m/K"),
     )
-    conductivity_dorsal::CD = nothing
-    conductivity_ventral::CV = nothing
     depth_compressed::DC = Param(2.0u"mm")
-    fibre_conductivity::FC = Param(0.209u"W/m/K")
     longwave_depth_fraction::LDF = Param(1, bounds=(0.0, 1.0))
 end
 
