@@ -212,11 +212,6 @@ for shape_number in 1:4
             model=Kleiber(),
         )
 
-        if endo_input.FURTHRMK == 0.0
-            insulation_conductivity = nothing
-        else
-            insulation_conductivity = (endo_input.FURTHRMK)u"W/m/K"
-        end
         insulation_pars = InsulationParameters(;
             dorsal=FibreProperties(;
                 diameter=(endo_input.DHAIRD)u"m",
@@ -224,6 +219,7 @@ for shape_number in 1:4
                 density=(endo_input.RHOD)u"1/m^2",
                 depth=(endo_input.ZFURD)u"m",
                 reflectance=endo_input.REFLD,
+                conductivity=(endo_input.KHAIR)u"W/m/K",
             ),
             ventral=FibreProperties(;
                 diameter=(endo_input.DHAIRV)u"m",
@@ -231,11 +227,9 @@ for shape_number in 1:4
                 density=(endo_input.RHOV)u"1/m^2",
                 depth=(endo_input.ZFURV)u"m",
                 reflectance=endo_input.REFLV,
+                conductivity=(endo_input.KHAIR)u"W/m/K",
             ),
-            conductivity_dorsal=insulation_conductivity,
-            conductivity_ventral=insulation_conductivity,
             depth_compressed=(endo_input.ZFURCOMP)u"m",
-            fibre_conductivity=(endo_input.KHAIR)u"W/m/K",
             longwave_depth_fraction=endo_input.XR,
         )
 
@@ -299,12 +293,10 @@ for shape_number in 1:4
                 @test treg_output_vec.K_FUR_V ≈
                     ustrip(u"W/m/K", thermoregulation.k_insulation_ventral) rtol = rtol
             end
-            if isnothing(insulation_conductivity)
-                @test treg_output_vec.K_FUR_EFF ≈
-                    ustrip(u"W/m/K", thermoregulation.k_insulation_effective) rtol = rtol
-                @test treg_output_vec.K_COMPFUR ≈
-                    ustrip(u"W/m/K", thermoregulation.k_insulation_compressed) rtol = rtol
-            end
+            @test treg_output_vec.K_FUR_EFF ≈
+                ustrip(u"W/m/K", thermoregulation.k_insulation_effective) rtol = rtol
+            @test treg_output_vec.K_COMPFUR ≈
+                ustrip(u"W/m/K", thermoregulation.k_insulation_compressed) rtol = rtol
         end
 
         fat = morphology.fat < 1.0e-10u"m" ? 0.0u"m" : morphology.fat

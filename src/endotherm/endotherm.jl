@@ -149,17 +149,12 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         end
 
         # set fur depth and conductivity
-        side_fibres = get_side(fibres, side)
+        side_fibres = getproperty(fibres, side)
         insulation = Fur(
             side_fibres.depth,
             side_fibres.diameter,
             side_fibres.density,
         )
-        if side == :dorsal
-            insulation_conductivity = ins.conductivity_dorsal
-        else
-            insulation_conductivity = ins.conductivity_ventral
-        end
         geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
         A_total = total_area(geometry_pars)
         r_skin = skin_radius(geometry_pars) # body radius (including fat), m
@@ -189,16 +184,14 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         )
         view_factors = ViewFactors(F_sky, F_ground, F_bush, F_vegetation)
         atmos = AtmosphericConditions(e_vars)
+        temperature = EnvironmentTemperatures(
+            e_vars.T_air, e_vars.T_sky, e_vars.T_ground, T_vegetation, e_vars.T_bush, e_vars.T_substrate
+        )
         env_vars = (;
+            temperature,
             view_factors,
             atmos,
             fluid=e_pars.fluid,
-            T_air=e_vars.T_air,
-            T_ground=e_vars.T_ground,
-            T_bush=e_vars.T_bush,
-            T_vegetation,
-            T_sky=e_vars.T_sky,
-            T_substrate=e_vars.T_substrate,
             Q_solar=Q_sol,
             gasfrac=e_pars.gasfrac,
             convection_enhancement=e_pars.convection_enhancement,
@@ -212,8 +205,6 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
             insulation_wetness=evap.insulation_wetness,
             bare_skin_fraction=evap.bare_skin_fraction,
             eye_fraction=evap.eye_fraction,
-            insulation_conductivity,
-            #ψ_body = hyd.ψ_body,
         )
 
         insulation_out = insulation_properties(
@@ -221,7 +212,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         )
         # call simulsol
         simulsol_out[side_idx] = simulsol(;
-            geometry_pars,
+            body=geometry_pars,
             insulation_pars=ins,
             insulation_out,
             geom_vars,

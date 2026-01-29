@@ -1,7 +1,7 @@
 module HeatExchange
 
 using BiophysicalGeometry
-using ConstructionBase: setproperties
+using ConstructionBase: getproperties, setproperties
 using FluidProperties
 using ModelParameters
 using Roots
@@ -62,7 +62,6 @@ export radiant_temperature, insulation_radiant_temperature, compressed_radiant_t
 
 export solve_metabolic_rate,
     ellipsoid_endotherm,
-    update_T_insulation!,
     solve_with_insulation!,
     solve_without_insulation!
 
@@ -75,7 +74,6 @@ export ConductanceCoeffs,
     RadiationCoeffs,
     BodyRegionValues,
     FibreProperties,
-    get_side,
     EnvironmentTemperatures,
     OrganismTemperatures,
     GasFractions,
@@ -101,6 +99,7 @@ include("traits.jl")
 include("environment.jl")
 
 include("endotherm/types.jl")
+include("endotherm/utils.jl")
 
 include("biophysics.jl")
 include("metabolism.jl")

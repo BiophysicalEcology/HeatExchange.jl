@@ -6,6 +6,7 @@ insulation = InsulationParameters(;
         density=Param(3000u"cm^-2"), # hair density, dorsal (1/m2)
         depth=Param(9.0u"mm"), # fur depth, dorsal (m)
         reflectance=Param(0.301), # fur reflectivity dorsal (fractional, 0-1)
+        conductivity=Param(0.209u"W/m/K"), # hair thermal conductivity (W/m/K)
     ),
     ventral=FibreProperties(;
         diameter=Param(30.0u"μm"), # hair diameter, ventral (m)
@@ -13,9 +14,9 @@ insulation = InsulationParameters(;
         density=Param(3000u"cm^-2"), # hair density, ventral (1/m2)
         depth=(9.0u"mm"), # fur depth, ventral (m)
         reflectance=Param(0.301), # fur reflectivity ventral (fractional, 0-1)
+        conductivity=Param(0.209u"W/m/K"), # hair thermal conductivity (W/m/K)
     ),
     depth_compressed=Param(9.0u"mm"), # depth of compressed fur (for conduction) (m)
-    fibre_conductivity=Param(0.209u"W/m/K"), # hair thermal conductivity (W/m°C)
     longwave_depth_fraction=Param(1.0),
 )
 
