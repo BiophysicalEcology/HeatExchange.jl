@@ -25,8 +25,7 @@ function net_metabolic_heat(
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
-    Q_gen_net =
-        (T_core - T_skin) / (
+    Q_gen_net = (T_core - T_skin) / (
             (r_flesh ^ 2 / (4 * k_flesh * volume)) +
             ((r_flesh^2 / (2 * k_fat * volume)) * log(r_skin / r_flesh))
         )
@@ -39,8 +38,7 @@ function net_metabolic_heat(
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
-    Q_gen_net =
-        (T_core - T_skin) / (
+    Q_gen_net = (T_core - T_skin) / (
             (r_flesh ^ 2 / (6 * k_flesh * volume)) +
             ((r_flesh^3 / (3 * k_fat * volume)) * ((r_skin - r_flesh)/(r_flesh * r_skin)))
         )
@@ -70,8 +68,7 @@ function net_metabolic_heat(
     bs = b_semi_minor
     bg = min(b_semi_minor, b_semi_minor_flesh)
 
-    Q_gen_net =
-        (T_core - T_skin) / (
+    Q_gen_net = (T_core - T_skin) / (
             (ssqg / (2 * k_flesh * volume)) +
             (((((3 * ssqg)^0.5)^3) / (3 * k_fat * volume)) * ((bs - bg) / (bg * bs)))
         )

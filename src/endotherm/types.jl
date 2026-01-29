@@ -71,7 +71,7 @@ struct BodyRegionValues{T}
 end
 
 """
-    FibreProperties{D,L,N,I,R}
+    FibreProperties{D,L,N,I,R,C}
 
 Physical properties of insulation fibres (fur/feathers) for a body region.
 
@@ -81,21 +81,16 @@ Physical properties of insulation fibres (fur/feathers) for a body region.
 - `density::N` — Fibre density (count per area)
 - `depth::I` — Insulation depth
 - `reflectance::R` — Solar reflectance (0-1)
+- `conductivity::C` — Thermal conductivity of fibre material (W/m/K)
 """
-Base.@kwdef struct FibreProperties{D,L,N,I,R}
+Base.@kwdef struct FibreProperties{D,L,N,I,R,C}
     diameter::D
     length::L
     density::N
     depth::I
     reflectance::R
+    conductivity::C
 end
-
-"""
-    get_side(v::BodyRegionValues, side::Symbol)
-
-Access dorsal or ventral value by side symbol (`:dorsal` or `:ventral`).
-"""
-get_side(v::BodyRegionValues, side::Symbol) = getproperty(v, side)
 
 """
     EnvironmentTemperatures{T1,T2,T3,T4,T5,T6}
@@ -103,20 +98,20 @@ get_side(v::BodyRegionValues, side::Symbol) = getproperty(v, side)
 Temperatures of environmental surfaces for radiation exchange.
 
 # Fields
-- `T_air::T1` — Air temperature
-- `T_sky::T2` — Effective sky temperature
-- `T_ground::T3` — Ground surface temperature
-- `T_vegetation::T4` — Vegetation canopy temperature
-- `T_bush::T5` — Bush/shrub layer temperature
-- `T_substrate::T6` — Substrate temperature (for conduction)
+- `air::T1` — Air temperature
+- `sky::T2` — Effective sky temperature
+- `ground::T3` — Ground surface temperature
+- `vegetation::T4` — Vegetation canopy temperature
+- `bush::T5` — Bush/shrub layer temperature
+- `substrate::T6` — Substrate temperature (for conduction)
 """
 struct EnvironmentTemperatures{T1,T2,T3,T4,T5,T6}
-    T_air::T1
-    T_sky::T2
-    T_ground::T3
-    T_vegetation::T4
-    T_bush::T5
-    T_substrate::T6
+    air::T1
+    sky::T2
+    ground::T3
+    vegetation::T4
+    bush::T5
+    substrate::T6
 end
 function EnvironmentTemperatures(e_vars::AbstractEnvironmentalVars)
     EnvironmentTemperatures(
@@ -151,16 +146,16 @@ end
 View factors to environmental surfaces for radiation exchange.
 
 # Fields
-- `F_sky::T1` — View factor to sky
-- `F_ground::T2` — View factor to ground
-- `F_bush::T3` — View factor to bush/shrub layer
-- `F_vegetation::T4` — View factor to vegetation canopy
+- `sky::T1` — View factor to sky
+- `ground::T2` — View factor to ground
+- `bush::T3` — View factor to bush/shrub layer
+- `vegetation::T4` — View factor to vegetation canopy
 """
 struct ViewFactors{T1,T2,T3,T4}
-    F_sky::T1
-    F_ground::T2
-    F_bush::T3
-    F_vegetation::T4
+    sky::T1
+    ground::T2
+    bush::T3
+    vegetation::T4
 end
 
 """
