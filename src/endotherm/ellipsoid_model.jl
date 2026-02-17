@@ -2,7 +2,7 @@
     ellipsoid(; posture, mass, density, core_temperature,
                insulation_depth, k_insulation, oxygen_extraction_efficiency, stress_factor,
                air_temperature, wind_speed, relative_humidity, q10,
-               minimum_metabolic_rate=missing, P_atmos, metabolic_factor=1)
+               minimum_metabolic_rate=missing, atmospheric_pressure, metabolic_factor=1)
 
 Ellipsoid endotherm model.
 
@@ -14,7 +14,7 @@ where air, ground, and sky temperatures are equal.
 - `air_temperature`: Air temperature.
 - `wind_speed`: Wind speed (length/time).
 - `relative_humidity`: Relative humidity (fractional).
-- `P_atmos`: Atmospheric_pressue (pressure).
+- `atmospheric_pressure`: Atmospheric_pressue (pressure).
 - `mass`: Body mass (mass).
 - `density`: Body density (mass/volume).
 - `posture`: Ratio of long to short axis of a prolate ellipsoid.
@@ -34,7 +34,7 @@ where air, ground, and sky temperatures are equal.
 # Returns
 A `NamedTuple` with:
 - `skin_temperature`, `upper_critical_air_temperature`, `lower_critical_air_temperature`,
-- `Q_gen`, `Q_gen_final`, `Q_respiration`, `Q_evap`,
+- `generated_flux`, `final_generated_flux`, `respiration_fluxiration`, `evaporation_flux`,
 - `O2_consumption_rate`, `respiratory_water_loss_rate`, `total_water_loss_rate`,
 - `basal_metabolic_rate_fraction`, `fractional_mass_loss`.
 
@@ -47,7 +47,7 @@ function ellipsoid_endotherm(
     air_temperature::Quantity,
     wind_speed::Quantity,
     relative_humidity::Real,
-    P_atmos::Quantity;
+    atmospheric_pressure::Quantity;
     mass::Quantity,
     density::Quantity,
     posture::Real,
@@ -67,7 +67,7 @@ function ellipsoid_endotherm(
         air_temperature,
         wind_speed,
         relative_humidity,
-        P_atmos,
+        atmospheric_pressure,
         mass,
         density,
         posture,
@@ -88,7 +88,7 @@ function ellipsoid_endotherm(
     air_temperature::Quantity,
     wind_speed::Quantity,
     relative_humidity::Real,
-    P_atmos::Quantity,
+    atmospheric_pressure::Quantity,
     mass::Quantity,
     density::Quantity,
     posture::Real,
@@ -105,13 +105,11 @@ function ellipsoid_endotherm(
     stress_factor::Real,
 )
 
-    # refinition of variables and parameters to match Porter & Kearney 2009 formulae
-    T_f = air_temperature # fluid temperature
-    T_c = core_temperature # core body temperature
+    # local aliases to match Porter & Kearney 2009 formulae
     k_insulation = insulation_conductivity
     ϵ = emissivity
     v = wind_speed
-    Q_gen_min = minimum_metabolic_rate
+    minimum_generated_flux = minimum_metabolic_rate
 
     # avoid divide-by-zero
     posture = posture == 1 ? 1.01 : posture
@@ -119,8 +117,8 @@ function ellipsoid_endotherm(
     # estimate basal metabolism if not provided
     if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
         allometric_estimate =
-            metabolic_rate(metabolic_rate_equation, mass, T_c) * metabolic_multiplier
-        Q_gen_min = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
+            metabolic_rate(metabolic_rate_equation, mass, core_temperature) * metabolic_multiplier
+        minimum_generated_flux = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
     end
 
     # constants
@@ -150,7 +148,7 @@ function ellipsoid_endotherm(
     R_ins = (b_o - b) / (k_insulation * A_o) # insulation radius
 
     # air properties
-    (; dynamic_viscosity, thermal_conductivity, density) = dry_air_properties(T_f, P_atmos)
+    (; dynamic_viscosity, thermal_conductivity, density) = dry_air_properties(air_temperature, atmospheric_pressure)
     μ, k_air, ρ_air = dynamic_viscosity, thermal_conductivity, density
 
     V = (4 / 3) * π * a * b * c # recompute volume
@@ -162,51 +160,51 @@ function ellipsoid_endotherm(
     Pr = (μ * c_p_air) / k_air # Prandtl number
 
     q′′′_numerator =
-        2 * A * k_b * k_air * (2 + a_coef * (Re^b_coef) * Pr^(1 / 3)) * (T_c - T_f)
+        2 * A * k_b * k_air * (2 + a_coef * (Re^b_coef) * Pr^(1 / 3)) * (core_temperature - air_temperature)
     q′′′_denominator =
         2 * k_b * L_c * V + A * S2 * k_air * (2 + a_coef * Re^b_coef * Pr^(1 / 3))
     q′′′ = q′′′_numerator / q′′′_denominator
-    T_s = T_c - (q′′′ * S2) / (2 * k_b) # skin temperature, Eq. 6
+    skin_temperature = core_temperature - (q′′′ * S2) / (2 * k_b) # skin temperature, Eq. 6
 
-    Gr = abs((ρ_air^2) * (1 / T_f) * Unitful.gn * (L_c^3) * (T_s - T_f) / μ^2) # Grashof number
+    Gr = abs((ρ_air^2) * (1 / air_temperature) * Unitful.gn * (L_c^3) * (skin_temperature - air_temperature) / μ^2) # Grashof number
     Nu_free = 2 + 0.6 * (Gr^0.25) * (Pr^(1 / 3))
     Nu_forced = 0.37 * Re^0.6
     Nu_total = (Nu_free^3 + Nu_forced^3)^(1 / 3) #  Eq. 24
     h_cv = Nu_total * k_air / L_c # Eq. 25
     R_cv = 1 / (h_cv * A_o)
-    R_rad = u"K/W"(1 / (4 * A_o * ϵ * Unitful.σ * T_f^3)) # Eq. 39
+    R_rad = u"K/W"(1 / (4 * A_o * ϵ * Unitful.σ * air_temperature^3)) # Eq. 39
     R_total = R_b + R_ins + (R_cv * R_rad) / (R_cv + R_rad)
 
-    upper_critical_air_temperature = T_c - (Q_gen_min * stress_factor * R_total)
-    lower_critical_air_temperature = T_c - Q_gen_min * R_total
+    upper_critical_air_temperature = core_temperature - (minimum_generated_flux * stress_factor * R_total)
+    lower_critical_air_temperature = core_temperature - minimum_generated_flux * R_total
 
-    Q_gen_required = (T_c - T_f) / R_total
-    Q_gen_final = max(Q_gen_required, Q_gen_min)
+    required_generated_flux = (core_temperature - air_temperature) / R_total
+    final_generated_flux = max(required_generated_flux, minimum_generated_flux)
 
-    O2_consumption_rate = u"ml/hr"(Joules_to_O2(Q_gen_final))
-    ρ_vap_f = wet_air_properties(T_f, relative_humidity, P_atmos).vapour_density # inhaled air
-    ρ_vap_c = wet_air_properties(T_c, 1, P_atmos).vapour_density # exhaled air (saturated)
+    O2_consumption_rate = u"ml/hr"(Joules_to_O2(final_generated_flux))
+    ρ_vap_f = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure).vapour_density # inhaled air
+    ρ_vap_c = wet_air_properties(core_temperature, 1, atmospheric_pressure).vapour_density # exhaled air (saturated)
 
     respiratory_water_loss_rate = u"g/hr"(
         (O2_consumption_rate / f_O2 / oxygen_extraction_efficiency) * (ρ_vap_c - ρ_vap_f)
     )
-    latent_heat = enthalpy_of_vaporisation(T_f)
-    Q_respiration = u"W"(respiratory_water_loss_rate * latent_heat)
+    latent_heat = enthalpy_of_vaporisation(air_temperature)
+    respiration_fluxiration = u"W"(respiratory_water_loss_rate * latent_heat)
 
-    basal_metabolic_rate_fraction = Q_gen_final / Q_gen_min
+    basal_metabolic_rate_fraction = final_generated_flux / minimum_generated_flux
 
-    Q_evap = -Q_gen_required + Q_gen_min
-    total_water_loss_rate = u"g/hr"(max((u"J/hr"(Q_evap) / latent_heat), 0.0u"kg/hr"))
+    evaporation_flux = -required_generated_flux + minimum_generated_flux
+    total_water_loss_rate = u"g/hr"(max((u"J/hr"(evaporation_flux) / latent_heat), 0.0u"kg/hr"))
     fractional_mass_loss = u"kg/hr"(total_water_loss_rate) / mass
 
     return (;
-        skin_temperature=u"°C"(T_s),
+        skin_temperature=u"°C"(skin_temperature),
         upper_critical_air_temperature=u"°C"(upper_critical_air_temperature),
         lower_critical_air_temperature=u"°C"(lower_critical_air_temperature),
-        Q_gen_required,
-        Q_gen_final,
-        Q_respiration,
-        Q_evap,
+        required_generated_flux,
+        final_generated_flux,
+        respiration_fluxiration,
+        evaporation_flux,
         O2_consumption_rate=u"mL/hr"(O2_consumption_rate),
         respiratory_water_loss_rate=u"g/hr"(respiratory_water_loss_rate),
         total_water_loss_rate=u"g/hr"(total_water_loss_rate),

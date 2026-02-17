@@ -145,13 +145,13 @@ names = [
 ecto_output = (; zip(names, ecto_output_vec)...)
 
 # environment
-T_air = u"K"((ecto_input.TA)u"°C")
-T_sky = u"K"((ecto_input.TSKY)u"°C")
-T_substrate = u"K"((ecto_input.TSUBST)u"°C")
-T_ground = T_substrate
+air_temperature = u"K"((ecto_input.TA)u"°C")
+sky_temperature = u"K"((ecto_input.TSKY)u"°C")
+substrate_temperature = u"K"((ecto_input.TSUBST)u"°C")
+ground_temperature = substrate_temperature
 k_substrate = (ecto_input.K_sub)u"W/m/K"
-P_atmos = (ecto_input.pres)u"Pa"
-rh = (ecto_input.RH/100)
+atmospheric_pressure = (ecto_input.pres)u"Pa"
+relative_humidity = (ecto_input.RH/100)
 elevation = (ecto_input.elevation)u"m"
 wind_speed = (ecto_input.VEL)u"m/s"
 fluid = ecto_input.fluid
@@ -175,12 +175,12 @@ shape_c = ecto_input.shape_c
 eye_fraction = ecto_input.pct_eyes / 100
 conduction_fraction = ecto_input.pct_cond / 100
 
-F_sky = ecto_input.fatosk
-F_ground = ecto_input.fatosb
-α_body_dorsal = ecto_input.alpha
-α_body_ventral = ecto_input.alpha
-ϵ_body_dorsal = ecto_input.epsilon
-ϵ_body_ventral = ecto_input.epsilon
+sky_view_factor = ecto_input.fatosk
+ground_view_factor = ecto_input.fatosb
+body_absorptivity_dorsal = ecto_input.alpha
+body_absorptivity_ventral = ecto_input.alpha
+body_emissivity_dorsal = ecto_input.epsilon
+body_emissivity_ventral = ecto_input.epsilon
 Le = 0.025u"m"
 #conduction_depth::D =    Param(2.5u"cm") this should be an environmental variable
 
@@ -230,13 +230,13 @@ A_eff = A_convection * skin_wetness
 @test geometry.geometry.volume ≈ (ecto_output.VOL)u"m^3" rtol=1e-9
 
 # organism state
-T_core = u"K"((ecto_output.TC)u"°C")
+core_temperature = u"K"((ecto_output.TC)u"°C")
 
 # calculate heat fluxes
 
 # metabolism|
 Q_metab = metabolic_rate(
-    AndrewsPough2(; M1, M2, M3, M4, O2conversion=Typical()), mass, T_core 
+    AndrewsPough2(; M1, M2, M3, M4, O2conversion=Typical()), mass, core_temperature
 )
 
 # metabolism test
@@ -246,10 +246,10 @@ Q_metab = metabolic_rate(
 resp_out = respiration(
     MetabolicRates(; metabolic=Q_metab),
     RespirationParameters(; fO2_extract, pant, rq),
-    AtmosphericConditions(rh, wind_speed, P_atmos),
+    AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure),
     mass,
-    T_core,  # T_lung
-    T_air;
+    core_temperature,  # lung_temperature
+    air_temperature;
     gasfrac,
 )
 Q_resp = resp_out.Q_resp
@@ -272,19 +272,19 @@ Q_gen_net = Q_metab - Q_resp
 Q_gen_spec = Q_gen_net / geometry.geometry.volume
 
 # compute skin and lung temperature
-T_skin, T_lung = Tsurf_and_Tlung(; body=geometry, k_flesh, Q_gen_spec, T_core)
+skin_temperature, lung_temperature = Tsurf_and_Tlung(; body=geometry, k_flesh, Q_gen_spec, core_temperature)
 
 # test lung temperature
-@test T_lung ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-7
+@test lung_temperature ≈ u"K"((ecto_output.TLUNG)u"°C") rtol=1e-7
 
 # solar radiation
 diffuse_fraction = ecto_input.PDIF
 absorptivities = Absorptivities(;
-    body_dorsal=α_body_dorsal,
-    body_ventral=α_body_ventral,
+    body_dorsal=body_absorptivity_dorsal,
+    body_ventral=body_absorptivity_ventral,
     ground=α_ground,
 )
-view_factors = ViewFactors(F_sky, F_ground, 0.0, 0.0)
+view_factors = ViewFactors(sky_view_factor, ground_view_factor, 0.0, 0.0)
 solar_conditions = SolarConditions(;
     zenith_angle,
     global_radiation,
@@ -296,28 +296,28 @@ Q_solar = solar_out.Q_solar
 
 # longwave radiation
 emissivities = Emissivities(;
-    body_dorsal=ϵ_body_dorsal,
-    body_ventral=ϵ_body_ventral,
+    body_dorsal=body_emissivity_dorsal,
+    body_ventral=body_emissivity_ventral,
     ground=ϵ_ground,
     sky=ϵ_sky,
 )
-env_temps = EnvironmentTemperatures(T_air, T_sky, T_ground, T_air, T_air, T_substrate)
+env_temps = EnvironmentTemperatures(air_temperature, sky_temperature, ground_temperature, air_temperature, air_temperature, substrate_temperature)
 ir_gain = radin(geometry, view_factors, emissivities, env_temps; conduction_fraction)
 Q_ir_in = ir_gain.Q_ir_in
-ir_loss = radout(geometry, view_factors, emissivities, conduction_fraction, T_skin, T_skin)
+ir_loss = radout(geometry, view_factors, emissivities, conduction_fraction, skin_temperature, skin_temperature)
 Q_ir_out = ir_loss.Q_ir_out
 
 # conduction
-Q_cond = conduction(; A_conduction, L=Le, T_surface=T_skin, T_substrate, k_substrate)
+Q_cond = conduction(; A_conduction, L=Le, surface_temperature=skin_temperature, substrate_temperature, k_substrate)
 
 # convection
 conv_out = convection(;
     body=geometry,
     area=A_convection,
-    T_air,
-    T_surface=T_skin,
+    air_temperature,
+    surface_temperature=skin_temperature,
     wind_speed,
-    P_atmos,
+    atmospheric_pressure,
     fluid,
     gasfrac,
     convection_enhancement,
@@ -327,8 +327,8 @@ Q_conv = conv_out.Q_conv
 # evaporation
 evap_pars_test = EvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction=1.0)
 transfer_test = TransferCoefficients(; heat=conv_out.hc, mass=conv_out.hd, mass_free=conv_out.hd_free)
-atmos_test = AtmosphericConditions(rh, wind_speed, P_atmos)
-evap_out = evaporation(evap_pars_test, transfer_test, atmos_test, A_convection, T_skin, T_air; water_potential=ψ_org, gasfrac)
+atmos_test = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
+evap_out = evaporation(evap_pars_test, transfer_test, atmos_test, A_convection, skin_temperature, air_temperature; water_potential=ψ_org, gasfrac)
 Q_evap = evap_out.Q_evap
 
 # energy balance test
@@ -352,18 +352,18 @@ Q_in - Q_out
 
 conduction_pars_external = ExternalConductionParameters(; conduction_fraction)
 
-conduction_pars_internal = InternalConductionParameters(; k_flesh)
+conduction_pars_internal = InternalConductionParameters(; flesh_conductivity=k_flesh)
 
 radiation_pars = RadiationParameters(;
-    α_body_dorsal,
-    α_body_ventral,
-    ϵ_body_dorsal,
-    ϵ_body_ventral,
-    A_silhouette,
-    A_total,
-    A_conduction,
-    F_sky,
-    F_ground,
+    body_absorptivity_dorsal,
+    body_absorptivity_ventral,
+    body_emissivity_dorsal,
+    body_emissivity_ventral,
+    silhouette_area=A_silhouette,
+    total_area=A_total,
+    conduction_area=A_conduction,
+    sky_view_factor,
+    ground_view_factor,
     ventral_fraction,
 )
 
@@ -398,13 +398,13 @@ lizard = Organism(geometry, traits)
 environment_pars = EnvironmentalPars(; α_ground, ϵ_ground, ϵ_sky, elevation, fluid, gasfrac)
 
 environment_vars = EnvironmentalVars(;
-    T_air,
-    T_sky,
-    T_ground,
-    T_substrate,
-    rh,
+    air_temperature,
+    sky_temperature,
+    ground_temperature,
+    substrate_temperature,
+    relative_humidity,
     wind_speed,
-    P_atmos,
+    atmospheric_pressure,
     k_substrate,
     zenith_angle,
     global_radiation,
@@ -413,23 +413,23 @@ environment_vars = EnvironmentalVars(;
 )
 
 environment = (; environment_pars, environment_vars)
-# define the method 'ectotherm' for passing to find_zero, which dispatches off 'lizard' 
-T_air = environment_vars.T_air
-ectotherm(T_air, lizard, environment)
+# define the method 'ectotherm' for passing to find_zero, which dispatches off 'lizard'
+air_temperature = environment_vars.air_temperature
+ectotherm(air_temperature, lizard, environment)
 
-T_core_s = find_zero(
-    t -> ectotherm(t, lizard, environment), (T_air - 40u"K", T_air + 100u"K"), Bisection()
+core_temperature_s = find_zero(
+    t -> ectotherm(t, lizard, environment), (air_temperature - 40u"K", air_temperature + 100u"K"), Bisection()
 )
-T_core_C = (Unitful.ustrip(T_core_s) - 273.15)u"°C"
+core_temperature_C = (Unitful.ustrip(core_temperature_s) - 273.15)u"°C"
 
 # test core temperature calculation
-@test T_core_C ≈ (ecto_output.TC)u"°C" rtol=1e-4
+@test core_temperature_C ≈ (ecto_output.TC)u"°C" rtol=1e-4
 
-heat_balance_out = ectotherm(T_core_s, lizard, environment)
+heat_balance_out = ectotherm(core_temperature_s, lizard, environment)
 
-@test heat_balance_out.T_core ≈ (ecto_output.TC + 273.15)u"K" rtol=1e-5
-@test heat_balance_out.T_surface ≈ (ecto_output.TSKIN + 273.15)u"K" rtol=1e-5
-@test heat_balance_out.T_lung ≈ (ecto_output.TLUNG + 273.15)u"K" rtol=1e-5
+@test heat_balance_out.core_temperature ≈ (ecto_output.TC + 273.15)u"K" rtol=1e-5
+@test heat_balance_out.surface_temperature ≈ (ecto_output.TSKIN + 273.15)u"K" rtol=1e-5
+@test heat_balance_out.lung_temperature ≈ (ecto_output.TLUNG + 273.15)u"K" rtol=1e-5
 
 @test heat_balance_out.enbal.Q_solar ≈ (ecto_output.QSOL)u"W" rtol=1e-9
 @test heat_balance_out.enbal.Q_ir_in ≈ (ecto_output.QIRIN)u"W" rtol=1e-3 # TODO make better?

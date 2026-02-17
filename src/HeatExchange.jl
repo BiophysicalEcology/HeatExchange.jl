@@ -40,15 +40,16 @@ export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
 export body,
     traits,
-    insulationpars,
-    conductionpars_external,
-    conductionpars_internal,
-    convectionpars,
-    radiationpars,
-    evaporationpars,
-    hydraulicpars,
-    respirationpars,
-    metabolismpars,
+    shape_pars,
+    insulation_pars,
+    conduction_pars_external,
+    conduction_pars_internal,
+    convection_pars,
+    radiation_pars,
+    evaporation_pars,
+    hydraulic_pars,
+    respiration_pars,
+    metabolism_pars,
     options
 
 export get_Tb

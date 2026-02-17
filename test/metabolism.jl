@@ -36,7 +36,7 @@ using Test
         # Metabolic rate increases with mass (allometric scaling)
         @test metabolic_rate(Kleiber(), 10.0u"kg") > metabolic_rate(Kleiber(), 1.0u"kg")
 
-        # T_body argument is ignored
+        # body_temperature argument is ignored
         @test metabolic_rate(Kleiber(), 1.0u"kg", 37.0u"°C") == metabolic_rate(Kleiber(), 1.0u"kg")
     end
 
@@ -48,7 +48,7 @@ using Test
         # Metabolic rate increases with mass
         @test metabolic_rate(McKechnieWolf(), 1000.0u"g") > metabolic_rate(McKechnieWolf(), 100.0u"g")
 
-        # T_body argument is ignored
+        # body_temperature argument is ignored
         @test metabolic_rate(McKechnieWolf(), 100.0u"g", 40.0u"°C") == metabolic_rate(McKechnieWolf(), 100.0u"g")
     end
 end

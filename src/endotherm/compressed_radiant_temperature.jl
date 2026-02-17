@@ -1,5 +1,5 @@
 """
-    compressed_radiant_temperature(; body, insulation, insulation_pars, ks, side, cd, T_core, T_substrate)
+    compressed_radiant_temperature(; body, insulation, insulation_pars, ks, side, cd, core_temperature, substrate_temperature)
 
 Calculate temperature at compressed insulation interface when body is in contact with substrate.
 
@@ -13,13 +13,13 @@ at the compressed insulation-substrate interface.
 - `ks::ThermalConductivities`: Thermal conductivities (flesh, fat)
 - `side`: Body side (`:dorsal` or `:ventral`)
 - `cd`: Substrate conductance coefficient
-- `T_core`: Core body temperature
-- `T_substrate`: Substrate temperature
+- `core_temperature`: Core body temperature
+- `substrate_temperature`: Substrate temperature
 
 # Returns
 NamedTuple with:
 - `cf1`: Compression factor coefficient
-- `T_ins_compressed`: Temperature at compressed insulation interface
+- `compressed_insulation_temperature`: Temperature at compressed insulation interface
 """
 function compressed_radiant_temperature(;
     body::AbstractBody,
@@ -28,11 +28,11 @@ function compressed_radiant_temperature(;
     ks::ThermalConductivities,
     side,
     cd,
-    T_core,
-    T_substrate,
+    core_temperature,
+    substrate_temperature,
 )
     compressed_radiant_temperature(
-        shape(body), body, insulation, insulation_pars, ks, side, cd, T_core, T_substrate
+        shape(body), body, insulation, insulation_pars, ks, side, cd, core_temperature, substrate_temperature
     )
 end
 
@@ -44,10 +44,10 @@ function compressed_radiant_temperature(
     ks::ThermalConductivities,
     side,
     cd,
-    T_core,
-    T_substrate,
+    core_temperature,
+    substrate_temperature,
 )
-    (; k_flesh, k_fat) = ks
+    (; flesh=k_flesh, fat=k_fat) = ks
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
     r_compressed = r_skin + insulation_pars.depth_compressed
@@ -58,10 +58,10 @@ function compressed_radiant_temperature(
         1 +
         ((cf1 * r_flesh^2) / (4 * k_flesh * volume)) +
         ((cf1 * r_flesh^2) / (2 * k_fat * volume)) * log(r_skin / RFLESH)
-    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_substrate
-    T_ins_compressed_calc2 = cd + cf1 / dv5
-    T_ins_compressed = T_ins_compressed_calc1 / T_ins_compressed_calc2
-    return (; cf1, T_ins_compressed)
+    compressed_insulation_temperature_calc1 = (cf1 / dv5) * core_temperature + cd * substrate_temperature
+    compressed_insulation_temperature_calc2 = cd + cf1 / dv5
+    compressed_insulation_temperature = compressed_insulation_temperature_calc1 / compressed_insulation_temperature_calc2
+    return (; cf1, compressed_insulation_temperature)
 end
 
 function compressed_radiant_temperature(
@@ -72,10 +72,10 @@ function compressed_radiant_temperature(
     ks::ThermalConductivities,
     side,
     cd,
-    T_core,
-    T_substrate,
+    core_temperature,
+    substrate_temperature,
 )
-    (; k_flesh, k_fat) = ks
+    (; flesh=k_flesh, fat=k_fat) = ks
     r_skin = get_r_skin(body)
     r_flesh = get_r_flesh(body)
     r_compressed = r_skin + insulation_pars.depth_compressed
@@ -87,10 +87,10 @@ function compressed_radiant_temperature(
         ((cf1 * r_flesh^2.0) / (6 * k_flesh * volume)) +
         ((cf1 * r_flesh^3) / (3 * k_fat * volume)) *
         ((r_skin - r_flesh) / (r_skin - r_flesh))
-    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_substrate
-    T_ins_compressed_calc2 = cd + cf1 / dv5
-    T_ins_compressed = T_ins_compressed_calc1 / T_ins_compressed_calc2
-    return (; cf1, T_ins_compressed)
+    compressed_insulation_temperature_calc1 = (cf1 / dv5) * core_temperature + cd * substrate_temperature
+    compressed_insulation_temperature_calc2 = cd + cf1 / dv5
+    compressed_insulation_temperature = compressed_insulation_temperature_calc1 / compressed_insulation_temperature_calc2
+    return (; cf1, compressed_insulation_temperature)
 end
 
 function compressed_radiant_temperature(
@@ -101,10 +101,10 @@ function compressed_radiant_temperature(
     ks::ThermalConductivities,
     side,
     cd,
-    T_core,
-    T_substrate,
+    core_temperature,
+    substrate_temperature,
 )
-    (; k_flesh, k_fat) = ks
+    (; flesh=k_flesh, fat=k_fat) = ks
     volume = flesh_volume(body)
     insulation_depth = if side == :dorsal
         insulation_pars.dorsal.depth
@@ -142,8 +142,8 @@ function compressed_radiant_temperature(
         1 +
         ((cf1 * ssqg) / (2 * k_flesh * volume)) +
         ((cf1 * (((3 * ssqg)^0.5)^3)) / (3 * k_fat * volume)) * ((bs - bg) / (bs * bg))
-    T_ins_compressed_calc1 = (cf1 / dv5) * T_core + cd * T_substrate
-    T_ins_compressed_calc2 = cd + cf1 / dv5
-    T_ins_compressed = T_ins_compressed_calc1 / T_ins_compressed_calc2
-    return (; cf1, T_ins_compressed)
+    compressed_insulation_temperature_calc1 = (cf1 / dv5) * core_temperature + cd * substrate_temperature
+    compressed_insulation_temperature_calc2 = cd + cf1 / dv5
+    compressed_insulation_temperature = compressed_insulation_temperature_calc1 / compressed_insulation_temperature_calc2
+    return (; cf1, compressed_insulation_temperature)
 end

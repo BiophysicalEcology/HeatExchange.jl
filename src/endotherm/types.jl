@@ -42,16 +42,16 @@ end
 Linearized radiation exchange coefficients to environmental surfaces.
 
 # Fields
-- `Q_rad1::T1` — Radiation coefficient to sky
-- `Q_rad2::T2` — Radiation coefficient to bush/shrub layer
-- `Q_rad3::T3` — Radiation coefficient to vegetation canopy
-- `Q_rad4::T4` — Radiation coefficient to ground surface
+- `sky_radiation_coeff::T1` — Radiation coefficient to sky
+- `bush_radiation_coeff::T2` — Radiation coefficient to bush/shrub layer
+- `vegetation_radiation_coeff::T3` — Radiation coefficient to vegetation canopy
+- `ground_radiation_coeff::T4` — Radiation coefficient to ground surface
 """
 struct RadiationCoeffs{T1,T2,T3,T4}
-    Q_rad1::T1
-    Q_rad2::T2
-    Q_rad3::T3
-    Q_rad4::T4
+    sky_radiation_coeff::T1
+    bush_radiation_coeff::T2
+    vegetation_radiation_coeff::T3
+    ground_radiation_coeff::T4
 end
 
 """
@@ -115,12 +115,12 @@ struct EnvironmentTemperatures{T1,T2,T3,T4,T5,T6}
 end
 function EnvironmentTemperatures(e_vars::AbstractEnvironmentalVars)
     EnvironmentTemperatures(
-        e_vars.T_air,
-        e_vars.T_sky,
-        e_vars.T_ground,
-        e_vars.T_vegetation,
-        e_vars.T_bush,
-        e_vars.T_substrate,
+        e_vars.air_temperature,
+        e_vars.sky_temperature,
+        e_vars.ground_temperature,
+        e_vars.vegetation_temperature,
+        e_vars.bush_temperature,
+        e_vars.substrate_temperature,
     )
 end
 
@@ -130,14 +130,14 @@ end
 Temperatures of organism body layers.
 
 # Fields
-- `T_core::T1` — Core body temperature
-- `T_skin::T2` — Skin temperature
-- `T_insulation::T3` — Insulation/surface temperature
+- `core_temperature::T1` — Core body temperature
+- `skin_temperature::T2` — Skin temperature
+- `insulation_temperature::T3` — Insulation/surface temperature
 """
 struct OrganismTemperatures{T1,T2,T3}
-    T_core::T1
-    T_skin::T2
-    T_insulation::T3
+    core_temperature::T1
+    skin_temperature::T2
+    insulation_temperature::T3
 end
 
 """
@@ -164,17 +164,17 @@ end
 Atmospheric conditions for heat exchange calculations.
 
 # Fields
-- `rh::T1` — Relative humidity (fraction 0-1)
+- `relative_humidity::T1` — Relative humidity (fraction 0-1)
 - `wind_speed::T2` — Wind speed
-- `P_atmos::T3` — Atmospheric pressure
+- `atmospheric_pressure::T3` — Atmospheric pressure
 """
 struct AtmosphericConditions{T1,T2,T3}
-    rh::T1
+    relative_humidity::T1
     wind_speed::T2
-    P_atmos::T3
+    atmospheric_pressure::T3
 end
 function AtmosphericConditions(e_vars::AbstractEnvironmentalVars)
-    AtmosphericConditions(e_vars.rh, e_vars.wind_speed, e_vars.P_atmos)
+    AtmosphericConditions(e_vars.relative_humidity, e_vars.wind_speed, e_vars.atmospheric_pressure)
 end
 
 """
@@ -183,14 +183,14 @@ end
 Thermal conductivities of organism tissues and insulation.
 
 # Fields
-- `k_flesh::F` — Thermal conductivity of lean tissue (W/m/K)
-- `k_fat::FA` — Thermal conductivity of fat tissue (W/m/K)
-- `k_insulation::I` — Effective thermal conductivity of insulation (W/m/K), can be `Nothing`
+- `flesh::F` — Thermal conductivity of lean tissue (W/m/K)
+- `fat::FA` — Thermal conductivity of fat tissue (W/m/K)
+- `insulation::I` — Effective thermal conductivity of insulation (W/m/K), can be `Nothing`
 """
 struct ThermalConductivities{F,FA,I}
-    k_flesh::F
-    k_fat::FA
-    k_insulation::I
+    flesh::F
+    fat::FA
+    insulation::I
 end
 
 """
@@ -229,30 +229,30 @@ end
 Heat flux components from the heat balance solution.
 
 # Fields
-- `Q_convection` — Convective heat loss to air
-- `Q_conduction` — Conductive heat loss to substrate
-- `Q_gen_net` — Net metabolic heat generation
-- `Q_evap_skin` — Evaporative heat loss from skin
-- `Q_evap_insulation` — Evaporative heat loss from insulation surface
-- `Q_longwave` — Net longwave radiation exchange
-- `Q_solar` — Absorbed solar radiation
-- `Q_rad_sky` — Radiation exchange with sky
-- `Q_rad_bush` — Radiation exchange with bush layer
-- `Q_rad_vegetation` — Radiation exchange with vegetation
-- `Q_rad_ground` — Radiation exchange with ground
+- `convection_flux` — Convective heat loss to air
+- `conduction_flux` — Conductive heat loss to substrate
+- `net_generated_flux` — Net metabolic heat generation
+- `skin_evaporation_flux` — Evaporative heat loss from skin
+- `insulation_evaporation_flux` — Evaporative heat loss from insulation surface
+- `longwave_flux` — Net longwave radiation exchange
+- `solar_flux` — Absorbed solar radiation
+- `sky_radiation_flux` — Radiation exchange with sky
+- `bush_radiation_flux` — Radiation exchange with bush layer
+- `vegetation_radiation_flux` — Radiation exchange with vegetation
+- `ground_radiation_flux` — Radiation exchange with ground
 """
 struct HeatFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-    Q_convection::T1
-    Q_conduction::T2
-    Q_gen_net::T3
-    Q_evap_skin::T4
-    Q_evap_insulation::T5
-    Q_longwave::T6
-    Q_solar::T7
-    Q_rad_sky::T8
-    Q_rad_bush::T9
-    Q_rad_vegetation::T10
-    Q_rad_ground::T11
+    convection_flux::T1
+    conduction_flux::T2
+    net_generated_flux::T3
+    skin_evaporation_flux::T4
+    insulation_evaporation_flux::T5
+    longwave_flux::T6
+    solar_flux::T7
+    sky_radiation_flux::T8
+    bush_radiation_flux::T9
+    vegetation_radiation_flux::T10
+    ground_radiation_flux::T11
 end
 
 """
@@ -332,10 +332,10 @@ Base.@kwdef struct Emissivities{BD,BV,G,S}
 end
 function Emissivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
     Emissivities(;
-        body_dorsal=rad.ϵ_body_dorsal,
-        body_ventral=rad.ϵ_body_ventral,
-        ground=env.ϵ_ground,
-        sky=env.ϵ_sky,
+        body_dorsal=rad.body_emissivity_dorsal,
+        body_ventral=rad.body_emissivity_ventral,
+        ground=env.ground_emissivity,
+        sky=env.sky_emissivity,
     )
 end
 
@@ -356,9 +356,9 @@ Base.@kwdef struct Absorptivities{BD,BV,G}
 end
 function Absorptivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
     Absorptivities(;
-        body_dorsal=rad.α_body_dorsal,
-        body_ventral=rad.α_body_ventral,
-        ground=env.α_ground,
+        body_dorsal=rad.body_absorptivity_dorsal,
+        body_ventral=rad.body_absorptivity_ventral,
+        ground=env.ground_albedo,
     )
 end
 
@@ -391,7 +391,7 @@ Geometric and thermal parameters for heat exchange calculations on a body side.
 
 # Fields
 - `side` — Body side (`:dorsal` or `:ventral`)
-- `substrate_conductance` — Thermal conductance to substrate (W/K), Q_cond = substrate_conductance × ΔT
+- `substrate_conductance` — Thermal conductance to substrate (W/K), conduction_flux = substrate_conductance × ΔT
 - `ventral_fraction` — Fraction of body surface that is ventral (0-1)
 - `conduction_fraction` — Fraction of surface area in contact with substrate (0-1)
 - `longwave_depth_fraction` — Fraction of insulation depth for longwave radiation exchange (0-1)

@@ -17,14 +17,14 @@ air_temperature = u"K".(
 )
 wind_speed = (ellipsoid_input.windspd)u"m/s"
 relative_humidity = ellipsoid_input.rh/100
-P_atmos = 101325.0u"Pa"
+atmospheric_pressure = 101325.0u"Pa"
 
 ellipsoid_out = DataFrame(
     ellipsoid_endotherm.(
         air_temperature,
         wind_speed,
         relative_humidity,
-        P_atmos;
+        atmospheric_pressure;
         posture=ellipsoid_input.posture,
         mass=(ellipsoid_input.mass)u"kg",
         density=(ellipsoid_input.density)u"kg/m^3",
