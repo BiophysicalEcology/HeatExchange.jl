@@ -1,5 +1,5 @@
 """
-    radiant_temperature(; body, insulation, insulation_pars, org_temps, ks, side, cd, longwave_depth_fraction, conduction_fraction, evaporation_flux, substrate_temperature)
+    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, substrate_conductance, longwave_depth_fraction, conduction_fraction, evaporation_flux, substrate_temperature)
 
 Calculate the radiant temperature at the insulation surface for longwave radiation exchange.
 
@@ -11,9 +11,9 @@ heat conduction equations through the insulation layer.
 - `insulation::InsulationProperties`: Computed insulation properties
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `org_temps::OrganismTemperatures`: Organism temperatures (core, skin, insulation)
-- `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
+- `conductivities::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
 - `side`: Body side (`:dorsal` or `:ventral`)
-- `cd`: Substrate conductance coefficient
+- `substrate_conductance`: Substrate conductance coefficient
 - `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
 - `conduction_fraction`: Fraction of body in contact with substrate
 - `evaporation_flux`: Evaporative heat loss
@@ -23,17 +23,17 @@ heat conduction equations through the insulation layer.
 NamedTuple with:
 - `radiant_temperature`: Radiant temperature for longwave exchange
 - `compressed_insulation_temperature`: Compressed insulation temperature
-- `cds::ConductanceCoeffs`: Conductance coefficients
-- `dvs::DivisorCoeffs`: Divisor coefficients for calculations
+- `conductances::ConductanceCoeffs`: Conductance coefficients
+- `divisors::DivisorCoeffs`: Divisor coefficients for calculations
 """
 function radiant_temperature(;
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
-    ks::ThermalConductivities,
+    conductivities::ThermalConductivities,
     side,
-    cd,
+    substrate_conductance,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
@@ -45,9 +45,9 @@ function radiant_temperature(;
         insulation,
         insulation_pars,
         org_temps,
-        ks,
+        conductivities,
         side,
-        cd,
+        substrate_conductance,
         longwave_depth_fraction,
         conduction_fraction,
         evaporation_flux,
@@ -60,16 +60,15 @@ function radiant_temperature(
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
-    ks::ThermalConductivities,
+    conductivities::ThermalConductivities,
     side,
-    cd,
+    substrate_conductance,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
     substrate_temperature,
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
-    (; flesh=k_flesh, fat=k_fat, insulation=k_insulation) = ks
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -77,59 +76,59 @@ function radiant_temperature(
     r_insulation = insulation_radius(body)
     insulation_depth = getproperty(insulation.fibres, side).depth
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
-    k_compressed = insulation.conductivity_compressed
+    compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
     length = body.geometry.length.length_skin
 
     compression_fraction =
-        (conduction_fraction * 2 * π * k_compressed * length) / log(r_compressed / r_skin)
+        (conduction_fraction * 2 * π * compressed_conductivity * length) / log(r_compressed / r_skin)
     compressed_insulation_temperature = if conduction_fraction > 0
-        (compression_fraction * skin_temperature + cd * substrate_temperature) / (cd + compression_fraction)
+        (compression_fraction * skin_temperature + substrate_conductance * substrate_temperature) / (substrate_conductance + compression_fraction)
     else
         0.0u"K"
     end
 
-    cd1 =
-        (k_compressed / log(r_compressed / r_skin)) * conduction_fraction +
-        (k_insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
-    cd2 = (k_compressed / log(r_compressed / r_skin)) * conduction_fraction
-    cd3 = (k_insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
+    total_conductance =
+        (compressed_conductivity / log(r_compressed / r_skin)) * conduction_fraction +
+        (conductivities.insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
+    compressed_conductance = (compressed_conductivity / log(r_compressed / r_skin)) * conduction_fraction
+    uncompressed_conductance = (conductivities.insulation / log(r_insulation / r_skin)) * (1 - conduction_fraction)
 
-    dv1 =
+    geometric_divisor =
         1 +
-        ((2 * π * length * r_flesh^2 * cd1) / (4 * k_flesh * volume)) +
-        ((2 * π * length * r_flesh^2 * cd1) / (2 * k_fat * volume)) * log(r_skin / r_flesh)
+        ((2 * π * length * r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
+        ((2 * π * length * r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
-    dv2 =
-        evaporation_flux * ((r_flesh^2 * cd1) / (4 * k_flesh * volume)) +
-        evaporation_flux * ((r_flesh^2 * cd1) / (2 * k_fat * volume)) * log(r_skin / r_flesh)
+    evaporative_divisor =
+        evaporation_flux * ((r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
+        evaporation_flux * ((r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
-    dv3 =
-        ((2 * π * length) / dv1) *
-        (core_temperature * cd1 - dv2 - compressed_insulation_temperature * cd2 - insulation_temperature * cd3) *
+    numerator_divisor =
+        ((2 * π * length) / geometric_divisor) *
+        (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) *
         r_flesh^2 / (2 * volume)
 
-    dv4 = if longwave_depth_fraction < 1
-        cd2 + (k_insulation / log(r_insulation / r_radiation)) * (1 - conduction_fraction)
+    radiative_divisor = if longwave_depth_fraction < 1
+        compressed_conductance + (conductivities.insulation / log(r_insulation / r_radiation)) * (1 - conduction_fraction)
     else
         1.0
     end
 
     radiant_temperature = if longwave_depth_fraction < 1
-        dv3 / dv4 +
-        (compressed_insulation_temperature * cd2) / dv4 +
+        numerator_divisor / radiative_divisor +
+        (compressed_insulation_temperature * compressed_conductance) / radiative_divisor +
         (
             insulation_temperature * (
-                (k_insulation / log(r_insulation / r_radiation)) *
+                (conductivities.insulation / log(r_insulation / r_radiation)) *
                 (1 - conduction_fraction)
             )
-        ) / dv4
+        ) / radiative_divisor
     else
         insulation_temperature
     end
-    cds = ConductanceCoeffs(cd1, cd2, cd3)
-    dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
-    return (; radiant_temperature, compressed_insulation_temperature, cds, dvs)
+    conductances = ConductanceCoeffs(total_conductance, compressed_conductance, uncompressed_conductance)
+    divisors = DivisorCoeffs(geometric_divisor, evaporative_divisor, numerator_divisor, radiative_divisor)
+    return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)
 end
 function radiant_temperature(
     shape::Sphere,
@@ -137,16 +136,15 @@ function radiant_temperature(
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
-    ks::ThermalConductivities,
+    conductivities::ThermalConductivities,
     side,
-    cd,
+    substrate_conductance,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
     substrate_temperature,
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
-    (; flesh=k_flesh, fat=k_fat, insulation=k_insulation) = ks
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -154,69 +152,69 @@ function radiant_temperature(
     r_insulation = insulation_radius(body)
     insulation_depth = getproperty(insulation.fibres, side).depth
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
-    k_compressed = insulation.conductivity_compressed
+    compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
 
     compression_fraction =
-        (conduction_fraction * 4 * π * k_compressed * r_compressed * r_skin) /
+        (conduction_fraction * 4 * π * compressed_conductivity * r_compressed * r_skin) /
         (r_compressed - r_skin)
 
     compressed_insulation_temperature = if conduction_fraction > 0
-        (compression_fraction * skin_temperature + cd * substrate_temperature) / (cd + compression_fraction)
+        (compression_fraction * skin_temperature + substrate_conductance * substrate_temperature) / (substrate_conductance + compression_fraction)
     else
         0.0u"K"
     end
 
-    cd1 =
-        ((k_compressed * r_compressed) / (r_compressed - r_skin)) * conduction_fraction +
-        ((k_insulation * r_insulation) / (r_insulation - r_skin)) *
+    total_conductance =
+        ((compressed_conductivity * r_compressed) / (r_compressed - r_skin)) * conduction_fraction +
+        ((conductivities.insulation * r_insulation) / (r_insulation - r_skin)) *
         (1 - conduction_fraction)
 
-    cd2 = ((k_compressed * r_compressed) / (r_compressed - r_skin)) * conduction_fraction
-    cd3 =
-        ((k_insulation * r_insulation) / (r_insulation - r_skin)) *
+    compressed_conductance = ((compressed_conductivity * r_compressed) / (r_compressed - r_skin)) * conduction_fraction
+    uncompressed_conductance =
+        ((conductivities.insulation * r_insulation) / (r_insulation - r_skin)) *
         (1 - conduction_fraction)
 
-    dv1 =
+    geometric_divisor =
         1 +
-        ((4 * π * r_skin * r_flesh^2 * cd1) / (6 * k_flesh * volume)) +
-        ((4 * π * r_skin * r_flesh^3 * cd1) / (3 * k_fat * volume)) *
+        ((4 * π * r_skin * r_flesh^2 * total_conductance) / (6 * conductivities.flesh * volume)) +
+        ((4 * π * r_skin * r_flesh^3 * total_conductance) / (3 * conductivities.fat * volume)) *
         ((r_skin - r_flesh) / (r_flesh * r_skin))
 
-    dv2 =
-        evaporation_flux * ((r_flesh^2 * cd1) / (6 * k_flesh * volume)) +
+    evaporative_divisor =
+        evaporation_flux * ((r_flesh^2 * total_conductance) / (6 * conductivities.flesh * volume)) +
         evaporation_flux *
-        ((r_flesh^3 * cd1) / (3 * k_fat * volume)) *
+        ((r_flesh^3 * total_conductance) / (3 * conductivities.fat * volume)) *
         ((r_skin - r_flesh) / (r_flesh * r_skin))
 
-    dv3 =
-        ((4 * π * r_skin) / dv1) *
-        (core_temperature * cd1 - dv2 - compressed_insulation_temperature * cd2 - insulation_temperature * cd3) *
+    numerator_divisor =
+        ((4 * π * r_skin) / geometric_divisor) *
+        (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) *
         r_flesh^3 / (3 * volume * r_radiation)
 
-    dv4 = if longwave_depth_fraction < 1
-        cd2 +
-        ((k_insulation * r_insulation) / (r_insulation - r_radiation)) *
+    radiative_divisor = if longwave_depth_fraction < 1
+        compressed_conductance +
+        ((conductivities.insulation * r_insulation) / (r_insulation - r_radiation)) *
         (1 - conduction_fraction)
     else
         1.0
     end
 
     radiant_temperature = if longwave_depth_fraction < 1
-        dv3 / dv4 +
-        (compressed_insulation_temperature * cd2) / dv4 +
+        numerator_divisor / radiative_divisor +
+        (compressed_insulation_temperature * compressed_conductance) / radiative_divisor +
         (
             insulation_temperature * (
-                (k_insulation * r_insulation) / (r_insulation - r_radiation) *
+                (conductivities.insulation * r_insulation) / (r_insulation - r_radiation) *
                 (1 - conduction_fraction)
             )
-        ) / dv4
+        ) / radiative_divisor
     else
         insulation_temperature
     end
-    cds = ConductanceCoeffs(cd1, cd2, cd3)
-    dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
-    return (; radiant_temperature, compressed_insulation_temperature, cds, dvs)
+    conductances = ConductanceCoeffs(total_conductance, compressed_conductance, uncompressed_conductance)
+    divisors = DivisorCoeffs(geometric_divisor, evaporative_divisor, numerator_divisor, radiative_divisor)
+    return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)
 end
 function radiant_temperature(
     shape::Ellipsoid,
@@ -224,16 +222,15 @@ function radiant_temperature(
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
     org_temps::OrganismTemperatures,
-    ks::ThermalConductivities,
+    conductivities::ThermalConductivities,
     side,
-    cd,
+    substrate_conductance,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
     substrate_temperature,
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
-    (; flesh=k_flesh, fat=k_fat, insulation=k_insulation) = ks
 
     volume = flesh_volume(body)
 
@@ -246,7 +243,7 @@ function radiant_temperature(
     c_semi_minor_flesh = c_semi_minor - fat
 
     insulation_depth = getproperty(insulation.fibres, side).depth
-    k_compressed = insulation.conductivity_compressed
+    compressed_conductivity = insulation.conductivity_compressed
     bl_compressed = b_semi_minor + insulation_pars.depth_compressed
 
     a_square = min(a_semi_major_flesh^2, a_semi_major^2)
@@ -263,46 +260,46 @@ function radiant_temperature(
     br = bs + longwave_depth_fraction * insulation_depth
 
     compression_fraction =
-        (conduction_fraction * 3 * k_compressed * volume * bl_compressed * bs) /
+        (conduction_fraction * 3 * compressed_conductivity * volume * bl_compressed * bs) /
         ((sqrt(3 * ssqg))^3 * (bl_compressed - bs))
 
     compressed_insulation_temperature = if conduction_fraction > 0.0
-        (compression_fraction * skin_temperature + cd * substrate_temperature) / (cd + compression_fraction)
+        (compression_fraction * skin_temperature + substrate_conductance * substrate_temperature) / (substrate_conductance + compression_fraction)
     else
         0.0u"K"
     end
 
-    cd1 =
-        ((k_compressed * bl_compressed) / (bl_compressed - bs)) * conduction_fraction +
-        ((k_insulation * bl) / (bl - bs)) * (1 - conduction_fraction)
-    cd2 = ((k_compressed * bl_compressed) / (bl_compressed - bs)) * conduction_fraction
-    cd3 = ((k_insulation * bl) / (bl - bs)) * (1 - conduction_fraction)
-    dv1 =
+    total_conductance =
+        ((compressed_conductivity * bl_compressed) / (bl_compressed - bs)) * conduction_fraction +
+        ((conductivities.insulation * bl) / (bl - bs)) * (1 - conduction_fraction)
+    compressed_conductance = ((compressed_conductivity * bl_compressed) / (bl_compressed - bs)) * conduction_fraction
+    uncompressed_conductance = ((conductivities.insulation * bl) / (bl - bs)) * (1 - conduction_fraction)
+    geometric_divisor =
         1 +
-        (3 * bs * ssqg * cd1) / (2 * k_flesh * (sqrt(3 * ssqg)^3)) +
-        (bs * cd1) / k_fat * ((bs - bg) / (bs * bg))
+        (3 * bs * ssqg * total_conductance) / (2 * conductivities.flesh * (sqrt(3 * ssqg)^3)) +
+        (bs * total_conductance) / conductivities.fat * ((bs - bg) / (bs * bg))
 
-    dv2 =
-        evaporation_flux * ((ssqg * cd1) / (2 * k_flesh * volume)) +
-        evaporation_flux * ((sqrt(3 * ssqg)^3 * cd1) / (3 * k_fat * volume)) * ((bs - bg) / (bs * bg))
+    evaporative_divisor =
+        evaporation_flux * ((ssqg * total_conductance) / (2 * conductivities.flesh * volume)) +
+        evaporation_flux * ((sqrt(3 * ssqg)^3 * total_conductance) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bs * bg))
 
-    dv3 =
-        (bs / dv1) * (core_temperature * cd1 - dv2 - compressed_insulation_temperature * cd2 - insulation_temperature * cd3) / br
+    numerator_divisor =
+        (bs / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) / br
 
-    dv4 = if longwave_depth_fraction < 1
-        cd2 + ((k_insulation * bl) / (bl - br)) * (1 - conduction_fraction)
+    radiative_divisor = if longwave_depth_fraction < 1
+        compressed_conductance + ((conductivities.insulation * bl) / (bl - br)) * (1 - conduction_fraction)
     else
         1.0
     end
 
     radiant_temperature = if longwave_depth_fraction < 1
-        dv3 / dv4 +
-        (compressed_insulation_temperature * cd2) / dv4 +
-        (insulation_temperature * ((k_insulation * bl) / (bl - br) * (1 - conduction_fraction))) / dv4
+        numerator_divisor / radiative_divisor +
+        (compressed_insulation_temperature * compressed_conductance) / radiative_divisor +
+        (insulation_temperature * ((conductivities.insulation * bl) / (bl - br) * (1 - conduction_fraction))) / radiative_divisor
     else
         insulation_temperature
     end
-    cds = ConductanceCoeffs(cd1, cd2, cd3)
-    dvs = DivisorCoeffs(dv1, dv2, dv3, dv4)
-    return (; radiant_temperature, compressed_insulation_temperature, cds, dvs)
+    conductances = ConductanceCoeffs(total_conductance, compressed_conductance, uncompressed_conductance)
+    divisors = DivisorCoeffs(geometric_divisor, evaporative_divisor, numerator_divisor, radiative_divisor)
+    return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)
 end

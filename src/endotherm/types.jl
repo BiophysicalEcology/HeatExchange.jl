@@ -6,14 +6,14 @@ Thermal conductance coefficients through insulation layers.
 Computed by `radiant_temperature()` and used by downstream functions.
 
 # Fields
-- `cd1::T1` — Total composite conductance (compressed + uncompressed pathways)
-- `cd2::T2` — Conductance through compressed insulation layer
-- `cd3::T3` — Conductance through uncompressed insulation layer
+- `total::T1` — Total composite conductance (compressed + uncompressed pathways)
+- `compressed::T2` — Conductance through compressed insulation layer
+- `uncompressed::T3` — Conductance through uncompressed insulation layer
 """
 struct ConductanceCoeffs{T1,T2,T3}
-    cd1::T1
-    cd2::T2
-    cd3::T3
+    total::T1
+    compressed::T2
+    uncompressed::T3
 end
 
 """
@@ -24,16 +24,16 @@ Intermediate divisor values for heat balance calculations.
 Computed by `radiant_temperature()` and used by downstream functions.
 
 # Fields
-- `dv1::T1` — Geometric/thermal divisor
-- `dv2::T2` — Evaporative heat contribution term
-- `dv3::T3` — Temperature solution numerator
-- `dv4::T4` — Radiative conductance divisor
+- `geometric::T1` — Geometric/thermal divisor
+- `evaporative::T2` — Evaporative heat contribution term
+- `numerator::T3` — Temperature solution numerator
+- `radiative::T4` — Radiative conductance divisor
 """
 struct DivisorCoeffs{T1,T2,T3,T4}
-    dv1::T1
-    dv2::T2
-    dv3::T3
-    dv4::T4
+    geometric::T1
+    evaporative::T2
+    numerator::T3
+    radiative::T4
 end
 
 """
@@ -42,16 +42,16 @@ end
 Linearized radiation exchange coefficients to environmental surfaces.
 
 # Fields
-- `sky_radiation_coeff::T1` — Radiation coefficient to sky
-- `bush_radiation_coeff::T2` — Radiation coefficient to bush/shrub layer
-- `vegetation_radiation_coeff::T3` — Radiation coefficient to vegetation canopy
-- `ground_radiation_coeff::T4` — Radiation coefficient to ground surface
+- `sky::T1` — Radiation coefficient to sky
+- `bush::T2` — Radiation coefficient to bush/shrub layer
+- `vegetation::T3` — Radiation coefficient to vegetation canopy
+- `ground::T4` — Radiation coefficient to ground surface
 """
 struct RadiationCoeffs{T1,T2,T3,T4}
-    sky_radiation_coeff::T1
-    bush_radiation_coeff::T2
-    vegetation_radiation_coeff::T3
-    ground_radiation_coeff::T4
+    sky::T1
+    bush::T2
+    vegetation::T3
+    ground::T4
 end
 
 """
@@ -68,6 +68,21 @@ struct BodyRegionValues{T}
     average::T
     dorsal::T
     ventral::T
+end
+
+"""
+    DorsalVentral{D,V}
+
+Container for dorsal and ventral surface values without an average.
+Used for input parameters where only dorsal/ventral are specified.
+
+# Fields
+- `dorsal::D` — Dorsal (upper/back) surface value
+- `ventral::V` — Ventral (lower/belly) surface value
+"""
+struct DorsalVentral{D,V}
+    dorsal::D
+    ventral::V
 end
 
 """
@@ -199,28 +214,18 @@ end
 Molar fluxes for respiratory gas exchange (mol/s).
 
 # Fields
-- `J_air_in` — Molar flux of air inhaled
-- `J_air_out` — Molar flux of air exhaled
-- `J_H2O_in` — Molar flux of water vapor inhaled
-- `J_H2O_out` — Molar flux of water vapor exhaled
-- `J_O2_in` — Molar flux of oxygen inhaled
-- `J_O2_out` — Molar flux of oxygen exhaled
-- `J_CO2_in` — Molar flux of CO2 inhaled
-- `J_CO2_out` — Molar flux of CO2 exhaled
-- `J_N2_in` — Molar flux of nitrogen inhaled
-- `J_N2_out` — Molar flux of nitrogen exhaled
+- `air` — Molar flux of air
+- `water` — Molar flux of water vapor
+- `oxygen` — Molar flux of oxygen
+- `carbon_dioxide` — Molar flux of CO2
+- `nitrogen` — Molar flux of nitrogen
 """
-struct MolarFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10}
-    J_air_in::T1
-    J_air_out::T2
-    J_H2O_in::T3
-    J_H2O_out::T4
-    J_O2_in::T5
-    J_O2_out::T6
-    J_CO2_in::T7
-    J_CO2_out::T8
-    J_N2_in::T9
-    J_N2_out::T10
+struct MolarFluxes{A,W,O,C,N}
+    air::A
+    water::W
+    oxygen::O
+    carbon_dioxide::C
+    nitrogen::N
 end
 
 """
@@ -229,30 +234,30 @@ end
 Heat flux components from the heat balance solution.
 
 # Fields
-- `convection_flux` — Convective heat loss to air
-- `conduction_flux` — Conductive heat loss to substrate
-- `net_generated_flux` — Net metabolic heat generation
-- `skin_evaporation_flux` — Evaporative heat loss from skin
-- `insulation_evaporation_flux` — Evaporative heat loss from insulation surface
-- `longwave_flux` — Net longwave radiation exchange
-- `solar_flux` — Absorbed solar radiation
-- `sky_radiation_flux` — Radiation exchange with sky
-- `bush_radiation_flux` — Radiation exchange with bush layer
-- `vegetation_radiation_flux` — Radiation exchange with vegetation
-- `ground_radiation_flux` — Radiation exchange with ground
+- `convection` — Convective heat loss to air
+- `conduction` — Conductive heat loss to substrate
+- `net_generated` — Net metabolic heat generation
+- `skin_evaporation` — Evaporative heat loss from skin
+- `insulation_evaporation` — Evaporative heat loss from insulation surface
+- `longwave` — Net longwave radiation exchange
+- `solar` — Absorbed solar radiation
+- `sky_radiation` — Radiation exchange with sky
+- `bush_radiation` — Radiation exchange with bush layer
+- `vegetation_radiation` — Radiation exchange with vegetation
+- `ground_radiation` — Radiation exchange with ground
 """
 struct HeatFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
-    convection_flux::T1
-    conduction_flux::T2
-    net_generated_flux::T3
-    skin_evaporation_flux::T4
-    insulation_evaporation_flux::T5
-    longwave_flux::T6
-    solar_flux::T7
-    sky_radiation_flux::T8
-    bush_radiation_flux::T9
-    vegetation_radiation_flux::T10
-    ground_radiation_flux::T11
+    convection::T1
+    conduction::T2
+    net_generated::T3
+    skin_evaporation::T4
+    insulation_evaporation::T5
+    longwave::T6
+    solar::T7
+    sky_radiation::T8
+    bush_radiation::T9
+    vegetation_radiation::T10
+    ground_radiation::T11
 end
 
 """
@@ -284,17 +289,17 @@ end
 """
     TransferCoefficients
 
-Heat and mass transfer coefficients from convection calculations.
+Transfer coefficients for convection (heat or mass).
 
 # Fields
-- `heat` — Heat transfer coefficient (W/m²/K)
-- `mass` — Mass transfer coefficient, combined free + forced (m/s)
-- `mass_free` — Mass transfer coefficient, free convection only (m/s)
+- `combined` — Combined free + forced transfer coefficient
+- `free` — Free convection transfer coefficient
+- `forced` — Forced convection transfer coefficient
 """
-Base.@kwdef struct TransferCoefficients{HC,HD,HDF}
-    heat::HC
-    mass::HD
-    mass_free::HDF = 0.0u"m/s"
+Base.@kwdef struct TransferCoefficients{C,F,FO}
+    combined::C
+    free::F
+    forced::FO
 end
 
 """
@@ -319,21 +324,18 @@ end
 Longwave emissivity values for radiation exchange.
 
 # Fields
-- `body_dorsal` — Dorsal body surface emissivity (0-1)
-- `body_ventral` — Ventral body surface emissivity (0-1)
+- `body` — Body surface emissivities (DorsalVentral, 0-1)
 - `ground` — Ground surface emissivity (0-1)
 - `sky` — Effective sky emissivity (0-1)
 """
-Base.@kwdef struct Emissivities{BD,BV,G,S}
-    body_dorsal::BD
-    body_ventral::BV
+Base.@kwdef struct Emissivities{B,G,S}
+    body::B
     ground::G
     sky::S
 end
 function Emissivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
     Emissivities(;
-        body_dorsal=rad.body_emissivity_dorsal,
-        body_ventral=rad.body_emissivity_ventral,
+        body=DorsalVentral(rad.body_emissivity_dorsal, rad.body_emissivity_ventral),
         ground=env.ground_emissivity,
         sky=env.sky_emissivity,
     )
@@ -345,19 +347,16 @@ end
 Shortwave absorptivity values for solar radiation.
 
 # Fields
-- `body_dorsal` — Dorsal body surface absorptivity (0-1)
-- `body_ventral` — Ventral body surface absorptivity (0-1)
+- `body` — Body surface absorptivities (DorsalVentral, 0-1)
 - `ground` — Ground surface absorptivity (0-1)
 """
-Base.@kwdef struct Absorptivities{BD,BV,G}
-    body_dorsal::BD
-    body_ventral::BV
+Base.@kwdef struct Absorptivities{B,G}
+    body::B
     ground::G
 end
 function Absorptivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
     Absorptivities(;
-        body_dorsal=rad.body_absorptivity_dorsal,
-        body_ventral=rad.body_absorptivity_ventral,
+        body=DorsalVentral(rad.body_absorptivity_dorsal, rad.body_absorptivity_ventral),
         ground=env.ground_albedo,
     )
 end

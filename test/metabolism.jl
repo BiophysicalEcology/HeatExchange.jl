@@ -21,8 +21,8 @@ using Test
         @test metabolic_rate(eq, mass, 30.0u"°C") > metabolic_rate(eq, mass, 20.0u"°C")
         @test metabolic_rate(eq, 100.0u"g", T) > metabolic_rate(eq, 10.0u"g", T)
 
-        # Resting (M4=1) > standard (M4=0)
-        @test metabolic_rate(AndrewsPough2(M4=1.0), mass, T) > metabolic_rate(AndrewsPough2(M4=0.0), mass, T)
+        # Resting (metabolic_state=1) > standard (metabolic_state=0)
+        @test metabolic_rate(AndrewsPough2(metabolic_state=1.0), mass, T) > metabolic_rate(AndrewsPough2(metabolic_state=0.0), mass, T)
 
         # Accepts Kelvin
         @test metabolic_rate(eq, mass, 303.15u"K") ≈ metabolic_rate(eq, mass, 30.0u"°C")

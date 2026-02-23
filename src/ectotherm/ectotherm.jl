@@ -21,7 +21,7 @@ NamedTuple with:
 - `lung_temperature`: Lung temperature
 - `enbal`: Energy balance components
 - `masbal`: Mass balance components
-- `resp_out`, `solar_out`, `ir_gain`, `ir_loss`, `conv_out`, `evap_out`: Detailed outputs
+- `resp_out`, `solar_out`, `ir_gain`, `ir_loss`, `conv`, `evap_out`: Detailed outputs
 """
 function ectotherm end
 
@@ -47,10 +47,10 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
     metab = metabolism_pars(o)
 
     # compute areas for exchange
-    A_total = total_area(o.body)
-    A_convection = A_total * (1 - cond_ex.conduction_fraction)
-    A_conduction = A_total * cond_ex.conduction_fraction
-    A_silhouette = rad.A_silhouette
+    total_area = BiophysicalGeometry.total_area(o.body)
+    convection_area = total_area * (1 - cond_ex.conduction_fraction)
+    conduction_area = total_area * cond_ex.conduction_fraction
+    silhouette_area = rad.silhouette_area
 
     # calculate heat fluxes
 
@@ -70,7 +70,7 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
         gas_fractions=e_pars.gas_fractions,
     )
     respiration_flux = resp_out.respiration_flux
-    V_O2 = u"ml/hr"(Joules_to_O2(metabolic_flux))
+    oxygen_flow = u"ml/hr"(Joules_to_O2(metabolic_flux))
 
     # net metabolic heat generation
     net_generated_flux = metabolic_flux - respiration_flux
@@ -78,7 +78,7 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
 
     # resultant surface and lung temperature
     Tsurf_Tlung_out = Tsurf_and_Tlung(;
-        body=o.body, k_flesh=cond_in.flesh_conductivity, generated_specific_flux, core_temperature=body_temperature
+        body=o.body, flesh_conductivity=cond_in.flesh_conductivity, generated_specific_flux, core_temperature=body_temperature
     )
     surface_temperature = Tsurf_Tlung_out.surface_temperature
     lung_temperature = Tsurf_Tlung_out.lung_temperature
@@ -92,8 +92,8 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
         absorptivities,
         view_factors,
         solar_conditions,
-        A_silhouette,
-        A_conduction,
+        silhouette_area,
+        conduction_area,
     )
     solar_flux = solar_out.solar_flux
 
@@ -122,17 +122,17 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
 
     # conduction
     conduction_flux = conduction(;
-        A_conduction,
+        conduction_area,
         L=e_pars.conduction_depth,
         surface_temperature,
         substrate_temperature=e_vars.substrate_temperature,
-        k_substrate=e_vars.k_substrate,
+        substrate_conductivity=e_vars.substrate_conductivity,
     )
 
     # convection
-    conv_out = convection(;
+    conv = convection(;
         body=o.body,
-        area=A_convection,
+        area=convection_area,
         air_temperature=e_vars.air_temperature,
         surface_temperature,
         wind_speed=e_vars.wind_speed,
@@ -141,15 +141,14 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
         gas_fractions=e_pars.gas_fractions,
         convection_enhancement=e_pars.convection_enhancement,
     )
-    convection_flux = conv_out.convection_flux
+    convection_flux = conv.flux
 
     # evaporation
-    transfer = TransferCoefficients(; heat=conv_out.hc, mass=conv_out.hd, mass_free=conv_out.hd_free)
     evap_out = evaporation(
         evap,
-        transfer,
+        conv.mass,
         atmos,
-        A_convection,
+        convection_area,
         surface_temperature,
         e_vars.air_temperature;
         water_potential=hyd.water_potential,
@@ -164,7 +163,7 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
     heat_balance = flux_in - flux_out # this must balance
 
     enbal = (; solar_flux, infrared_in_flux, metabolic_flux, respiration_flux, evaporation_flux, infrared_out_flux, convection_flux, conduction_flux, heat_balance)
-    masbal = (; V_O2, m_resp=resp_out.m_resp, m_cut=evap_out.m_cut, m_eye=evap_out.m_eyes)
+    masbal = (; oxygen_flow, m_resp=resp_out.m_resp, m_cut=evap_out.m_cut, m_eye=evap_out.m_eyes)
     (;
         heat_balance,
         core_temperature=body_temperature,
@@ -176,7 +175,7 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
         solar_out,
         ir_gain,
         ir_loss,
-        conv_out,
+        conv,
         evap_out,
     )
 end
@@ -217,7 +216,7 @@ end
 #    A_sil = silhouette_area(geometric_pars, zenith_angle)
 
 #    # calculate heat fluxes
-#    metab_out = metabolic_rate(geometric_pars.shape.mass, body_temperature, M1, M2, M3)
+#    metab_out = metabolic_rate(geometric_pars.shape.mass, body_temperature, mass_normalisation, mass_exponent, thermal_sensitivity)
 #    Q_metab = metab_out.Q_metab
 #    resp_out = respiration_ectotherm(body_temperature, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2)
 #    Q_resp = resp_out.Q_resp

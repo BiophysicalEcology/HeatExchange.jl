@@ -68,12 +68,13 @@ export solve_metabolic_rate,
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
-export simulsol, mean_skin_temperature, respiration
+export solve_temperatures, mean_skin_temperature, respiration
 
 export ConductanceCoeffs,
     DivisorCoeffs,
     RadiationCoeffs,
     BodyRegionValues,
+    DorsalVentral,
     FibreProperties,
     EnvironmentTemperatures,
     OrganismTemperatures,

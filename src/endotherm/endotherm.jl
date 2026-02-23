@@ -5,12 +5,12 @@ Options controlling the endotherm metabolic rate solver.
 
 # Fields
 - `respire`: Whether to include respiration in the heat balance (default: true)
-- `simulsol_tolerance`: Convergence tolerance for simultaneous temperature solution (default: 1e-3 K)
+- `temperature_tolerance`: Convergence tolerance for simultaneous temperature solution (default: 1e-3 K)
 - `resp_tolerance`: Relative convergence tolerance for respiration root finding (default: 1e-5)
 """
 Base.@kwdef struct SolveMetabolicRateOptions{RE,ST,BT} <: AbstractModelParameters
     respire::RE = Param(true)
-    simulsol_tolerance::ST = Param(1e-3u"K")
+    temperature_tolerance::ST = Param(1e-3u"K")
     resp_tolerance::BT = Param(1e-5)
 end
 
@@ -50,16 +50,16 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     resp = respiration_pars(o)
     metab = metabolism_pars(o)
 
-    simulsol_out = Vector{NamedTuple}(undef, 2) # TODO preallocate
+    temps_out = Vector{NamedTuple}(undef, 2) # TODO preallocate
     respiration_out = Vector{NamedTuple}(undef, 1) # TODO preallocate
     geometry_pars = nothing
-    simulsol_tolerance = opts.simulsol_tolerance
+    temperature_tolerance = opts.temperature_tolerance
 
     avg_insulation_temp = insulation_temperature * 0.7 + skin_temperature * 0.3
-    insulation_out = insulation_properties(ins, avg_insulation_temp, rad.ventral_fraction)
-    fibres = insulation_out.fibres
+    insulation = insulation_properties(ins, avg_insulation_temp, rad.ventral_fraction)
+    fibres = insulation.fibres
     # if no insulation, reset bare_skin_fraction if necessary
-    if insulation_out.insulation_test <= 0.0u"m" && evap.bare_skin_fraction < 1.0
+    if insulation.insulation_test <= 0.0u"m" && evap.bare_skin_fraction < 1.0
         evap_temp = EvaporationParameters(;
             skin_wetness=evap.skin_wetness,
             insulation_wetness=evap.insulation_wetness,
@@ -72,19 +72,19 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
 
     fat = Fat(cond_in.fat_fraction, cond_in.fat_density)
 
-    # correct F_sky for vegetaion overhead
-    F_vegetation = rad.sky_view_factor * e_vars.shade
-    F_sky = rad.sky_view_factor - F_vegetation
-    F_ground = 1 - F_sky - F_vegetation
+    # correct sky_factor for vegetation overhead
+    vegetation_factor = rad.sky_view_factor * e_vars.shade
+    sky_factor = rad.sky_view_factor - vegetation_factor
+    ground_factor = 1 - sky_factor - vegetation_factor
 
     area_silhouette = silhouette_area(o.body, rad.solar_orientation)
-    area_total = total_area(o.body)
+    area_total = BiophysicalGeometry.total_area(o.body)
     area_skin = skin_area(o.body)
     area_conduction = area_total * cond_ex.conduction_fraction # not used but initialised for output
     area_evaporation = evaporation_area(o.body)
     area_convection = area_total * (1 - cond_ex.conduction_fraction)
     absorptivities = Absorptivities(rad, e_pars)
-    view_factors_solar = ViewFactors(F_sky, F_ground, 0.0, 0.0)
+    view_factors_solar = ViewFactors(sky_factor, ground_factor, 0.0, 0.0)
     solar_conditions = SolarConditions(e_vars)
     (; solar_flux, direct_flux, solar_sky_flux, solar_substrate_flux) = solar(
         o.body,
@@ -98,47 +98,35 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
 
     # set infrared environment
     vegetation_temperature = e_vars.reference_air_temperature # assume vegetation casting shade is at reference (e.g. 1.2m or 2m) air temperature (deg C)
-    F_bush_ref = rad.bush_view_factor # nearby bush
-    F_sky_ref = F_sky # sky
-    F_ground_ref = F_ground # ground
-    F_vegetation_ref = F_vegetation # vegetation
+    bush_factor_ref = rad.bush_view_factor # nearby bush
+    sky_factor_ref = sky_factor # sky
+    ground_factor_ref = ground_factor # ground
+    vegetation_factor_ref = vegetation_factor # vegetation
 
     for (side_idx, side) in enumerate((:dorsal, :ventral))
 
-        # Calculating solar intensity entering insulation. This will depend on whether we are calculating 
-        # the insulation temperature for the dorsal side or the ventral side. The dorsal side will have 
-        # solar inputs from the direct beam hitting the silhouette area as well as diffuse solar scattered 
+        # Calculating solar intensity entering insulation. This will depend on whether we are calculating
+        # the insulation temperature for the dorsal side or the ventral side. The dorsal side will have
+        # solar inputs from the direct beam hitting the silhouette area as well as diffuse solar scattered
         # from the sky. The ventral side will have diffuse solar scattered off the substrate.
-        # Resetting config factors and solar depending on whether the dorsal side (side=1) or 
+        # Resetting config factors and solar depending on whether the dorsal side (side=1) or
         # ventral side (side=2) is being estimated.
-        if solar_flux > 0.0u"W"
+        side_sky_factor, side_ground_factor, side_bush_factor, side_vegetation_factor = if solar_flux > 0.0u"W"
             if side == :dorsal
-                F_sky = F_sky_ref * 2.0 # proportion of upward view that is sky
-                F_vegetation = F_vegetation_ref * 2.0 # proportion of upward view that is vegetation (shade)
-                F_ground = 0.0
-                F_bush = 0.0
-                solar_flux = 2.0 * direct_flux + ((solar_sky_flux / F_sky_ref) * F_sky) # direct x 2 because assuming sun in both directions, and unadjusting solar_sky_flux for config factor imposed in SOLAR_ENDO and back to new larger one in both directions
+                solar_flux = 2.0 * direct_flux + ((solar_sky_flux / sky_factor_ref) * sky_factor_ref * 2.0) # direct x 2 because assuming sun in both directions
+                (sky_factor_ref * 2.0, 0.0, 0.0, vegetation_factor_ref * 2.0)
             else
-                F_sky = 0.0
-                F_vegetation = 0.0
-                F_ground = F_ground_ref * 2.0
-                F_bush = F_bush_ref * 2.0
                 solar_flux =
-                    (ventral_flux / (1.0 - F_sky_ref - F_vegetation_ref)) *
-                    (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO to have it coming in both directions, but also cutting down according to fractional area conducting to ground (in both directions)
+                    (ventral_flux / (1.0 - sky_factor_ref - vegetation_factor_ref)) *
+                    (1.0 - (2.0 * cond_ex.conduction_fraction)) # unadjust by config factor imposed in SOLAR_ENDO
+                (0.0, ground_factor_ref * 2.0, bush_factor_ref * 2.0, 0.0)
             end
         else
             solar_flux = 0.0u"W"
             if side == :dorsal
-                F_sky = F_sky_ref * 2.0
-                F_vegetation = F_vegetation_ref * 2.0
-                F_ground = 0.0
-                F_bush = 0.0
+                (sky_factor_ref * 2.0, 0.0, 0.0, vegetation_factor_ref * 2.0)
             else
-                F_sky = 0.0
-                F_vegetation = 0.0
-                F_ground = F_ground_ref * 2.0
-                F_bush = F_bush_ref * 2
+                (0.0, ground_factor_ref * 2.0, bush_factor_ref * 2.0, 0.0)
             end
         end
 
@@ -150,39 +138,38 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
 
         # set fur depth and conductivity
         side_fibres = getproperty(fibres, side)
-        insulation = Fur(
+        fur = Fur(
             side_fibres.depth,
             side_fibres.diameter,
             side_fibres.density,
         )
-        geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
-        A_total = total_area(geometry_pars)
+        geometry_pars = Body(o.body.shape, CompositeInsulation(fur, fat))
+        body_total_area = BiophysicalGeometry.total_area(geometry_pars)
         r_skin = skin_radius(geometry_pars) # body radius (including fat), m
-        r_insulation = r_skin + insulation.thickness # body radius including fur, m
+        r_insulation = r_skin + fur.thickness # body radius including fur, m
         if geometry_pars.shape isa Cylinder || geometry_pars.shape isa Sphere
             r_compressed = r_skin + ins.depth_compressed
         else
             r_compressed = r_insulation # Note that this value is never used if conduction not being modeled, but need to have a value for the calculations
         end
 
-        # Calculating the "cd" variable: Qcond = cd(Tskin-Tsub), where cd = Conduction area*ksub/subdepth
-        if side == :ventral # doing ventral side, add conduction
-            area_conduction = A_total * cond_ex.conduction_fraction * 2
-            cd = (area_conduction * e_vars.k_substrate) / e_pars.conduction_depth # assume conduction happens from 2.5 cm depth
+        # Calculating substrate_conductance: Qcond = substrate_conductance*(Tskin-Tsub)
+        substrate_conductance = if side == :ventral # doing ventral side, add conduction
+            area_conduction = body_total_area * cond_ex.conduction_fraction * 2
+            (area_conduction * e_vars.substrate_conductivity) / e_pars.conduction_depth # assume conduction happens from 2.5 cm depth
         else  # doing dorsal side, no conduction. No need to adjust areas used for convection.
-            area_conduction = 0.0u"m^2"
-            cd = 0.0u"W/K"
+            0.0u"W/K"
         end
 
         # package up inputs
         geom_vars = GeometryVariables(;
             side,
-            substrate_conductance=cd,
+            substrate_conductance,
             ventral_fraction=rad.ventral_fraction,
             conduction_fraction=cond_ex.conduction_fraction,
             longwave_depth_fraction=ins.longwave_depth_fraction,
         )
-        view_factors = ViewFactors(F_sky, F_ground, F_bush, F_vegetation)
+        view_factors = ViewFactors(side_sky_factor, side_ground_factor, side_bush_factor, side_vegetation_factor)
         atmos = AtmosphericConditions(e_vars)
         temperature = EnvironmentTemperatures(
             e_vars.air_temperature, e_vars.sky_temperature, e_vars.ground_temperature, vegetation_temperature, e_vars.bush_temperature, e_vars.substrate_temperature
@@ -192,14 +179,14 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             view_factors,
             atmos,
             fluid=e_pars.fluid,
-            solar_flux=solar_flux,
+            solar_flux,
             gas_fractions=e_pars.gas_fractions,
             convection_enhancement=e_pars.convection_enhancement,
         )
         traits = (;
             core_temperature=metab.core_temperature,
-            k_flesh=cond_in.flesh_conductivity,
-            k_fat=cond_in.fat_conductivity,
+            flesh_conductivity=cond_in.flesh_conductivity,
+            fat_conductivity=cond_in.fat_conductivity,
             ϵ_body,
             skin_wetness=evap.skin_wetness,
             insulation_wetness=evap.insulation_wetness,
@@ -207,58 +194,52 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             eye_fraction=evap.eye_fraction,
         )
 
-        insulation_out = insulation_properties(
+        insulation = insulation_properties(
             ins, insulation_temperature * 0.7 + skin_temperature * 0.3, rad.ventral_fraction
         )
-        # call simulsol
-        simulsol_out[side_idx] = simulsol(;
+        # call solve_temperatures
+        temps_out[side_idx] = solve_temperatures(;
             body=geometry_pars,
             insulation_pars=ins,
-            insulation_out,
+            insulation,
             geom_vars,
             env_vars,
             traits,
-            simulsol_tolerance=opts.simulsol_tolerance,
+            temperature_tolerance=opts.temperature_tolerance,
             skin_temperature,
             insulation_temperature,
         )
 
-        skin_temperature = simulsol_out[side_idx].skin_temperature # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
-        insulation_temperature = simulsol_out[side_idx].insulation_temperature # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
-        simulsol_tolerance = simulsol_out[side_idx].tolerance # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
+        skin_temperature = temps_out[side_idx].skin_temperature # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
+        insulation_temperature = temps_out[side_idx].insulation_temperature # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
+        temperature_tolerance = temps_out[side_idx].tolerance # TODO check if connecting this value across runs per side is a good idea (happens in Fortran)
     end
 
-    max_skin_temperature = max(simulsol_out[1].skin_temperature, simulsol_out[2].skin_temperature)
+    max_skin_temperature = max(temps_out[1].skin_temperature, temps_out[2].skin_temperature)
 
     # zbrent and respfun
 
-    # Now compute a weighted mean heat generation for all the parts/components = (dorsal value *(F_sky+F_vegetation))+(ventral value*F_ground)
-    gen_d = simulsol_out[1].fluxes.net_generated_flux
-    gen_v = simulsol_out[2].fluxes.net_generated_flux
-    dmult = F_sky_ref + F_vegetation_ref
+    # Now compute a weighted mean heat generation for all the parts/components = (dorsal value *(sky_factor+vegetation_factor))+(ventral value*ground_factor)
+    gen_d = temps_out[1].fluxes.net_generated
+    gen_v = temps_out[2].fluxes.net_generated
+    dmult = sky_factor_ref + vegetation_factor_ref
     vmult = 1 - dmult # assume that reflectivity of veg below equals reflectivity of soil so vmult left as 1 - dmult
     x = gen_d * dmult + gen_v * vmult # weighted estimate of metabolic heat generation
     flux_sum = x
 
-    # reset configuration factors
-    F_bush = F_bush_ref # nearby bush
-    F_sky = F_sky_ref # sky
-    F_ground = F_ground_ref # ground
-    F_vegetation = F_vegetation_ref # vegetation
-
     # lung temperature and temperature of exhaled air
-    skin_temperature = (simulsol_out[1].skin_temperature + simulsol_out[2].skin_temperature) * 0.5 # TODO weight it by dorsal/ventral fractions?
-    insulation_temperature = (simulsol_out[1].insulation_temperature + simulsol_out[2].insulation_temperature) * 0.5
+    skin_temperature = (temps_out[1].skin_temperature + temps_out[2].skin_temperature) * 0.5 # TODO weight it by dorsal/ventral fractions?
+    insulation_temperature = (temps_out[1].insulation_temperature + temps_out[2].insulation_temperature) * 0.5
     lung_temperature = (metab.core_temperature + skin_temperature) * 0.5 # average of skin and core
     exit_air_temperature = min(e_vars.air_temperature + resp.exhaled_temperature_offset, lung_temperature) # temperature of exhaled air, deg C
 
     if opts.respire
         # now guess for metabolic rate that balances the heat budget via root-finder ZBRENT
-        minimum_flux = metab.metabolic_fluxolism
-        flux_m1 = metab.metabolic_fluxolism * (-2.0)
-        flux_m2 = metab.metabolic_fluxolism * 10.0
+        minimum_flux = metab.metabolic_flux
+        flux_m1 = metab.metabolic_flux * (-2.0)
+        flux_m2 = metab.metabolic_flux * 10.0
         if max_skin_temperature >= metab.core_temperature
-            flux_m2 = metab.metabolic_fluxolism * 1.01
+            flux_m2 = metab.metabolic_flux * 1.01
         end
         resp_atmos = AtmosphericConditions(e_vars)
         f =
@@ -277,7 +258,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             f,
             ustrip(u"W", flux_m1),
             ustrip(u"W", flux_m2),
-            opts.resp_tolerance * ustrip(u"W", metab.metabolic_fluxolism),
+            opts.resp_tolerance * ustrip(u"W", metab.metabolic_flux),
         )
 
         respiration_out = respiration(
@@ -297,68 +278,51 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
 
     # collate output
 
-    # simusol outputs
-    insulation_temperature_dorsal = simulsol_out[1].insulation_temperature   # feather/fur-air interface temp (°C)
-    skin_temperature_dorsal = simulsol_out[1].skin_temperature   # average skin temp
-    dorsal_convection_flux = simulsol_out[1].fluxes.convection_flux   # convection (W)
-    dorsal_conduction_flux = simulsol_out[1].fluxes.conduction_flux   # conduction (W)
-    dorsal_skin_evaporation_flux = simulsol_out[1].fluxes.skin_evaporation_flux   # cutaneous evaporation (W)
-    dorsal_longwave_flux = simulsol_out[1].fluxes.longwave_flux   # radiative loss (W)
-    dorsal_solar_flux = simulsol_out[1].fluxes.solar_flux   # solar (W)
-    dorsal_insulation_evaporation_flux = simulsol_out[1].fluxes.insulation_evaporation_flux  # fur evaporation (W)
-    ntry_dorsal = simulsol_out[1].ntry  # attempts
-    success_dorsal = simulsol_out[1].success  # success?
-    k_insulation_dorsal = simulsol_out[1].k_insulation  # fur conductivity? (same as FORTRAN)
+    # solve_temperatures outputs
+    insulation_temperature_dorsal = temps_out[1].insulation_temperature   # feather/fur-air interface temp (°C)
+    skin_temperature_dorsal = temps_out[1].skin_temperature   # average skin temp
+    dorsal_convection_flux = temps_out[1].fluxes.convection   # convection (W)
+    dorsal_conduction_flux = temps_out[1].fluxes.conduction   # conduction (W)
+    dorsal_skin_evaporation_flux = temps_out[1].fluxes.skin_evaporation   # cutaneous evaporation (W)
+    dorsal_longwave_flux = temps_out[1].fluxes.longwave   # radiative loss (W)
+    dorsal_solar_flux = temps_out[1].fluxes.solar   # solar (W)
+    dorsal_insulation_evaporation_flux = temps_out[1].fluxes.insulation_evaporation  # fur evaporation (W)
+    ntry_dorsal = temps_out[1].ntry  # attempts
+    success_dorsal = temps_out[1].success  # success?
+    insulation_conductivity_dorsal = temps_out[1].insulation_conductivity
 
-    insulation_temperature_ventral = simulsol_out[2].insulation_temperature   # feather/fur-air interface temp (°C)
-    skin_temperature_ventral = simulsol_out[2].skin_temperature   # average skin temp
-    ventral_convection_flux = simulsol_out[2].fluxes.convection_flux   # convection (W)
-    ventral_conduction_flux = simulsol_out[2].fluxes.conduction_flux   # conduction (W)
-    ventral_skin_evaporation_flux = simulsol_out[2].fluxes.skin_evaporation_flux   # cutaneous evaporation (W)
-    ventral_longwave_flux = simulsol_out[2].fluxes.longwave_flux   # radiative loss (W)
-    ventral_solar_flux = simulsol_out[2].fluxes.solar_flux   # solar (W)
-    ventral_insulation_evaporation_flux = simulsol_out[2].fluxes.insulation_evaporation_flux  # fur evaporation (W)
-    ntry_ventral = simulsol_out[2].ntry  # attempts
-    success_ventral = simulsol_out[2].success  # success?
-    k_insulation_ventral = simulsol_out[2].k_insulation  # fur conductivity? (same as FORTRAN)
+    insulation_temperature_ventral = temps_out[2].insulation_temperature   # feather/fur-air interface temp (°C)
+    skin_temperature_ventral = temps_out[2].skin_temperature   # average skin temp
+    ventral_convection_flux = temps_out[2].fluxes.convection   # convection (W)
+    ventral_conduction_flux = temps_out[2].fluxes.conduction   # conduction (W)
+    ventral_skin_evaporation_flux = temps_out[2].fluxes.skin_evaporation   # cutaneous evaporation (W)
+    ventral_longwave_flux = temps_out[2].fluxes.longwave   # radiative loss (W)
+    ventral_solar_flux = temps_out[2].fluxes.solar   # solar (W)
+    ventral_insulation_evaporation_flux = temps_out[2].fluxes.insulation_evaporation  # fur evaporation (W)
+    ntry_ventral = temps_out[2].ntry  # attempts
+    success_ventral = temps_out[2].success  # success?
+    insulation_conductivity_ventral = temps_out[2].insulation_conductivity
     # respiration outputs
     if opts.respire
         balance = respiration_out.balance
         respiration_flux = respiration_out.respiration_flux
         m_resp = respiration_out.m_resp
-        V_air = respiration_out.V_air
-        V_O2_STP = respiration_out.V_O2_STP
-        molar_fluxes = respiration_out.molar_fluxes
-        J_air_in = molar_fluxes.J_air_in
-        J_air_out = molar_fluxes.J_air_out
-        J_H2O_in = molar_fluxes.J_H2O_in
-        J_H2O_out = molar_fluxes.J_H2O_out
-        J_O2_in = molar_fluxes.J_O2_in
-        J_O2_out = molar_fluxes.J_O2_out
-        J_CO2_in = molar_fluxes.J_CO2_in
-        J_CO2_out = molar_fluxes.J_CO2_out
-        J_N2_in = molar_fluxes.J_N2_in
-        J_N2_out = molar_fluxes.J_N2_out
+        air_flow = respiration_out.air_flow
+        oxygen_flow_stp = respiration_out.oxygen_flow_stp
+        molar_fluxes_in = respiration_out.molar_fluxes_in
+        molar_fluxes_out = respiration_out.molar_fluxes_out
     else
         balance = nothing
         respiration_flux = 0.0u"W"
         m_resp = nothing
-        V_air = nothing
-        V_O2_STP = nothing
-        J_air_in = nothing
-        J_air_out = nothing
-        J_H2O_in = nothing
-        J_H2O_out = nothing
-        J_O2_in = nothing
-        J_O2_out = nothing
-        J_CO2_in = nothing
-        J_CO2_out = nothing
-        J_N2_in = nothing
-        J_N2_out = nothing
+        air_flow = nothing
+        oxygen_flow_stp = nothing
+        molar_fluxes_in = nothing
+        molar_fluxes_out = nothing
     end
     # evaporation calculations
-    L_v = enthalpy_of_vaporisation(e_vars.air_temperature)
-    m_sweat = u"g/hr"((dorsal_skin_evaporation_flux + ventral_skin_evaporation_flux) * 0.5 / L_v)
+    latent_heat_vaporisation = enthalpy_of_vaporisation(e_vars.air_temperature)
+    m_sweat = u"g/hr"((dorsal_skin_evaporation_flux + ventral_skin_evaporation_flux) * 0.5 / latent_heat_vaporisation)
     if opts.respire
         m_evap = u"g/hr"(m_resp + m_sweat)
     else
@@ -366,8 +330,8 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     end
 
     # geometric outputs
-    insulation = Fur(fibres.average.depth, fibres.average.diameter, fibres.average.density)
-    geometry_pars = Body(o.body.shape, CompositeInsulation(insulation, fat))
+    fur = Fur(fibres.average.depth, fibres.average.diameter, fibres.average.density)
+    geometry_pars = Body(o.body.shape, CompositeInsulation(fur, fat))
 
     fat_mass = geometry_pars.shape.mass * fat.fraction
     volume = geometry_pars.geometry.volume
@@ -379,7 +343,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     # radiation outputs
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    if insulation_out.insulation_test > 0.0u"m"
+    if insulation.insulation_test > 0.0u"m"
         surface_temperature_dorsal = insulation_temperature_dorsal
         surface_temperature_ventral = insulation_temperature_ventral
         area_radiant_dorsal = area_total
@@ -392,17 +356,17 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     end
     # infrared dorsal
     dorsal_radiation_out_flux =
-        2 * F_sky * σ * rad.body_emissivity_dorsal * area_radiant_dorsal * surface_temperature_dorsal^4
+        2 * sky_factor_ref * σ * rad.body_emissivity_dorsal * area_radiant_dorsal * surface_temperature_dorsal^4
     dorsal_radiation_in_flux = -dorsal_longwave_flux + dorsal_radiation_out_flux
 
     # infrared ventral
     ventral_radiation_out_flux =
-        2 * F_ground * σ * rad.body_emissivity_ventral * area_radiant_ventral * surface_temperature_ventral^4
+        2 * ground_factor_ref * σ * rad.body_emissivity_ventral * area_radiant_ventral * surface_temperature_ventral^4
     ventral_radiation_in_flux = -ventral_longwave_flux + ventral_radiation_out_flux
     # energy flows
     solar_flux = dorsal_solar_flux * dmult + ventral_solar_flux * vmult
     longwave_in_flux = dorsal_radiation_in_flux * dmult + ventral_radiation_in_flux * vmult
-    evaporation_fluxoration =
+    evaporation_flux =
         dorsal_skin_evaporation_flux * dmult +
         ventral_skin_evaporation_flux * vmult +
         dorsal_insulation_evaporation_flux * dmult +
@@ -412,11 +376,11 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     convection_flux = dorsal_convection_flux * dmult + ventral_convection_flux * vmult
     conduction_flux = dorsal_conduction_flux * dmult + ventral_conduction_flux * vmult
 
-    insulation_out = insulation_properties(
+    insulation = insulation_properties(
         ins, insulation_temperature * 0.7 + skin_temperature * 0.3, rad.ventral_fraction
     )
-    k_insulation_effective = insulation_out.conductivities.average
-    k_insulation_compressed = insulation_out.conductivity_compressed
+    insulation_conductivity_effective = insulation.conductivities.average
+    insulation_conductivity_compressed = insulation.conductivity_compressed
     skin_temperature = skin_temperature_dorsal * dmult + skin_temperature_ventral * vmult
     insulation_temperature = insulation_temperature_dorsal * dmult + insulation_temperature_ventral * vmult
     if o.body.shape isa Sphere
@@ -436,11 +400,11 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         shape_b,
         pant=resp.pant,
         skin_wetness=evap.skin_wetness,
-        k_flesh=cond_in.flesh_conductivity,
-        k_insulation_effective,
-        k_insulation_dorsal,
-        k_insulation_ventral,
-        k_insulation_compressed,
+        flesh_conductivity=cond_in.flesh_conductivity,
+        insulation_conductivity_effective,
+        insulation_conductivity_dorsal,
+        insulation_conductivity_ventral,
+        insulation_conductivity_compressed,
         insulation_depth_dorsal=ins.dorsal.depth,
         insulation_depth_ventral=ins.ventral.depth,
         metab.q10,
@@ -453,8 +417,8 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         area_convection,
         area_conduction=area_conduction / 2,
         area_silhouette,
-        sky_view_factor=F_sky,
-        ground_view_factor=F_ground,
+        sky_view_factor=sky_factor_ref,
+        ground_view_factor=ground_factor_ref,
         volume,
         volume_flesh,
         characteristic_dimension=geometry_pars.geometry.characteristic_dimension,
@@ -466,7 +430,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         solar_flux,
         longwave_in_flux,
         generated_flux,
-        evaporation_fluxoration,
+        evaporation_flux,
         longwave_out_flux,
         convection_flux,
         conduction_flux,
@@ -476,21 +440,13 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     )
 
     mass_fluxes = (;
-        V_air,
-        V_O2_STP,
+        air_flow,
+        oxygen_flow_stp,
         m_evap,
         m_resp,
         m_sweat,
-        J_H2O_in,
-        J_H2O_out,
-        J_O2_in,
-        J_O2_out,
-        J_CO2_in,
-        J_CO2_out,
-        J_N2_in,
-        J_N2_out,
-        J_air_in,
-        J_air_out,
+        molar_fluxes_in,
+        molar_fluxes_out,
     )
     return (; thermoregulation, morphology, energy_fluxes, mass_fluxes)
 end

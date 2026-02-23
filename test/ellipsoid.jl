@@ -37,23 +37,23 @@ ellipsoid_out = DataFrame(
         q10=ellipsoid_input.Q10,
         minimum_metabolic_rate=missing,
         metabolic_multiplier=ellipsoid_input.basmult,
-        f_O2=0.2094,
+        oxygen_fraction=0.2094,
     ),
 )
 
 rtol=1e-3
 @testset "ellipsoid model" begin
-    @test ellipsoid_out.Q_gen_required ≈ (ellipsoid_output.Qgen)u"W" rtol=rtol
-    @test ellipsoid_out.Q_gen_final ≈ (ellipsoid_output.QgenFinal)u"W" rtol=rtol
-    @test ellipsoid_out.O2_consumption_rate ≈ (ellipsoid_output.mlO2ph)u"ml/hr" rtol=rtol
+    @test ellipsoid_out.required_generated_flux ≈ (ellipsoid_output.Qgen)u"W" rtol=rtol
+    @test ellipsoid_out.final_generated_flux ≈ (ellipsoid_output.QgenFinal)u"W" rtol=rtol
+    @test ellipsoid_out.oxygen_consumption_rate ≈ (ellipsoid_output.mlO2ph)u"ml/hr" rtol=rtol
     @test ellipsoid_out.basal_metabolic_rate_fraction ≈ ellipsoid_output.PctBasal/100 rtol=rtol
     @test u"K".(ellipsoid_out.skin_temperature) ≈ (ellipsoid_output.Tskin .+ 273.15)u"K" rtol=rtol
     @test u"K".(ellipsoid_out.lower_critical_air_temperature) ≈
         (ellipsoid_output.LCT .+ 273.15)u"K" rtol=rtol
     @test u"K".(ellipsoid_out.upper_critical_air_temperature) ≈
         (ellipsoid_output.UCT .+ 273.15)u"K" rtol=rtol
-    @test ellipsoid_out.Q_respiration ≈ (ellipsoid_output.Qresp_W)u"W" rtol=rtol
-    @test ellipsoid_out.Q_evap ≈ (ellipsoid_output.H2Oloss_W)u"W" rtol=rtol
+    @test ellipsoid_out.respiration_flux ≈ (ellipsoid_output.Qresp_W)u"W" rtol=rtol
+    @test ellipsoid_out.evaporation_flux ≈ (ellipsoid_output.H2Oloss_W)u"W" rtol=rtol
     @test ellipsoid_out.respiratory_water_loss_rate ≈ (ellipsoid_output.Qresp_gph)u"g/hr" rtol=rtol
     @test ellipsoid_out.total_water_loss_rate ≈ (ellipsoid_output.H2O_gph)u"g/hr" rtol=rtol
     @test ellipsoid_out.fractional_mass_loss ≈ (ellipsoid_output.massph_percent/100)u"1/hr" rtol=rtol
