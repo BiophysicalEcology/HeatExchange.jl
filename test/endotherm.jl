@@ -302,7 +302,7 @@ for shape_number in 1:4
         fat = morphology.fat < 1.0e-10u"m" ? 0.0u"m" : morphology.fat
         rtol = 1e-6
         @testset "endotherm morphology comparisons" begin
-            @test morph_output_vec.AREA ≈ ustrip(u"m^2", morphology.area_total) rtol = rtol
+            @test morph_output_vec.AREA ≈ ustrip(u"m^2", morphology.total_area) rtol = rtol
             @test morph_output_vec.AREA_SKIN ≈ ustrip(u"m^2", morphology.area_skin) rtol =
                 rtol
             @test morph_output_vec.AREA_SKIN_EVAP ≈
@@ -380,7 +380,7 @@ for shape_number in 1:4
                     rtol
                 @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_fluxes.oxygen_flow_stp) rtol =
                     rtol
-                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_fluxes.m_resp) rtol =
+                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_fluxes.respiration_mass) rtol =
                     rtol
                 @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_fluxes.m_sweat) rtol =
                     rtol

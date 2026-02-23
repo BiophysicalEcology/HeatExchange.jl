@@ -57,7 +57,7 @@ export get_Tb
 export solar,
     radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
-export ectotherm, Tsurf_and_Tlung
+export ectotherm, surface_and_lung_temperature
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 

@@ -1,5 +1,5 @@
 """
-    solve_temperatures(; body, insulation_pars, insulation, geom_vars, env_vars, traits, temperature_tolerance, skin_temperature, insulation_temperature)
+    solve_temperatures(; body, insulation_pars, insulation, geometry_vars, environment_vars, traits, temperature_tolerance, skin_temperature, insulation_temperature)
 
 Simultaneously solve for skin and insulation surface temperatures.
 
@@ -10,8 +10,8 @@ accounting for convection, radiation, evaporation, and conduction through insula
 - `body::AbstractBody`: Body geometry
 - `insulation_pars::InsulationParameters`: Insulation parameters
 - `insulation::InsulationProperties`: Computed insulation properties
-- `geom_vars::GeometryVariables`: Geometric variables (side, conduction_fraction, etc.)
-- `env_vars::NamedTuple`: Environmental variables (temperatures, wind, humidity, etc.)
+- `geometry_vars::GeometryVariables`: Geometric variables (side, conduction_fraction, etc.)
+- `environment_vars::NamedTuple`: Environmental variables (temperatures, wind, humidity, etc.)
 - `traits::NamedTuple`: Organism traits (core_temperature, conductivities, emissivity, etc.)
 - `temperature_tolerance`: Convergence tolerance for temperature iteration
 - `skin_temperature`: Initial guess for skin temperature
@@ -31,8 +31,8 @@ function solve_temperatures(;
     body::AbstractBody,
     insulation_pars::InsulationParameters,
     insulation::InsulationProperties,
-    geom_vars::GeometryVariables,
-    env_vars::NamedTuple,
+    geometry_vars::GeometryVariables,
+    environment_vars::NamedTuple,
     traits::NamedTuple,
     temperature_tolerance,
     skin_temperature,
@@ -46,8 +46,8 @@ function solve_temperatures(;
             body,
             insulation_pars,
             insulation,
-            geom_vars,
-            env_vars,
+            geometry_vars,
+            environment_vars,
             traits,
             temperature_tolerance,
             skin_temperature,
@@ -56,8 +56,8 @@ function solve_temperatures(;
     else
         return solve_without_insulation!(
             body,
-            geom_vars,
-            env_vars,
+            geometry_vars,
+            environment_vars,
             traits,
             temperature_tolerance,
             skin_temperature,
@@ -67,7 +67,7 @@ function solve_temperatures(;
 end
 
 function solve_without_insulation!(
-    body::AbstractBody, geom_vars::GeometryVariables, env_vars::NamedTuple, traits::NamedTuple, temperature_tolerance, skin_temperature, insulation_temperature
+    body::AbstractBody, geometry_vars::GeometryVariables, environment_vars::NamedTuple, traits::NamedTuple, temperature_tolerance, skin_temperature, insulation_temperature
 )
     (;
         temperature,
@@ -77,7 +77,7 @@ function solve_without_insulation!(
         solar_flux,
         gas_fractions,
         convection_enhancement,
-    ) = env_vars
+    ) = environment_vars
     air_temperature = temperature.air
     sky_temperature = temperature.sky
     ground_temperature = temperature.ground
@@ -90,9 +90,9 @@ function solve_without_insulation!(
 
     ntry = 0
     volume = flesh_volume(body)
-    area_total = total_area(body)
-    area_evaporation = area_total
-    area_convection = area_total #* (1 - conduction_fraction)
+    total_area = BiophysicalGeometry.total_area(body)
+    area_evaporation = total_area
+    area_convection = total_area #* (1 - conduction_fraction)
     r_skin = skin_radius(body)
     insulation_evaporation_flux = 0.0u"W"
     conduction_flux = 0.0u"W"
@@ -223,14 +223,14 @@ function solve_with_insulation!(
     body::AbstractBody,
     insulation_pars::InsulationParameters,
     insulation::InsulationProperties,
-    geom_vars::GeometryVariables,
-    env_vars::NamedTuple,
+    geometry_vars::GeometryVariables,
+    environment_vars::NamedTuple,
     traits::NamedTuple,
     temperature_tolerance,
     skin_temperature,
     insulation_temperature,
 )
-    (; side, substrate_conductance, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geom_vars
+    (; side, substrate_conductance, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geometry_vars
     (;
         temperature,
         view_factors,
@@ -239,7 +239,7 @@ function solve_with_insulation!(
         solar_flux,
         gas_fractions,
         convection_enhancement,
-    ) = env_vars
+    ) = environment_vars
     air_temperature = temperature.air
     sky_temperature = temperature.sky
     ground_temperature = temperature.ground
@@ -263,8 +263,8 @@ function solve_with_insulation!(
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
     area_evaporation = evaporation_area(body)
-    area_total = total_area(body)
-    area_convection = area_total * (1 - conduction_fraction)
+    total_area = BiophysicalGeometry.total_area(body)
+    area_convection = total_area * (1 - conduction_fraction)
     insulation_test = insulation.insulation_test
 
     ntry = 0

@@ -266,14 +266,14 @@ molar_fluxes_out = resp_out.molar_fluxes_out
 @test u"mol/s"(molar_fluxes_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
 @test u"mol/s"(molar_fluxes_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
 @test resp_out.respiration_flux ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
-@test resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
+@test resp_out.respiration_mass ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
 respiration_flux = resp_out.respiration_flux
 net_generated_flux = metabolic_flux - respiration_flux
 generated_specific_flux = net_generated_flux / geometry.geometry.volume
 
 # compute skin and lung temperature
-(; surface_temperature, lung_temperature) = Tsurf_and_Tlung(; body=geometry, flesh_conductivity, generated_specific_flux, core_temperature)
+(; surface_temperature, lung_temperature) = surface_and_lung_temperature(; body=geometry, flesh_conductivity, generated_specific_flux, core_temperature)
 skin_temperature = surface_temperature  # alias for later use
 
 # test lung temperature
@@ -454,7 +454,7 @@ molar_fluxes_out = heat_balance_out.resp_out.molar_fluxes_out
 @test u"mol/s"(molar_fluxes_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
 @test u"mol/s"(molar_fluxes_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
 @test heat_balance_out.resp_out.respiration_flux ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
-@test heat_balance_out.resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
+@test heat_balance_out.resp_out.respiration_mass ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
 @test heat_balance_out.evap_out.m_cut ≈ (ecto_output.WCUT)u"g/s" rtol=1e-4 # TODO check if this can be better
 @test heat_balance_out.evap_out.m_eyes ≈ (ecto_output.WEYES)u"g/s" rtol=1e-4 # TODO check if this can be better

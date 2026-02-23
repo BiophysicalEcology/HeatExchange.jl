@@ -128,14 +128,14 @@ struct EnvironmentTemperatures{T1,T2,T3,T4,T5,T6}
     bush::T5
     substrate::T6
 end
-function EnvironmentTemperatures(e_vars::AbstractEnvironmentalVars)
+function EnvironmentTemperatures(environment_vars::AbstractEnvironmentalVars)
     EnvironmentTemperatures(
-        e_vars.air_temperature,
-        e_vars.sky_temperature,
-        e_vars.ground_temperature,
-        e_vars.vegetation_temperature,
-        e_vars.bush_temperature,
-        e_vars.substrate_temperature,
+        environment_vars.air_temperature,
+        environment_vars.sky_temperature,
+        environment_vars.ground_temperature,
+        environment_vars.vegetation_temperature,
+        environment_vars.bush_temperature,
+        environment_vars.substrate_temperature,
     )
 end
 
@@ -188,8 +188,8 @@ struct AtmosphericConditions{T1,T2,T3}
     wind_speed::T2
     atmospheric_pressure::T3
 end
-function AtmosphericConditions(e_vars::AbstractEnvironmentalVars)
-    AtmosphericConditions(e_vars.relative_humidity, e_vars.wind_speed, e_vars.atmospheric_pressure)
+function AtmosphericConditions(environment_vars::AbstractEnvironmentalVars)
+    AtmosphericConditions(environment_vars.relative_humidity, environment_vars.wind_speed, environment_vars.atmospheric_pressure)
 end
 
 """
@@ -277,12 +277,12 @@ Base.@kwdef struct SolarConditions{Z,G,D,S}
     diffuse_fraction::D
     shade::S
 end
-function SolarConditions(e_vars::AbstractEnvironmentalVars)
+function SolarConditions(environment_vars::AbstractEnvironmentalVars)
     SolarConditions(;
-        zenith_angle=e_vars.zenith_angle,
-        global_radiation=e_vars.global_radiation,
-        diffuse_fraction=e_vars.diffuse_fraction,
-        shade=e_vars.shade,
+        zenith_angle=environment_vars.zenith_angle,
+        global_radiation=environment_vars.global_radiation,
+        diffuse_fraction=environment_vars.diffuse_fraction,
+        shade=environment_vars.shade,
     )
 end
 
@@ -333,9 +333,9 @@ Base.@kwdef struct Emissivities{B,G,S}
     ground::G
     sky::S
 end
-function Emissivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
+function Emissivities(rad_pars::RadiationParameters, env::AbstractEnvironmentalPars)
     Emissivities(;
-        body=DorsalVentral(rad.body_emissivity_dorsal, rad.body_emissivity_ventral),
+        body=DorsalVentral(rad_pars.body_emissivity_dorsal, rad_pars.body_emissivity_ventral),
         ground=env.ground_emissivity,
         sky=env.sky_emissivity,
     )
@@ -354,9 +354,9 @@ Base.@kwdef struct Absorptivities{B,G}
     body::B
     ground::G
 end
-function Absorptivities(rad::RadiationParameters, env::AbstractEnvironmentalPars)
+function Absorptivities(rad_pars::RadiationParameters, env::AbstractEnvironmentalPars)
     Absorptivities(;
-        body=DorsalVentral(rad.body_absorptivity_dorsal, rad.body_absorptivity_ventral),
+        body=DorsalVentral(rad_pars.body_absorptivity_dorsal, rad_pars.body_absorptivity_ventral),
         ground=env.ground_albedo,
     )
 end

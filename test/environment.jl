@@ -2,7 +2,7 @@ using HeatExchange
 using ModelParameters
 using Unitful
 
-env_pars = EnvironmentalPars(;
+environment_pars = EnvironmentalPars(;
     α_ground=0.8,
     ϵ_ground=1.0,
     ϵ_sky=1.0,
@@ -10,10 +10,10 @@ env_pars = EnvironmentalPars(;
     fluid=0,
     gas=GasFractions(0.2095, 0.0003, 0.79),
 )
-env_params = Model(env_pars)
-env_pars = stripparams(env_params)
+env_params = Model(environment_pars)
+environment_pars = stripparams(env_params)
 
-env_vars = EnvironmentalVars(;
+environment_vars = EnvironmentalVars(;
     air_temperature=(273.15+20.0)u"K",
     sky_temperature=(273.15-5.0)u"K",
     ground_temperature=(273.15+30.0)u"K",
