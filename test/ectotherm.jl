@@ -440,11 +440,11 @@ heat_balance_out = ectotherm(core_temperature_s, lizard, environment)
 @test heat_balance_out.enbal.respiration_flux ≈ (ecto_output.QRESP)u"W" rtol=1e-3 # TODO make better?
 
 @test heat_balance_out.masbal.oxygen_flow ≈ (ecto_output.O2_ml)u"ml/hr" rtol=1e-4 # TODO make better?
-@test heat_balance_out.masbal.m_cut ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
-@test heat_balance_out.masbal.m_eye ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
+@test heat_balance_out.masbal.cutaneous_mass ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
+@test heat_balance_out.masbal.eye_mass ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 
-molar_fluxes_in = heat_balance_out.resp_out.molar_fluxes_in
-molar_fluxes_out = heat_balance_out.resp_out.molar_fluxes_out
+molar_fluxes_in = heat_balance_out.respiration_out.molar_fluxes_in
+molar_fluxes_out = heat_balance_out.respiration_out.molar_fluxes_out
 @test u"mol/s"(molar_fluxes_in.carbon_dioxide) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
 @test u"mol/s"(molar_fluxes_out.carbon_dioxide) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
 @test u"mol/s"(molar_fluxes_in.water) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
@@ -453,9 +453,9 @@ molar_fluxes_out = heat_balance_out.resp_out.molar_fluxes_out
 @test u"mol/s"(molar_fluxes_out.oxygen) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
 @test u"mol/s"(molar_fluxes_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
 @test u"mol/s"(molar_fluxes_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
-@test heat_balance_out.resp_out.respiration_flux ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
-@test heat_balance_out.resp_out.respiration_mass ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
+@test heat_balance_out.respiration_out.respiration_flux ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
+@test heat_balance_out.respiration_out.respiration_mass ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
-@test heat_balance_out.evap_out.m_cut ≈ (ecto_output.WCUT)u"g/s" rtol=1e-4 # TODO check if this can be better
-@test heat_balance_out.evap_out.m_eyes ≈ (ecto_output.WEYES)u"g/s" rtol=1e-4 # TODO check if this can be better
-@test heat_balance_out.evap_out.evaporation_flux ≈ (ecto_output.QEVAP)u"W" rtol=1e-4 # TODO check if this can be better
+@test heat_balance_out.evaporation_out.m_cut ≈ (ecto_output.WCUT)u"g/s" rtol=1e-4 # TODO check if this can be better
+@test heat_balance_out.evaporation_out.m_eyes ≈ (ecto_output.WEYES)u"g/s" rtol=1e-4 # TODO check if this can be better
+@test heat_balance_out.evaporation_out.evaporation_flux ≈ (ecto_output.QEVAP)u"W" rtol=1e-4 # TODO check if this can be better
