@@ -55,7 +55,7 @@ export body,
 export get_Tb
 
 export solar,
-    radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced
+    radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
 export ectotherm, surface_and_lung_temperature
 

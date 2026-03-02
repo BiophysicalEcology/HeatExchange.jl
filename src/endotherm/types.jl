@@ -390,14 +390,14 @@ Geometric and thermal parameters for heat exchange calculations on a body side.
 
 # Fields
 - `side` — Body side (`:dorsal` or `:ventral`)
-- `substrate_conductance` — Thermal conductance to substrate (W/K), conduction_flux = substrate_conductance × ΔT
+- `conductance_coefficient` — Thermal conductance to substrate (W/K), conduction_flux = conductance_coefficient × ΔT
 - `ventral_fraction` — Fraction of body surface that is ventral (0-1)
 - `conduction_fraction` — Fraction of surface area in contact with substrate (0-1)
 - `longwave_depth_fraction` — Fraction of insulation depth for longwave radiation exchange (0-1)
 """
 Base.@kwdef struct GeometryVariables{S,SC,VF,CF,LDF}
     side::S
-    substrate_conductance::SC
+    conductance_coefficient::SC
     ventral_fraction::VF
     conduction_fraction::CF
     longwave_depth_fraction::LDF

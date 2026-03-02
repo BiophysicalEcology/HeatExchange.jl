@@ -14,7 +14,7 @@ Calculate conductive heat transfer between organism and substrate.
 - `substrate_conductivity`: Thermal conductivity of substrate
 
 # Returns
-- Heat flux from organism to substrate (W). Positive = heat loss.
+- Heat flow from organism to substrate (W). Positive = heat loss.
 """
 function conduction(;
     conduction_area=0.0u"m^2",
@@ -43,7 +43,7 @@ Calculate solar energy balance.
 - `conduction_fraction`: Fraction of body in contact with ground (default 0.0)
 
 # Returns
-NamedTuple with solar_flux, direct_flux, solar_sky_flux, solar_substrate_flux
+NamedTuple with solar_flow, direct_flow, solar_sky_flow, solar_substrate_flow
 """
 function solar(
     body::AbstractBody,
@@ -76,22 +76,22 @@ function solar(
     diffuse_radiation = global_radiation * diffuse_fraction
     beam_radiation =
         zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
-    direct_flux = α_d * silhouette_area * beam_radiation * (1 - shade)
-    solar_sky_flux = α_d * F.sky * total_area * diffuse_radiation * (1 - shade)
-    solar_substrate_flux =
+    direct_flow = α_d * silhouette_area * beam_radiation * (1 - shade)
+    solar_sky_flow = α_d * F.sky * total_area * diffuse_radiation * (1 - shade)
+    solar_substrate_flow =
         α_v *
         F.ground *
         (total_area - conduction_area) *
         (1 - α_g) *
         global_radiation *
         (1 - shade)
-    solar_flux = (direct_flux + solar_substrate_flux + solar_sky_flux)
+    solar_flow = (direct_flow + solar_substrate_flow + solar_sky_flow)
 
-    return (; solar_flux, direct_flux, solar_sky_flux, solar_substrate_flux)
+    return (; solar_flow, direct_flow, solar_sky_flow, solar_substrate_flow)
 end
 
 """
-    radin(body, view_factors, emissivities, env_temps; conduction_fraction=0.0)
+    radiation_in(body, view_factors, emissivities, environmental_temps; conduction_fraction=0.0)
 
 Calculate incoming longwave radiation from environment.
 
@@ -99,36 +99,36 @@ Calculate incoming longwave radiation from environment.
 - `body::AbstractBody`: Organism body with geometry
 - `view_factors::ViewFactors`: View factors to sky and ground
 - `emissivities::Emissivities`: Body and environment emissivities
-- `env_temps::EnvironmentTemperatures`: Environmental temperatures
+- `environmental_temps::EnvironmentTemperatures`: Environmental temperatures
 - `conduction_fraction`: Fraction of body in contact with ground (default 0.0)
 
 # Returns
-NamedTuple with infrared_in_flux, infrared_sky_flux, infrared_substrate_flux
+NamedTuple with longwave_flow_in, longwave_sky_flow, longwave_substrate_flow
 """
-function radin(
+function radiation_in(
     body::AbstractBody,
     view_factors::ViewFactors,
     emissivities::Emissivities,
-    env_temps::EnvironmentTemperatures;
+    environmental_temps::EnvironmentTemperatures;
     conduction_fraction=0.0,
 )
     F = view_factors
     body_emissivity = emissivities.body
     ϵ_d, ϵ_v, ϵ_g, ϵ_s = body_emissivity.dorsal, body_emissivity.ventral, emissivities.ground, emissivities.sky
-    T = env_temps
+    T = environmental_temps
 
     total_area = BiophysicalGeometry.total_area(body)
     conduction_area = total_area * conduction_fraction
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    infrared_sky_flux = ϵ_d * F.sky * total_area * ϵ_s * σ * T.sky^4
-    infrared_substrate_flux = ϵ_v * F.ground * (total_area - conduction_area) * ϵ_g * σ * T.ground^4
-    infrared_in_flux = infrared_sky_flux + infrared_substrate_flux
-    return (; infrared_in_flux, infrared_sky_flux, infrared_substrate_flux)
+    longwave_sky_flow = ϵ_d * F.sky * total_area * ϵ_s * σ * T.sky^4
+    longwave_substrate_flow = ϵ_v * F.ground * (total_area - conduction_area) * ϵ_g * σ * T.ground^4
+    longwave_flow_in = longwave_sky_flow + longwave_substrate_flow
+    return (; longwave_flow_in, longwave_sky_flow, longwave_substrate_flow)
 end
 
 """
-    radout(body, view_factors, emissivities, conduction_fraction, dorsal_temperature, ventral_temperature)
+    radiation_out(body, view_factors, emissivities, conduction_fraction, dorsal_temperature, ventral_temperature)
 
 Calculate outgoing longwave radiation from organism.
 
@@ -141,9 +141,9 @@ Calculate outgoing longwave radiation from organism.
 - `ventral_temperature`: Ventral surface temperature
 
 # Returns
-NamedTuple with infrared_out_flux, infrared_to_sky_flux, infrared_to_substrate_flux
+NamedTuple with longwave_flow_out, longwave_to_sky_flow, longwave_to_substrate_flow
 """
-function radout(
+function radiation_out(
     body::AbstractBody,
     view_factors::ViewFactors,
     emissivities::Emissivities,
@@ -158,10 +158,10 @@ function radout(
     conduction_area = total_area * conduction_fraction
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    infrared_to_sky_flux = total_area * F.sky * ϵ_d * σ * dorsal_temperature^4
-    infrared_to_substrate_flux = (total_area - conduction_area) * F.ground * ϵ_v * σ * ventral_temperature^4
-    infrared_out_flux = infrared_to_sky_flux + infrared_to_substrate_flux
-    return (; infrared_out_flux, infrared_to_sky_flux, infrared_to_substrate_flux)
+    longwave_to_sky_flow = total_area * F.sky * ϵ_d * σ * dorsal_temperature^4
+    longwave_to_substrate_flow = (total_area - conduction_area) * F.ground * ϵ_v * σ * ventral_temperature^4
+    longwave_flow_out = longwave_to_sky_flow + longwave_to_substrate_flow
+    return (; longwave_flow_out, longwave_to_sky_flow, longwave_to_substrate_flow)
 end
 
 """
@@ -182,7 +182,7 @@ Calculate combined free and forced convective heat transfer for an organism.
 
 # Returns
 NamedTuple with:
-- `flux`: Total convective heat loss
+- `heat_flow`: Total convective heat loss
 - `heat::TransferCoefficients`: Heat transfer coefficients (combined, free, forced)
 - `mass::TransferCoefficients`: Mass transfer coefficients (combined, free, forced)
 """
@@ -254,9 +254,9 @@ function convection(;
 
     heat = TransferCoefficients(combined_heat_transfer_coefficient, free_heat_transfer_coefficient, forced_heat_transfer_coefficient)
     mass = TransferCoefficients(combined_mass_transfer_coefficient, free_mass_transfer_coefficient, forced_mass_transfer_coefficient)
-    flux = convection_flux
+    heat_flow = convection_flux
 
-    return (; flux, heat, mass)
+    return (; heat_flow, heat, mass)
 end
 
 """
@@ -382,7 +382,7 @@ and vapor density gradient between surface and air.
 - `gas_fractions::GasFractions`: Gas fractions for air properties
 
 # Returns
-NamedTuple with evaporation_flux, m_cut, m_eyes
+NamedTuple with evaporation_heat_flow, m_cut, m_eyes
 """
 function evaporation(
     evap_pars::EvaporationParameters,
@@ -420,9 +420,9 @@ function evaporation(
 
     # get latent heat of vapourisation and compute heat exchange due to evaporation
     latent_heat_vaporisation = enthalpy_of_vaporisation(air_temperature)
-    evaporation_flux = Unitful.uconvert(u"W", (m_eyes + m_cut) * latent_heat_vaporisation)
+    evaporation_heat_flow = Unitful.uconvert(u"W", (m_eyes + m_cut) * latent_heat_vaporisation)
     # convert from kg/s to g/s
     m_eyes = uconvert(u"g/s", m_eyes)
     m_cut = uconvert(u"g/s", m_cut)
-    return (; evaporation_flux, m_cut, m_eyes)
+    return (; evaporation_heat_flow, m_cut, m_eyes)
 end

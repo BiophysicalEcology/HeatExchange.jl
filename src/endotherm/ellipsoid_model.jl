@@ -34,7 +34,7 @@ where air, ground, and sky temperatures are equal.
 # Returns
 A `NamedTuple` with:
 - `skin_temperature`, `upper_critical_air_temperature`, `lower_critical_air_temperature`,
-- `generated_flux`, `final_generated_flux`, `respiration_flux`, `evaporation_flux`,
+- `generated_flux`, `final_generated_flux`, `respiration_heat_flow`, `evaporation_heat_flow`,
 - `oxygen_consumption_rate`, `respiratory_water_loss_rate`, `total_water_loss_rate`,
 - `basal_metabolic_rate_fraction`, `fractional_mass_loss`.
 
@@ -188,12 +188,12 @@ function ellipsoid_endotherm(
         (oxygen_consumption_rate / oxygen_fraction / oxygen_extraction_efficiency) * (ρ_vap_c - ρ_vap_f)
     )
     latent_heat = enthalpy_of_vaporisation(air_temperature)
-    respiration_flux = u"W"(respiratory_water_loss_rate * latent_heat)
+    respiration_heat_flow = u"W"(respiratory_water_loss_rate * latent_heat)
 
     basal_metabolic_rate_fraction = final_generated_flux / minimum_generated_flux
 
-    evaporation_flux = -required_generated_flux + minimum_generated_flux
-    total_water_loss_rate = u"g/hr"(max((u"J/hr"(evaporation_flux) / latent_heat), 0.0u"kg/hr"))
+    evaporation_heat_flow = -required_generated_flux + minimum_generated_flux
+    total_water_loss_rate = u"g/hr"(max((u"J/hr"(evaporation_heat_flow) / latent_heat), 0.0u"kg/hr"))
     fractional_mass_loss = u"kg/hr"(total_water_loss_rate) / mass
 
     return (;
@@ -202,8 +202,8 @@ function ellipsoid_endotherm(
         lower_critical_air_temperature=u"°C"(lower_critical_air_temperature),
         required_generated_flux,
         final_generated_flux,
-        respiration_flux,
-        evaporation_flux,
+        respiration_heat_flow,
+        evaporation_heat_flow,
         oxygen_consumption_rate=u"mL/hr"(oxygen_consumption_rate),
         respiratory_water_loss_rate=u"g/hr"(respiratory_water_loss_rate),
         total_water_loss_rate=u"g/hr"(total_water_loss_rate),

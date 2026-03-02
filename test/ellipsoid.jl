@@ -52,8 +52,8 @@ rtol=1e-3
         (ellipsoid_output.LCT .+ 273.15)u"K" rtol=rtol
     @test u"K".(ellipsoid_out.upper_critical_air_temperature) ≈
         (ellipsoid_output.UCT .+ 273.15)u"K" rtol=rtol
-    @test ellipsoid_out.respiration_flux ≈ (ellipsoid_output.Qresp_W)u"W" rtol=rtol
-    @test ellipsoid_out.evaporation_flux ≈ (ellipsoid_output.H2Oloss_W)u"W" rtol=rtol
+    @test ellipsoid_out.respiration_heat_flow ≈ (ellipsoid_output.Qresp_W)u"W" rtol=rtol
+    @test ellipsoid_out.evaporation_heat_flow ≈ (ellipsoid_output.H2Oloss_W)u"W" rtol=rtol
     @test ellipsoid_out.respiratory_water_loss_rate ≈ (ellipsoid_output.Qresp_gph)u"g/hr" rtol=rtol
     @test ellipsoid_out.total_water_loss_rate ≈ (ellipsoid_output.H2O_gph)u"g/hr" rtol=rtol
     @test ellipsoid_out.fractional_mass_loss ≈ (ellipsoid_output.massph_percent/100)u"1/hr" rtol=rtol

@@ -1,5 +1,5 @@
 """
-    insulation_radiant_temperature(; body, insulation, insulation_pars, env_temps, coeffs, conductances, divisors, side, area_convection, heat_transfer_coefficient, substrate_conductance, insulation_conductivity, longwave_depth_fraction, conduction_fraction, solar_flux, insulation_evaporation_flux, core_temperature, compressed_insulation_temperature)
+    insulation_radiant_temperature(; body, insulation, insulation_pars, env_temps, coeffs, conductances, divisors, side, area_convection, heat_transfer_coefficient, conductance_coefficient, insulation_conductivity, longwave_depth_fraction, conduction_fraction, solar_flow, insulation_evaporation_heat_flow, core_temperature, compressed_insulation_temperature)
 
 Calculate insulation surface temperature and radiant temperature for heat exchange.
 
@@ -16,12 +16,12 @@ Solves the heat balance at the insulation-air interface accounting for convectio
 - `side`: Body side (`:dorsal` or `:ventral`)
 - `area_convection`: Surface area for convection
 - `heat_transfer_coefficient`: Convective heat transfer coefficient
-- `substrate_conductance`: Substrate conductance coefficient
+- `conductance_coefficient`: Substrate conductance coefficient
 - `insulation_conductivity`: Effective insulation thermal conductivity
 - `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
 - `conduction_fraction`: Fraction of body in contact with substrate
-- `solar_flux`: Solar heat gain
-- `insulation_evaporation_flux`: Evaporative heat loss from insulation
+- `solar_flow`: Solar heat gain
+- `insulation_evaporation_heat_flow`: Evaporative heat loss from insulation
 - `core_temperature`: Core body temperature
 - `compressed_insulation_temperature`: Compressed insulation temperature
 
@@ -41,12 +41,12 @@ function insulation_radiant_temperature(;
     side,
     area_convection,
     heat_transfer_coefficient,
-    substrate_conductance,
+    conductance_coefficient,
     insulation_conductivity,
     longwave_depth_fraction,
     conduction_fraction,
-    solar_flux,
-    insulation_evaporation_flux,
+    solar_flow,
+    insulation_evaporation_heat_flow,
     core_temperature,
     compressed_insulation_temperature,
 )
@@ -62,12 +62,12 @@ function insulation_radiant_temperature(;
         side,
         area_convection,
         heat_transfer_coefficient,
-        substrate_conductance,
+        conductance_coefficient,
         insulation_conductivity,
         longwave_depth_fraction,
         conduction_fraction,
-        solar_flux,
-        insulation_evaporation_flux,
+        solar_flow,
+        insulation_evaporation_heat_flow,
         core_temperature,
         compressed_insulation_temperature,
     )
@@ -84,12 +84,12 @@ function insulation_radiant_temperature(
     side,
     area_convection,
     heat_transfer_coefficient,
-    substrate_conductance,
+    conductance_coefficient,
     insulation_conductivity,
     longwave_depth_fraction,
     conduction_fraction,
-    solar_flux,
-    insulation_evaporation_flux,
+    solar_flow,
+    insulation_evaporation_heat_flow,
     core_temperature,
     compressed_insulation_temperature,
 )
@@ -125,8 +125,8 @@ function insulation_radiant_temperature(
             ((numerator_divisor / radiative_divisor) + ((compressed_insulation_temperature * compressed_conductance) / radiative_divisor))
         ins_calc2 = ((2 * π * LEN) / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
         ins_calc3 =
-            heat_transfer_coefficient * area_convection * env_temps.air - substrate_conductance * compressed_insulation_temperature + substrate_conductance * env_temps.substrate -
-            insulation_evaporation_flux + solar_flux
+            heat_transfer_coefficient * area_convection * env_temps.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * env_temps.substrate -
+            insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
             (2 * π * length * uncompressed_conductance) / geometric_divisor +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) * (
@@ -152,8 +152,8 @@ function insulation_radiant_temperature(
             coeffs.sky * env_temps.sky + coeffs.bush * env_temps.bush + coeffs.vegetation * env_temps.vegetation + coeffs.ground * env_temps.ground
         ins_calc2 = ((2 * π * length) / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
         ins_calc3 =
-            heat_transfer_coefficient * area_convection * env_temps.air - substrate_conductance * compressed_insulation_temperature + substrate_conductance * env_temps.substrate -
-            insulation_evaporation_flux + solar_flux
+            heat_transfer_coefficient * area_convection * env_temps.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * env_temps.substrate -
+            insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
             (2 * π * length * uncompressed_conductance) / geometric_divisor +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) +
@@ -176,12 +176,12 @@ function insulation_radiant_temperature(
     side,
     area_convection,
     heat_transfer_coefficient,
-    substrate_conductance,
+    conductance_coefficient,
     insulation_conductivity,
     longwave_depth_fraction,
     conduction_fraction,
-    solar_flux,
-    insulation_evaporation_flux,
+    solar_flow,
+    insulation_evaporation_heat_flow,
     core_temperature,
     compressed_insulation_temperature,
 )
@@ -216,8 +216,8 @@ function insulation_radiant_temperature(
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) *
             ((numerator_divisor / radiative_divisor) + ((compressed_insulation_temperature * compressed_conductance) / radiative_divisor))
         ins_calc3 =
-            heat_transfer_coefficient * area_convection * env_temps.air - substrate_conductance * compressed_insulation_temperature + substrate_conductance * env_temps.substrate -
-            insulation_evaporation_flux + solar_flux
+            heat_transfer_coefficient * area_convection * env_temps.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * env_temps.substrate -
+            insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
             (4 * π * r_skin * uncompressed_conductance) / geometric_divisor +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) * (
@@ -243,8 +243,8 @@ function insulation_radiant_temperature(
         ins_calc2 =
             coeffs.sky * env_temps.sky + coeffs.bush * env_temps.bush + coeffs.vegetation * env_temps.vegetation + coeffs.ground * env_temps.ground
         ins_calc3 =
-            heat_transfer_coefficient * area_convection * env_temps.air - substrate_conductance * compressed_insulation_temperature + substrate_conductance * env_temps.substrate -
-            insulation_evaporation_flux + solar_flux
+            heat_transfer_coefficient * area_convection * env_temps.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * env_temps.substrate -
+            insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
             (4 * π * r_skin * uncompressed_conductance) / geometric_divisor +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) +
@@ -267,12 +267,12 @@ function insulation_radiant_temperature(
     side,
     area_convection,
     heat_transfer_coefficient,
-    substrate_conductance,
+    conductance_coefficient,
     insulation_conductivity,
     longwave_depth_fraction,
     conduction_fraction,
-    solar_flux,
-    insulation_evaporation_flux,
+    solar_flow,
+    insulation_evaporation_heat_flow,
     core_temperature,
     compressed_insulation_temperature,
 )
@@ -323,8 +323,8 @@ function insulation_radiant_temperature(
             ((3 * volume * bs) / ((((3 * ssqg)^0.5)^3) * geometric_divisor)) *
             (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
         ins_calc3 =
-            heat_transfer_coefficient * area_convection * env_temps.air - substrate_conductance * compressed_insulation_temperature + substrate_conductance * env_temps.substrate -
-            insulation_evaporation_flux + solar_flux
+            heat_transfer_coefficient * area_convection * env_temps.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * env_temps.substrate -
+            insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
             (3 * volume * bs * uncompressed_conductance) / ((((3 * ssqg)^0.5)^3) * geometric_divisor) +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) *
@@ -346,8 +346,8 @@ function insulation_radiant_temperature(
         ins_calc2 =
             coeffs.sky * env_temps.sky + coeffs.bush * env_temps.bush + coeffs.vegetation * env_temps.vegetation + coeffs.ground * env_temps.ground
         ins_calc3 =
-            heat_transfer_coefficient * area_convection * env_temps.air - substrate_conductance * compressed_insulation_temperature + substrate_conductance * env_temps.substrate -
-            insulation_evaporation_flux + solar_flux
+            heat_transfer_coefficient * area_convection * env_temps.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * env_temps.substrate -
+            insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
             (3 * volume * bs * uncompressed_conductance) / ((((3 * ssqg)^0.5)^3) * geometric_divisor) +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) +

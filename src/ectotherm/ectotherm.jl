@@ -1,89 +1,89 @@
 # ectotherm heat balance
 
 """
-    ectotherm(body_temperature, organism::Organism, e)
+    ectotherm(core_temperature, organism::Organism, e)
 
-Calculate heat balance for an ectotherm at a given body temperature.
+Calculate heat balance for an ectotherm at a given core temperature.
 
-Computes all heat flux components (solar, infrared, convection, evaporation,
+Computes all heat flow components (solar, longwave, convection, evaporation,
 conduction, respiration, metabolism) and returns the energy balance.
 
 # Arguments
-- `body_temperature`: Body temperature to evaluate
+- `core_temperature`: Core temperature to evaluate
 - `organism::Organism`: Organism with body geometry and traits
 - `e`: Environment containing `environment_pars` and `environment_vars`
 
 # Returns
 NamedTuple with:
 - `heat_balance`: Net heat balance (should be zero at equilibrium)
-- `core_temperature`: Core temperature (same as body_temperature for ectotherms)
+- `core_temperature`: Core temperature
 - `surface_temperature`: Surface temperature
 - `lung_temperature`: Lung temperature
 - `enbal`: Energy balance components
 - `masbal`: Mass balance components
-- `respiration_out`, `solar_out`, `infrared_gain_out`, `infrared_loss_out`, `convection_out`, `evaporation_out`: Detailed outputs
+- `respiration_out`, `solar_out`, `longwave_gain_out`, `longwave_loss_out`, `convection_out`, `evaporation_out`: Detailed outputs
 """
 function ectotherm end
 
 # A method dispatching on a `Model`
-#ectotherm(body_temperature, mod::Model, e) = ectotherm(body_temperature, stripparams(mod), 
+#ectotherm(core_temperature, mod::Model, e) = ectotherm(core_temperature, stripparams(mod),
 #    stripparams(e.environment_pars), e.environment_vars)
 # A generic method that expands dispatch to include the insulation
 # this could be <:Ectotherm or <:Endotherm?
-#ectotherm(body_temperature, o::Organism, environment_pars, vars) = ectotherm(body_temperature, insulation(o), o, 
+#ectotherm(core_temperature, o::Organism, environment_pars, vars) = ectotherm(core_temperature, insulation(o), o,
 #    integumentpars(o), physiopars(o), thermoregpars(o), thermoregvars(o), environment_pars, vars)
 # A method for Naked organisms
-ectotherm(body_temperature, o::Organism, e) = ectotherm(body_temperature, insulation(body(o)), o, e)
-function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
+ectotherm(core_temperature, o::Organism, e) = ectotherm(core_temperature, insulation(body(o)), o, e)
+function ectotherm(core_temperature, insulation::Naked, o::Organism, e)
     environment_pars = stripparams(e.environment_pars) # TODO make small function to get this, or extract all?
     environment_vars = e.environment_vars # TODO make small function to get this, or extract all?
     external_conduction = conduction_pars_external(o)
     internal_conduction = conduction_pars_internal(o)
     #conv = convection_pars(o)
-    radiation_params = radiation_pars(o)
-    evaporation_params = evaporation_pars(o)
-    hydraulic_params = hydraulic_pars(o)
-    respiration_params = respiration_pars(o)
-    metabolism_params = metabolism_pars(o)
+    rad_pars = radiation_pars(o)
+    evap_pars = evaporation_pars(o)
+    hyd_pars = hydraulic_pars(o)
+    resp_pars = respiration_pars(o)
+    metab_pars = metabolism_pars(o)
 
     # compute areas for exchange
     total_area = BiophysicalGeometry.total_area(o.body)
     convection_area = total_area * (1 - external_conduction.conduction_fraction)
     conduction_area = total_area * external_conduction.conduction_fraction
-    silhouette_area = radiation_params.silhouette_area
+    silhouette_area = rad_pars.silhouette_area
 
-    # calculate heat fluxes
+    # calculate heat flows
 
     # metabolism
-    metabolic_flux = metabolic_rate(metabolism_params.model, o.body.shape.mass, body_temperature)
+    metabolic_heat_flow = metabolic_rate(metab_pars.model, o.body.shape.mass, core_temperature)
 
     # respiration
-    rates = MetabolicRates(; metabolic=metabolic_flux)
+    rates = MetabolicRates(; metabolic=metabolic_heat_flow)
     atmos = AtmosphericConditions(environment_vars)
     respiration_out = respiration(
         rates,
-        respiration_params,
+        resp_pars,
         atmos,
         o.body.shape.mass,
-        body_temperature,  # lung_temperature
+        core_temperature,  # lung_temperature
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions,
     )
-    respiration_flux = respiration_out.respiration_flux
-    oxygen_flow = u"ml/hr"(Joules_to_O2(metabolic_flux))
+    respiration_heat_flow = respiration_out.respiration_heat_flow
+    oxygen_flow = u"ml/hr"(Joules_to_O2(metabolic_heat_flow))
 
     # net metabolic heat generation
-    net_generated_flux = metabolic_flux - respiration_flux
-    generated_specific_flux = net_generated_flux / o.body.geometry.volume
+    net_generated_heat_flow = metabolic_heat_flow - respiration_heat_flow
+    specific_generated_heat_flow = net_generated_heat_flow / o.body.geometry.volume
 
     # resultant surface and lung temperature
     (; surface_temperature, lung_temperature) = surface_and_lung_temperature(;
-        body=o.body, flesh_conductivity=internal_conduction.flesh_conductivity, generated_specific_flux, core_temperature=body_temperature
+        body=o.body, flesh_conductivity=internal_conduction.flesh_conductivity, specific_generated_heat_flow, core_temperature
     )
 
     # solar radiation
-    absorptivities = Absorptivities(radiation_params, environment_pars)
-    view_factors = ViewFactors(radiation_params.sky_view_factor, radiation_params.ground_view_factor, 0.0, 0.0)
+    absorptivities = Absorptivities(rad_pars, environment_pars)
+    view_factors = ViewFactors(rad_pars.sky_view_factor, rad_pars.ground_view_factor, 0.0, 0.0)
     solar_conditions = SolarConditions(environment_vars)
     solar_out = solar(
         o.body,
@@ -93,22 +93,22 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
         silhouette_area,
         conduction_area,
     )
-    solar_flux = solar_out.solar_flux
+    solar_flow = solar_out.solar_flow
 
-    # infrared in
-    emissivities = Emissivities(radiation_params, environment_pars)
-    env_temps = EnvironmentTemperatures(environment_vars)
-    infrared_gain_out = radin(
+    # longwave in
+    emissivities = Emissivities(rad_pars, environment_pars)
+    environmental_temps = EnvironmentTemperatures(environment_vars)
+    longwave_gain_out = radiation_in(
         o.body,
         view_factors,
         emissivities,
-        env_temps;
+        environmental_temps;
         conduction_fraction=external_conduction.conduction_fraction,
     )
-    infrared_in_flux = infrared_gain_out.infrared_in_flux
+    longwave_flow_in = longwave_gain_out.longwave_flow_in
 
-    # infrared out
-    infrared_loss_out = radout(
+    # longwave out
+    longwave_loss_out = radiation_out(
         o.body,
         view_factors,
         emissivities,
@@ -116,10 +116,10 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
         surface_temperature,  # dorsal_temperature
         surface_temperature,  # ventral_temperature
     )
-    infrared_out_flux = infrared_loss_out.infrared_out_flux
+    longwave_flow_out = longwave_loss_out.longwave_flow_out
 
     # conduction
-    conduction_flux = conduction(;
+    conduction_flow = conduction(;
         conduction_area,
         L=environment_pars.conduction_depth,
         surface_temperature,
@@ -139,54 +139,54 @@ function ectotherm(body_temperature, insulation::Naked, o::Organism, e)
         gas_fractions=environment_pars.gas_fractions,
         convection_enhancement=environment_pars.convection_enhancement,
     )
-    convection_flux = convection_out.flux
+    convection_heat_flow = convection_out.heat_flow
 
     # evaporation
     evaporation_out = evaporation(
-        evaporation_params,
+        evap_pars,
         convection_out.mass,
         atmos,
         convection_area,
         surface_temperature,
         environment_vars.air_temperature;
-        water_potential=hydraulic_params.water_potential,
+        water_potential=hyd_pars.water_potential,
         gas_fractions=environment_pars.gas_fractions,
     )
-    evaporation_flux = evaporation_out.evaporation_flux
+    evaporation_heat_flow = evaporation_out.evaporation_heat_flow
 
     # heat balance
-    flux_in = solar_flux + infrared_in_flux + metabolic_flux # energy in
-    flux_out = infrared_out_flux + convection_flux + evaporation_flux + respiration_flux + conduction_flux # energy out
-    #@assert flux_in - flux_out = 0.0u"W" # this must balance
-    heat_balance = flux_in - flux_out # this must balance
+    heat_flow_in = solar_flow + longwave_flow_in + metabolic_heat_flow # energy in
+    heat_flow_out = longwave_flow_out + convection_heat_flow + evaporation_heat_flow + respiration_heat_flow + conduction_flow # energy out
+    #@assert heat_flow_in - heat_flow_out = 0.0u"W" # this must balance
+    heat_balance = heat_flow_in - heat_flow_out # this must balance
 
-    enbal = (; solar_flux, infrared_in_flux, metabolic_flux, respiration_flux, evaporation_flux, infrared_out_flux, convection_flux, conduction_flux, heat_balance)
+    enbal = (; solar_flow, longwave_flow_in, metabolic_heat_flow, respiration_heat_flow, evaporation_heat_flow, longwave_flow_out, convection_heat_flow, conduction_flow, heat_balance)
     masbal = (; oxygen_flow, respiration_mass=respiration_out.respiration_mass, cutaneous_mass=evaporation_out.m_cut, eye_mass=evaporation_out.m_eyes)
     (;
         heat_balance,
-        core_temperature=body_temperature,
+        core_temperature,
         surface_temperature,
         lung_temperature,
         enbal,
         masbal,
         respiration_out,
         solar_out,
-        infrared_gain_out,
-        infrared_loss_out,
+        longwave_gain_out,
+        longwave_loss_out,
         convection_out,
         evaporation_out,
     )
 end
-function ectotherm(body_temperature, insulation::Fur, pars, organism, vars) # A method for organisms with fur
+function ectotherm(core_temperature, insulation::Fur, pars, organism, vars) # A method for organisms with fur
     #....
 end
 
 """
     get_Tb(mod::Model, environment_pars, vars)
 
-Find the equilibrium body temperature for an ectotherm.
+Find the equilibrium core temperature for an ectotherm.
 
-Uses root-finding (bisection) to find the body temperature where the heat
+Uses root-finding (bisection) to find the core temperature where the heat
 balance equals zero.
 
 # Arguments
@@ -195,53 +195,52 @@ balance equals zero.
 - `vars`: Environmental variables
 
 # Returns
-Full ectotherm output at the equilibrium body temperature.
+Full ectotherm output at the equilibrium core temperature.
 """
 function get_Tb(mod::Model, environment_pars, vars)
     air_temperature = vars.environment.air_temperature
-    body_temperature = find_zero(
+    core_temperature = find_zero(
         t -> ectotherm(t, mod, environment_pars, vars), (air_temperature - 40K, air_temperature + 100K), Bisection()
     )
-    ectotherm(body_temperature, mod, environment_pars, vars)
+    ectotherm(core_temperature, mod, environment_pars, vars)
 end
 
 #flip2vectors(x) = (; (k => getfield.(x, k) for k in keys(x[1]))...)
 
-#function ectotherm(body_temperature)
+#function ectotherm(core_temperature)
 
 #    # compute areas for exchange
 #    A_convection = A_total * (1 - conduction_fraction)
 #    A_sil = silhouette_area(geometric_pars, zenith_angle)
 
-#    # calculate heat fluxes
-#    metab_out = metabolic_rate(geometric_pars.shape.mass, body_temperature, mass_normalisation, mass_exponent, thermal_sensitivity)
-#    Q_metab = metab_out.Q_metab
-#    resp_out = respiration_ectotherm(body_temperature, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2)
-#    Q_resp = resp_out.Q_resp
-#    Q_gen_net = Q_metab - Q_resp
-#    Q_gen_spec = Q_gen_net / geometric_pars.geometry.volume
-#    (; surface_temperature, lung_temperature) = surface_and_lung_temperature(geometric_pars, k_flesh, Q_gen_spec, body_temperature)
-#    #Q_norm = direct_flux / cos(zenith_angle)
-#    solar_out = solar(α_body_dorsal, α_body_ventral, A_sil, A_total, A_conduction, F_ground, F_sky, α_substrate, solar_flux, direct_flux, diffuse_flux)
-#    solar_fluxar = solar_out.solar_fluxar
-#    ir_gain = radin(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
-#    infrared_in_flux = ir_gain.infrared_in_flux
-#    ir_loss = radout(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
-#    infrared_out_flux = ir_loss.infrared_out_flux
-#    Q_cond = conduction(A_conduction, Le, T_surface, T_substrate, k_substrate)
+#    # calculate heat flows
+#    metab_out = metabolic_rate(geometric_pars.shape.mass, core_temperature, mass_normalisation, mass_exponent, thermal_sensitivity)
+#    metabolic_heat_flow = metab_out.metabolic_heat_flow
+#    resp_out = respiration_ectotherm(core_temperature, metabolic_heat_flow, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2)
+#    respiration_heat_flow = resp_out.respiration_heat_flow
+#    net_generated_heat_flow = metabolic_heat_flow - respiration_heat_flow
+#    specific_generated_heat_flow = net_generated_heat_flow / geometric_pars.geometry.volume
+#    (; surface_temperature, lung_temperature) = surface_and_lung_temperature(geometric_pars, k_flesh, specific_generated_heat_flow, core_temperature)
+#    #Q_norm = direct_flow / cos(zenith_angle)
+#    solar_out = solar(α_body_dorsal, α_body_ventral, A_sil, A_total, A_conduction, F_ground, F_sky, α_substrate, solar_flow, direct_flow, diffuse_flow)
+#    solar_flow = solar_out.solar_flow
+#    longwave_gain = radiation_in(A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral, ϵ_ground, ϵ_sky, T_sky, T_ground)
+#    longwave_flow_in = longwave_gain.longwave_flow_in
+#    longwave_loss = radiation_out(T_surface, A_total, A_conduction, F_sky, F_ground, ϵ_body_dorsal, ϵ_body_ventral)
+#    longwave_flow_out = longwave_loss.longwave_flow_out
+#    conduction_flow = conduction(A_conduction, Le, T_surface, T_substrate, k_substrate)
 #    conv_out = convection(; body=geometric_pars, A_convection, T_air, T_surface, wind_speed, P_atmos, fluid)
 #    evap_out = evaporation(T_surface, ψ_org, skin_wetness, A_convection, conv_out.hd, eye_fraction, T_air, rh, P_atmos)
-#    Q_conv = conv_out.Q_conv
-#    Q_evap = evap_out.Q_evap
+#    convection_heat_flow = conv_out.convection_heat_flow
+#    evaporation_heat_flow = evap_out.evaporation_heat_flow
 
 #    # calculate balance
-#    Q_in = solar_fluxar + infrared_in_flux + Q_metab # energy in
-#    Q_out = infrared_out_flux + Q_conv + Q_evap + Q_resp + Q_cond # energy out
-#    #Q_in - Q_out # this must balance
-#    Q_bal = Q_in - Q_out # this must balance
+#    heat_flow_in = solar_flow + longwave_flow_in + metabolic_heat_flow # energy in
+#    heat_flow_out = longwave_flow_out + convection_heat_flow + evaporation_heat_flow + respiration_heat_flow + conduction_flow # energy out
+#    #heat_flow_in - heat_flow_out # this must balance
+#    heat_balance = heat_flow_in - heat_flow_out # this must balance
 
-#    enbal = [solar_fluxar, infrared_in_flux, Q_metab, Q_resp, Q_evap, infrared_out_flux, Q_conv, Q_cond, Q_bal]
-#    #enbal = [solar_fluxar = solar_fluxar, infrared_in_flux = infrared_in_flux, Q_metab = Q_metab, Q_resp = Q_resp, Q_evap = Q_evap, infrared_out_flux = infrared_out_flux, Q_conv = Q_conv, Q_cond = Q_cond, Q_bal = Q_bal]
-#    masbal = [metab_out.V_O2, resp_out.respiration_mass, evap_out.m_cut, evap_out.m_eyes]
-#    (;Q_bal, T_core=body_temperature, T_surface, T_lung, enbal, masbal, resp_out, solar_out, ir_gain, ir_loss, conv_out, evap_out)
+#    enbal = [solar_flow, longwave_flow_in, metabolic_heat_flow, respiration_heat_flow, evaporation_heat_flow, longwave_flow_out, convection_heat_flow, conduction_flow, heat_balance]
+#    masbal = [metab_out.oxygen_flow, resp_out.respiration_mass, evap_out.m_cut, evap_out.m_eyes]
+#    (; heat_balance, core_temperature, surface_temperature, lung_temperature, enbal, masbal, resp_out, solar_out, longwave_gain, longwave_loss, conv_out, evap_out)
 #end

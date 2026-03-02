@@ -17,7 +17,7 @@ given gas concentrations, pressure, respiration rate and humidity.
 - `O2conversion::OxygenJoulesConversion`: Model to convert O2 to Watts
 
 # Returns
-NamedTuple with balance, respiration_flux, respiration_mass, generated_flux, air_flow, oxygen_flow_stp, molar_fluxes
+NamedTuple with balance, respiration_heat_flow, respiration_mass, generated_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes
 """
 function respiration(
     rates::MetabolicRates,
@@ -30,7 +30,7 @@ function respiration(
     O2conversion::OxygenJoulesConversion=Typical(),
 )
     (; metabolic, sum, minimum) = rates
-    metabolic_flux, flux_sum, minimum_flux = metabolic, sum, minimum
+    metabolic_heat_flow, heat_flow_sum, minimum_heat_flow = metabolic, sum, minimum
     (; oxygen_extraction_efficiency, pant, respiratory_quotient, exhaled_temperature_offset, exhaled_relative_humidity) = resp_pars
     exit_air_temperature = lung_temperature  # exhaled air at lung temperature (original default)
     (; relative_humidity, atmospheric_pressure) = atmos
@@ -42,14 +42,14 @@ function respiration(
         fO2 = 1 - (fN2 + fCO2)
     end
 
-    resp_gen = max(metabolic_flux, minimum_flux)
+    resp_gen = max(metabolic_heat_flow, minimum_heat_flow)
 
-    #Joule_m3_O2 = 20.1e6u"J/m^3" # joules of energy dissipated per m3 O2 consumed at STP (enthalpy of combustion)
-    oxygen_flow_stp = u"m^3/s"(Joules_to_O2(O2conversion, resp_gen, respiratory_quotient))
+    # joules of energy dissipated per m3 O2 consumed at standard temperature and pressure (enthalpy of combustion)
+    oxygen_flow_standard = u"m^3/s"(Joules_to_O2(O2conversion, resp_gen, respiratory_quotient))
 
-    # converting stp -> vol. of O2 at animal lung temperature, atm. press.
+    # converting standard temperature and pressure -> vol. of O2 at animal lung temperature, atm. press.
     O2_partial_pressure = atmospheric_pressure * fO2
-    oxygen_flow = (oxygen_flow_stp * O2_partial_pressure / 273.15u"K") * (lung_temperature / O2_partial_pressure)
+    oxygen_flow = (oxygen_flow_standard * O2_partial_pressure / 273.15u"K") * (lung_temperature / O2_partial_pressure)
     #n = PV/RT (ideal gas law: number of moles from press,vol,temp)
     oxygen_consumed = uconvert(u"mol/s", atmospheric_pressure * oxygen_flow / (Unitful.R * lung_temperature)) # mol O2 consumed
     # moles/s of O2, N2, dry air at entrance [air flow = f(O2 consumption)]
@@ -59,7 +59,7 @@ function respiration(
     co2_flow = fCO2 * air_flow # CO2 flow
     carbon_dioxide_in = atmospheric_pressure * co2_flow / (Unitful.R * lung_temperature)
     air_in = (oxygen_in + nitrogen_in + carbon_dioxide_in) * pant
-    air_flow = uconvert(u"m^3/s", (air_in * Unitful.R * 273.15u"K" / 101325u"Pa")) # air volume @ stp (m3/s)
+    air_flow = uconvert(u"m^3/s", (air_in * Unitful.R * 273.15u"K" / 101325u"Pa")) # air volume at standard temperature and pressure (m3/s)
     # computing the vapor pressure at saturation for the subsequent calculation of
     # actual moles of water based on actual relative humidity
     saturation_vapour_pressure = vapour_pressure(air_temperature)
@@ -99,7 +99,7 @@ function respiration(
     # get latent heat of vapourisation and compute heat exchange due to respiration
     latent_heat_vaporisation = enthalpy_of_vaporisation(lung_temperature)
     # heat loss by breathing (J/s)=(J/kg)*(kg/s)
-    respiration_flux = uconvert(u"W", latent_heat_vaporisation * respiration_mass)
+    respiration_heat_flow = uconvert(u"W", latent_heat_vaporisation * respiration_mass)
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
     latent_heat_vaporisation = enthalpy_of_vaporisation(lung_temperature)
@@ -107,11 +107,11 @@ function respiration(
     molar_mass_air = molar_mass
     (; specific_heat) = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions)
     specific_heat_capacity = specific_heat
-    sensible_heat_flux = specific_heat_capacity * air_in * molar_mass_air * (air_temperature - lung_temperature)
-    respiration_flux = uconvert(u"W", latent_heat_vaporisation * respiration_mass) - sensible_heat_flux
-    net_flux_check = metabolic_flux - respiration_flux
-    balance = net_flux_check - flux_sum
+    sensible_heat_flow = specific_heat_capacity * air_in * molar_mass_air * (air_temperature - lung_temperature)
+    respiration_heat_flow = uconvert(u"W", latent_heat_vaporisation * respiration_mass) - sensible_heat_flow
+    net_heat_flow_check = metabolic_heat_flow - respiration_heat_flow
+    balance = net_heat_flow_check - heat_flow_sum
     molar_fluxes_in = MolarFluxes(air_in, water_in, oxygen_in, carbon_dioxide_in, nitrogen_in)
     molar_fluxes_out = MolarFluxes(air_out, water_out, oxygen_out, carbon_dioxide_out, nitrogen_out)
-    return (; balance, respiration_flux, respiration_mass, generated_flux=metabolic_flux, air_flow, oxygen_flow_stp, molar_fluxes_in, molar_fluxes_out)
+    return (; balance, respiration_heat_flow, respiration_mass, generated_heat_flow=metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes_in, molar_fluxes_out)
 end

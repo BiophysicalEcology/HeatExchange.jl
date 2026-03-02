@@ -1,5 +1,5 @@
 """
-    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, substrate_conductance, longwave_depth_fraction, conduction_fraction, evaporation_flux, substrate_temperature)
+    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, conductance_coefficient, longwave_depth_fraction, conduction_fraction, evaporation_flux, substrate_temperature)
 
 Calculate the radiant temperature at the insulation surface for longwave radiation exchange.
 
@@ -13,7 +13,7 @@ heat conduction equations through the insulation layer.
 - `org_temps::OrganismTemperatures`: Organism temperatures (core, skin, insulation)
 - `conductivities::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
 - `side`: Body side (`:dorsal` or `:ventral`)
-- `substrate_conductance`: Substrate conductance coefficient
+- `conductance_coefficient`: Substrate conductance coefficient
 - `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
 - `conduction_fraction`: Fraction of body in contact with substrate
 - `evaporation_flux`: Evaporative heat loss
@@ -33,7 +33,7 @@ function radiant_temperature(;
     org_temps::OrganismTemperatures,
     conductivities::ThermalConductivities,
     side,
-    substrate_conductance,
+    conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
@@ -47,7 +47,7 @@ function radiant_temperature(;
         org_temps,
         conductivities,
         side,
-        substrate_conductance,
+        conductance_coefficient,
         longwave_depth_fraction,
         conduction_fraction,
         evaporation_flux,
@@ -62,7 +62,7 @@ function radiant_temperature(
     org_temps::OrganismTemperatures,
     conductivities::ThermalConductivities,
     side,
-    substrate_conductance,
+    conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
@@ -83,7 +83,7 @@ function radiant_temperature(
     compression_fraction =
         (conduction_fraction * 2 * π * compressed_conductivity * length) / log(r_compressed / r_skin)
     compressed_insulation_temperature = if conduction_fraction > 0
-        (compression_fraction * skin_temperature + substrate_conductance * substrate_temperature) / (substrate_conductance + compression_fraction)
+        (compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature) / (conductance_coefficient + compression_fraction)
     else
         0.0u"K"
     end
@@ -138,7 +138,7 @@ function radiant_temperature(
     org_temps::OrganismTemperatures,
     conductivities::ThermalConductivities,
     side,
-    substrate_conductance,
+    conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
@@ -160,7 +160,7 @@ function radiant_temperature(
         (r_compressed - r_skin)
 
     compressed_insulation_temperature = if conduction_fraction > 0
-        (compression_fraction * skin_temperature + substrate_conductance * substrate_temperature) / (substrate_conductance + compression_fraction)
+        (compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature) / (conductance_coefficient + compression_fraction)
     else
         0.0u"K"
     end
@@ -224,7 +224,7 @@ function radiant_temperature(
     org_temps::OrganismTemperatures,
     conductivities::ThermalConductivities,
     side,
-    substrate_conductance,
+    conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flux,
@@ -264,7 +264,7 @@ function radiant_temperature(
         ((sqrt(3 * ssqg))^3 * (bl_compressed - bs))
 
     compressed_insulation_temperature = if conduction_fraction > 0.0
-        (compression_fraction * skin_temperature + substrate_conductance * substrate_temperature) / (substrate_conductance + compression_fraction)
+        (compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature) / (conductance_coefficient + compression_fraction)
     else
         0.0u"K"
     end
