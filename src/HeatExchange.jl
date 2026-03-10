@@ -40,23 +40,24 @@ export EnvironmentalPars, EnvironmentalVars, EnvironmentalVarsVec
 
 export body,
     traits,
-    insulationpars,
-    conductionpars_external,
-    conductionpars_internal,
-    convectionpars,
-    radiationpars,
-    evaporationpars,
-    hydraulicpars,
-    respirationpars,
-    metabolismpars,
+    shape_pars,
+    insulation_pars,
+    conduction_pars_external,
+    conduction_pars_internal,
+    convection_pars,
+    radiation_pars,
+    evaporation_pars,
+    hydraulic_pars,
+    respiration_pars,
+    metabolism_pars,
     options
 
 export get_Tb
 
 export solar,
-    radin, radout, evaporation, conduction, convection, nusselt_free, nusselt_forced
+    radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
-export ectotherm, Tsurf_and_Tlung
+export ectotherm, surface_and_lung_temperature
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -67,12 +68,13 @@ export solve_metabolic_rate,
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
-export simulsol, mean_skin_temperature, respiration
+export solve_temperatures, mean_skin_temperature, respiration
 
 export ConductanceCoeffs,
     DivisorCoeffs,
     RadiationCoeffs,
     BodyRegionValues,
+    DorsalVentral,
     FibreProperties,
     EnvironmentTemperatures,
     OrganismTemperatures,

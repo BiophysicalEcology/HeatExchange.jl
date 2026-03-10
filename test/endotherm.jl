@@ -126,30 +126,30 @@ for shape_number in 1:4
         geometry = Body(shape_pars, CompositeInsulation(fur, fat))
 
         environment_vars = EnvironmentalVars(;
-            T_air=u"K"((endo_input.TA)u"°C"),
-            T_air_reference=u"K"((endo_input.TAREF)u"°C"),
-            T_sky=u"K"((endo_input.TSKY)u"°C"),
-            T_ground=u"K"((endo_input.TGRD)u"°C"),
-            T_substrate=u"K"((endo_input.TCONDSB)u"°C"),
-            T_bush=u"K"((endo_input.TBUSH)u"°C"),
-            T_vegetation=u"K"((endo_input.TAREF)u"°C"),
-            rh=(endo_input.RH / 100.0),
+            air_temperature=u"K"((endo_input.TA)u"°C"),
+            reference_air_temperature=u"K"((endo_input.TAREF)u"°C"),
+            sky_temperature=u"K"((endo_input.TSKY)u"°C"),
+            ground_temperature=u"K"((endo_input.TGRD)u"°C"),
+            substrate_temperature=u"K"((endo_input.TCONDSB)u"°C"),
+            bush_temperature=u"K"((endo_input.TBUSH)u"°C"),
+            vegetation_temperature=u"K"((endo_input.TAREF)u"°C"),
+            relative_humidity=(endo_input.RH / 100.0),
             wind_speed=(endo_input.VEL)u"m/s",
-            P_atmos=(endo_input.BP)u"Pa",
+            atmospheric_pressure=(endo_input.BP)u"Pa",
             zenith_angle=(endo_input.Z)u"°",
-            k_substrate=(endo_input.KSUB)u"W/m/K",
+            substrate_conductivity=(endo_input.KSUB)u"W/m/K",
             global_radiation=(endo_input.QSOLR)u"W/m^2",
             diffuse_fraction=endo_input.PDIF,
             shade=(endo_input.SHADE / 100),
         )
 
         environment_pars = EnvironmentalPars(;
-            α_ground=endo_input.ABSSB,
-            ϵ_ground=1.0,
-            ϵ_sky=1.0,
+            ground_albedo=endo_input.ABSSB,
+            ground_emissivity=1.0,
+            sky_emissivity=1.0,
             elevation=(endo_input.ELEV)u"m",
             fluid=endo_input.FLTYPE,
-            gasfrac=GasFractions(
+            gas_fractions=GasFractions(
                 endo_input.O2GAS / 100.0,
                 endo_input.CO2GAS / 100.0,
                 endo_input.N2GAS / 100.0,
@@ -163,9 +163,9 @@ for shape_number in 1:4
 
         conduction_pars_internal = InternalConductionParameters(;
             fat_fraction=(endo_input.FATPCT / 100.0),
-            k_flesh=(endo_input.AK1)u"W/m/K",
-            k_fat=(endo_input.AK2)u"W/m/K",
-            ρ_fat=(endo_input.FATDEN)u"kg/m^3",
+            flesh_conductivity=(endo_input.AK1)u"W/m/K",
+            fat_conductivity=(endo_input.AK2)u"W/m/K",
+            fat_density=(endo_input.FATDEN)u"kg/m^3",
         )
 
         if endo_input.ORIENT == 0.0
@@ -176,13 +176,13 @@ for shape_number in 1:4
             solar_orientation = ParallelToSun()
         end
         radiation_pars = RadiationParameters(;
-            α_body_dorsal=(1 - endo_input.REFLD),
-            α_body_ventral=(1 - endo_input.REFLV),
-            ϵ_body_dorsal=endo_input.EMISAN,
-            ϵ_body_ventral=endo_input.EMISAN,
-            F_sky=endo_input.FSKREF,
-            F_ground=endo_input.FGDREF,
-            F_bush=endo_input.FABUSH,
+            body_absorptivity_dorsal=(1 - endo_input.REFLD),
+            body_absorptivity_ventral=(1 - endo_input.REFLV),
+            body_emissivity_dorsal=endo_input.EMISAN,
+            body_emissivity_ventral=endo_input.EMISAN,
+            sky_view_factor=endo_input.FSKREF,
+            ground_view_factor=endo_input.FGDREF,
+            bush_view_factor=endo_input.FABUSH,
             ventral_fraction=endo_input.PVEN,
             solar_orientation,
         )
@@ -198,16 +198,16 @@ for shape_number in 1:4
         hydraulic_pars = HydraulicParameters(;)
 
         respiration_pars = RespirationParameters(;
-            fO2_extract=(endo_input.EXTREF / 100.0),
+            oxygen_extraction_efficiency=(endo_input.EXTREF / 100.0),
             pant=endo_input.PANT,
-            rq=endo_input.RQ,
-            Δ_breath=(endo_input.DELTAR)u"K",
-            rh_exit=(endo_input.RELXIT / 100.0),
+            respiratory_quotient=endo_input.RQ,
+            exhaled_temperature_offset=(endo_input.DELTAR)u"K",
+            exhaled_relative_humidity=(endo_input.RELXIT / 100.0),
         )
 
         metabolism_pars = MetabolismParameters(;
-            T_core=u"K"((endo_input.TC)u"°C"),
-            Q_metabolism=(endo_input.QBASAL)u"W",
+            core_temperature=u"K"((endo_input.TC)u"°C"),
+            metabolic_heat_flow=(endo_input.QBASAL)u"W",
             q10=endo_input.Q10,
             model=Kleiber(),
         )
@@ -235,7 +235,7 @@ for shape_number in 1:4
 
         options = SolveMetabolicRateOptions(;
             respire=Bool(endo_input.RESPIRE),
-            simulsol_tolerance=(endo_input.DIFTOL)u"K",
+            temperature_tolerance=(endo_input.DIFTOL)u"K",
             resp_tolerance=endo_input.BRENTOL,
         )
 
@@ -258,51 +258,51 @@ for shape_number in 1:4
         environment = (; environment_pars, environment_vars)
 
         # initial conditions
-        T_skin = u"K"((endo_input.TS)u"°C")
-        T_insulation = u"K"((endo_input.TFA)u"°C")
+        skin_temperature = u"K"((endo_input.TS)u"°C")
+        insulation_temperature = u"K"((endo_input.TFA)u"°C")
 
         endotherm_out = solve_metabolic_rate(
-            mammal, environment, T_skin, T_insulation
+            mammal, environment, skin_temperature, insulation_temperature
         )
 
         thermoregulation = endotherm_out.thermoregulation
         morphology = endotherm_out.morphology
-        energy_fluxes = endotherm_out.energy_fluxes
-        mass_fluxes = endotherm_out.mass_fluxes
+        energy_flows = endotherm_out.energy_flows
+        mass_flows = endotherm_out.mass_flows
 
         (; insulation_test) = insulation_properties(
-            insulation_pars, thermoregulation.T_insulation, radiation_pars.ventral_fraction
+            insulation_pars, thermoregulation.insulation_temperature, radiation_pars.ventral_fraction
         )
 
         rtol = 1e-3
 
         @testset "endotherm thermoregulation comparisons" begin
-            @test treg_output_vec.TC ≈ ustrip(u"°C", thermoregulation.T_core) rtol = rtol
-            @test treg_output_vec.TLUNG ≈ ustrip(u"°C", thermoregulation.T_lung) rtol = rtol
-            @test treg_output_vec.TSKIN_D ≈ ustrip(u"°C", thermoregulation.T_skin_dorsal) rtol =
+            @test treg_output_vec.TC ≈ ustrip(u"°C", thermoregulation.core_temperature) rtol = rtol
+            @test treg_output_vec.TLUNG ≈ ustrip(u"°C", thermoregulation.lung_temperature) rtol = rtol
+            @test treg_output_vec.TSKIN_D ≈ ustrip(u"°C", thermoregulation.skin_temperature_dorsal) rtol =
                 rtol
-            @test treg_output_vec.TSKIN_V ≈ ustrip(u"°C", thermoregulation.T_skin_ventral) rtol =
+            @test treg_output_vec.TSKIN_V ≈ ustrip(u"°C", thermoregulation.skin_temperature_ventral) rtol =
                 rtol
             @test treg_output_vec.TFA_D ≈
-                ustrip(u"°C", thermoregulation.T_insulation_dorsal) rtol = rtol
+                ustrip(u"°C", thermoregulation.insulation_temperature_dorsal) rtol = rtol
             @test treg_output_vec.TFA_V ≈
-                ustrip(u"°C", thermoregulation.T_insulation_ventral) rtol = rtol
+                ustrip(u"°C", thermoregulation.insulation_temperature_ventral) rtol = rtol
             if insulation_test > 0.0u"m"
                 @test treg_output_vec.K_FUR_D ≈
-                    ustrip(u"W/m/K", thermoregulation.k_insulation_dorsal) rtol = rtol
+                    ustrip(u"W/m/K", thermoregulation.insulation_conductivity_dorsal) rtol = rtol
                 @test treg_output_vec.K_FUR_V ≈
-                    ustrip(u"W/m/K", thermoregulation.k_insulation_ventral) rtol = rtol
+                    ustrip(u"W/m/K", thermoregulation.insulation_conductivity_ventral) rtol = rtol
             end
             @test treg_output_vec.K_FUR_EFF ≈
-                ustrip(u"W/m/K", thermoregulation.k_insulation_effective) rtol = rtol
+                ustrip(u"W/m/K", thermoregulation.insulation_conductivity_effective) rtol = rtol
             @test treg_output_vec.K_COMPFUR ≈
-                ustrip(u"W/m/K", thermoregulation.k_insulation_compressed) rtol = rtol
+                ustrip(u"W/m/K", thermoregulation.insulation_conductivity_compressed) rtol = rtol
         end
 
         fat = morphology.fat < 1.0e-10u"m" ? 0.0u"m" : morphology.fat
         rtol = 1e-6
         @testset "endotherm morphology comparisons" begin
-            @test morph_output_vec.AREA ≈ ustrip(u"m^2", morphology.area_total) rtol = rtol
+            @test morph_output_vec.AREA ≈ ustrip(u"m^2", morphology.total_area) rtol = rtol
             @test morph_output_vec.AREA_SKIN ≈ ustrip(u"m^2", morphology.area_skin) rtol =
                 rtol
             @test morph_output_vec.AREA_SKIN_EVAP ≈
@@ -313,8 +313,8 @@ for shape_number in 1:4
                 rtol
             @test morph_output_vec.AREA_SIL ≈ ustrip(u"m^2", morphology.area_silhouette) rtol =
                 rtol
-            @test morph_output_vec.F_SKY ≈ morphology.F_sky rtol = rtol
-            @test morph_output_vec.F_GROUND ≈ morphology.F_ground rtol = rtol
+            @test morph_output_vec.F_SKY ≈ morphology.sky_view_factor rtol = rtol
+            @test morph_output_vec.F_GROUND ≈ morphology.ground_view_factor rtol = rtol
             @test morph_output_vec.VOLUME ≈ ustrip(u"m^3", morphology.volume) rtol = rtol
             @test morph_output_vec.FLESH_VOL ≈ ustrip(u"m^3", morphology.volume_flesh) rtol =
                 rtol
@@ -354,52 +354,52 @@ for shape_number in 1:4
         QEVAP = enbal_output_vec.QEVAP < 1.0e-20 ? 0.0 : enbal_output_vec.QEVAP
 
         rtol = 1e-3
-        @testset "endotherm energy flux comparisons" begin
-            @test enbal_output_vec.QSOL ≈ ustrip(u"W", energy_fluxes.Q_solar) rtol = rtol
-            @test enbal_output_vec.QIRIN ≈ ustrip(u"W", energy_fluxes.Q_longwave_in) rtol =
+        @testset "endotherm energy flow comparisons" begin
+            @test enbal_output_vec.QSOL ≈ ustrip(u"W", energy_flows.solar_flow) rtol = rtol
+            @test enbal_output_vec.QIRIN ≈ ustrip(u"W", energy_flows.longwave_flow_in) rtol =
                 rtol
-            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_fluxes.Q_gen) rtol = rtol * 10
-            @test QEVAP ≈ ustrip(u"W", energy_fluxes.Q_evaporation) rtol = rtol
-            @test enbal_output_vec.QIROUT ≈ ustrip(u"W", energy_fluxes.Q_longwave_out) rtol =
+            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_flows.generated_heat_flow) rtol = rtol * 10
+            @test QEVAP ≈ ustrip(u"W", energy_flows.evaporation_heat_flow) rtol = rtol
+            @test enbal_output_vec.QIROUT ≈ ustrip(u"W", energy_flows.longwave_flow_out) rtol =
                 rtol
-            @test enbal_output_vec.QCONV ≈ ustrip(u"W", energy_fluxes.Q_convection) rtol =
+            @test enbal_output_vec.QCONV ≈ ustrip(u"W", energy_flows.convection_heat_flow) rtol =
                 rtol
-            @test enbal_output_vec.QCOND ≈ ustrip(u"W", energy_fluxes.Q_conduction) rtol =
+            @test enbal_output_vec.QCOND ≈ ustrip(u"W", energy_flows.conduction_flow) rtol =
                 rtol * 100 # could be because it's a very small number
-            if !isnothing(energy_fluxes.balance)
-                @test enbal_output_vec.ENB ≈ ustrip(u"W", energy_fluxes.balance) atol = 1e-3
+            if !isnothing(energy_flows.balance)
+                @test enbal_output_vec.ENB ≈ ustrip(u"W", energy_flows.balance) atol = 1e-3
             end
-            @test enbal_output_vec.NTRY ≈ energy_fluxes.ntry
-            @test Bool(enbal_output_vec.SUCCESS) ≈ energy_fluxes.success
+            @test enbal_output_vec.NTRY ≈ energy_flows.ntry
+            @test Bool(enbal_output_vec.SUCCESS) ≈ energy_flows.success
         end
 
         rtol = 1e-3
-        @testset "endotherm mass flux comparisons" begin
+        @testset "endotherm mass flow comparisons" begin
             if options.respire
-                @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_fluxes.V_air) rtol =
+                @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_flows.air_flow) rtol =
                     rtol
-                @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_fluxes.V_O2_STP) rtol =
+                @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_flows.oxygen_flow_standard) rtol =
                     rtol
-                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_fluxes.m_resp) rtol =
+                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_flows.respiration_mass) rtol =
                     rtol
-                @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_fluxes.m_sweat) rtol =
+                @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_flows.m_sweat) rtol =
                     rtol
-                #@test masbal_output_vec.H2O_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_H2O_in) rtol = rtol
-                #@test masbal_output_vec.H2O_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_H2O_out) rtol = rtol
-                @test masbal_output_vec.O2_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_O2_in) rtol =
+                #@test masbal_output_vec.H2O_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.water) rtol = rtol
+                #@test masbal_output_vec.H2O_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.water) rtol = rtol
+                @test masbal_output_vec.O2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.oxygen) rtol =
                     rtol
-                @test masbal_output_vec.O2_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_O2_out) rtol =
+                @test masbal_output_vec.O2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.oxygen) rtol =
                     rtol
-                #@test masbal_output_vec.CO2_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_CO2_in) rtol = rtol
-                #@test masbal_output_vec.CO2_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_CO2_out) rtol = rtol
-                @test masbal_output_vec.N2_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_N2_in) rtol =
+                #@test masbal_output_vec.CO2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.carbon_dioxide) rtol = rtol
+                #@test masbal_output_vec.CO2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.carbon_dioxide) rtol = rtol
+                @test masbal_output_vec.N2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.nitrogen) rtol =
                     rtol
-                @test masbal_output_vec.N2_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_N2_out) rtol =
+                @test masbal_output_vec.N2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.nitrogen) rtol =
                     rtol
-                @test masbal_output_vec.AIR_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_air_in) rtol =
+                @test masbal_output_vec.AIR_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.air) rtol =
                     rtol
                 @test masbal_output_vec.AIR_mol_out ≈
-                    ustrip(u"mol/hr", mass_fluxes.J_air_out) rtol = rtol
+                    ustrip(u"mol/hr", mass_flows.molar_fluxes_out.air) rtol = rtol
             end
         end
     end

@@ -1,5 +1,5 @@
 """
-    Tsurf_and_Tlung(; body, k_flesh, Q_gen_spec, T_core)
+    surface_and_lung_temperature(; body, flesh_conductivity, specific_generated_heat_flow, core_temperature)
 
 Calculate surface and lung temperatures from core temperature and metabolic heat generation.
 
@@ -8,57 +8,57 @@ temperature gradients from core to surface.
 
 # Keywords
 - `body::AbstractBody`: Body geometry
-- `k_flesh`: Thermal conductivity of flesh
-- `Q_gen_spec`: Specific metabolic heat generation (per unit volume)
-- `T_core`: Core body temperature
+- `flesh_conductivity`: Thermal conductivity of flesh
+- `specific_generated_heat_flow`: Specific metabolic heat generation (per unit volume)
+- `core_temperature`: Core body temperature
 
 # Returns
 NamedTuple with:
-- `T_surface`: Surface temperature
-- `T_lung`: Lung temperature (intermediate between core and surface)
+- `surface_temperature`: Surface temperature
+- `lung_temperature`: Lung temperature (intermediate between core and surface)
 """
-function Tsurf_and_Tlung(; body::AbstractBody, k_flesh, Q_gen_spec, T_core)
-    return Tsurf_and_Tlung(body, k_flesh, Q_gen_spec, T_core)
+function surface_and_lung_temperature(; body::AbstractBody, flesh_conductivity, specific_generated_heat_flow, core_temperature)
+    return surface_and_lung_temperature(body, flesh_conductivity, specific_generated_heat_flow, core_temperature)
 end
 
-function Tsurf_and_Tlung(body::AbstractBody, k_flesh, Q_gen_spec, T_core)
-    Tsurf_and_Tlung(shape(body), body, k_flesh, Q_gen_spec, T_core)
+function surface_and_lung_temperature(body::AbstractBody, flesh_conductivity, specific_generated_heat_flow, core_temperature)
+    surface_and_lung_temperature(shape(body), body, flesh_conductivity, specific_generated_heat_flow, core_temperature)
 end
 
-function Tsurf_and_Tlung(shape::Cylinder, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
+function surface_and_lung_temperature(shape::Cylinder, body::AbstractBody, flesh_conductivity, specific_generated_heat_flow, core_temperature)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
-    R_flesh = body.geometry.length[2]
-    T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_flesh)
-    T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_flesh) + T_surface
+    flesh_radius = body.geometry.length[2]
+    surface_temperature = core_temperature - specific_generated_heat_flow * flesh_radius ^ 2 / (4 * flesh_conductivity)
+    lung_temperature = (specific_generated_heat_flow * flesh_radius ^ 2) / (8 * flesh_conductivity) + surface_temperature
 
-    return (; T_surface, T_lung)
+    return (; surface_temperature, lung_temperature)
 end
 
-function Tsurf_and_Tlung(shape::DesertIguana, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
+function surface_and_lung_temperature(shape::DesertIguana, body::AbstractBody, flesh_conductivity, specific_generated_heat_flow, core_temperature)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
-    R_flesh = body.geometry.length[1]
-    T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_flesh)
-    T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_flesh) + T_surface
+    flesh_radius = body.geometry.length[1]
+    surface_temperature = core_temperature - specific_generated_heat_flow * flesh_radius ^ 2 / (4 * flesh_conductivity)
+    lung_temperature = (specific_generated_heat_flow * flesh_radius ^ 2) / (8 * flesh_conductivity) + surface_temperature
 
-    return (; T_surface, T_lung)
+    return (; surface_temperature, lung_temperature)
 end
 
-function Tsurf_and_Tlung(shape::LeopardFrog, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
+function surface_and_lung_temperature(shape::LeopardFrog, body::AbstractBody, flesh_conductivity, specific_generated_heat_flow, core_temperature)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
-    R_flesh = body.geometry.length[1]
-    T_surface = T_core - Q_gen_spec * R_flesh ^ 2 / (4 * k_flesh)
-    T_lung = (Q_gen_spec * R_flesh ^ 2) / (8 * k_flesh) + T_surface
+    flesh_radius = body.geometry.length[1]
+    surface_temperature = core_temperature - specific_generated_heat_flow * flesh_radius ^ 2 / (4 * flesh_conductivity)
+    lung_temperature = (specific_generated_heat_flow * flesh_radius ^ 2) / (8 * flesh_conductivity) + surface_temperature
 
-    return (; T_surface, T_lung)
+    return (; surface_temperature, lung_temperature)
 end
 
-function Tsurf_and_Tlung(shape::Ellipsoid, body::AbstractBody, k_flesh, Q_gen_spec, T_core)
+function surface_and_lung_temperature(shape::Ellipsoid, body::AbstractBody, flesh_conductivity, specific_generated_heat_flow, core_temperature)
     a = body.geometry.length[1] ^ 2
     b = body.geometry.length[2] ^ 2
     c = body.geometry.length[3] ^ 2
     x = ((a * b * c) / (a * b + a * c + b * c))
-    T_surface = T_core - (Q_gen_spec / (2 * k_flesh)) * x
-    T_lung = (Q_gen_spec / (4 * k_flesh)) * x + T_surface
+    surface_temperature = core_temperature - (specific_generated_heat_flow / (2 * flesh_conductivity)) * x
+    lung_temperature = (specific_generated_heat_flow / (4 * flesh_conductivity)) * x + surface_temperature
 
-    return (; T_surface, T_lung)
+    return (; surface_temperature, lung_temperature)
 end
