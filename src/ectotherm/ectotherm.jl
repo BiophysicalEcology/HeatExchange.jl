@@ -50,7 +50,7 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
     A_total = total_area(o.body)
     A_convection = A_total * (1 - cond_ex.conduction_fraction)
     A_conduction = A_total * cond_ex.conduction_fraction
-    A_silhouette = rad.A_silhouette
+    A_silhouette = silhouette_area(o.body, rad.solar_orientation, e_vars.zenith_angle)
 
     # calculate heat fluxes
 
@@ -187,7 +187,7 @@ end
 """
     get_Tb(mod::Model, e_pars, vars)
 
-Find the equilibrium body temperature for an ectotherm.
+Find the steady-state body temperature for an ectotherm.
 
 Uses root-finding (bisection) to find the body temperature where the heat
 balance equals zero.
