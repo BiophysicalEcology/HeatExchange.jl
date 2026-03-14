@@ -57,7 +57,8 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
     # metabolism
     Q_metab = metabolic_rate(metab.model, o.body.shape.mass, T_x)
 
-    # respiration
+    # respiration — clamp T_lung to [1°C, 50°C] matching NicheMapR RESP.f lines 154-160
+    T_lung_resp = clamp(T_x, u"K"(1.0u"°C"), u"K"(50.0u"°C"))
     rates = MetabolicRates(; metabolic=Q_metab)
     atmos = AtmosphericConditions(e_vars)
     resp_out = respiration(
@@ -65,7 +66,7 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
         resp,
         atmos,
         o.body.shape.mass,
-        T_x,  # T_lung
+        T_lung_resp,
         e_vars.T_air;
         gasfrac=e_pars.gasfrac,
     )
