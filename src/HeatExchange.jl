@@ -94,6 +94,9 @@ export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieW
 
 export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
+export zbrac, zbrent
+
+include("rootfinding.jl")
 include("organism.jl")
 include("traits.jl")
 include("environment.jl")

@@ -1,5 +1,11 @@
 # Biophysics
 
+# Extend BiophysicalGeometry.silhouette_area to support (body, orientation, zenith_angle).
+# Falls back to the orientation-based 2-arg method for shapes (like DesertIguana) that
+# compute silhouette from posture rather than sun angle.
+BiophysicalGeometry.silhouette_area(body::AbstractBody, orientation, zenith_angle) =
+    silhouette_area(shape(body), orientation)
+
 """
     conduction(; A_conduction, L, T_surface, T_substrate, k_substrate)
     conduction(A_conduction, L, T_surface, T_substrate, k_substrate)

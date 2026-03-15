@@ -262,8 +262,8 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         end
         resp_atmos = AtmosphericConditions(e_vars)
         f =
-            x -> respiration(
-                MetabolicRates(; metabolic=x, sum=Q_sum, minimum=Q_min),
+            x -> ustrip(u"W", respiration(
+                MetabolicRates(; metabolic=x * u"W", sum=Q_sum, minimum=Q_min),
                 resp,
                 resp_atmos,
                 geometry_pars.shape.mass,
@@ -271,14 +271,14 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
                 e_vars.T_air;
                 gasfrac=e_pars.gasfrac,
                 O2conversion=Kleiber1961(),
-            ).balance
+            ).balance)
 
         Q_gen = zbrent(
             f,
             ustrip(u"W", Q_m1),
             ustrip(u"W", Q_m2),
             opts.resp_tolerance * ustrip(u"W", metab.Q_metabolism),
-        )
+        ) * u"W"
 
         respiration_out = respiration(
             MetabolicRates(; metabolic=Q_gen, sum=Q_sum, minimum=Q_min),
@@ -508,76 +508,4 @@ function bracket_root(f, a, b; factor=2, maxiter=20)
     error("Failed to bracket root")
 end
 
-function zbrent(f, a, b, tol; maxiter=300, eps=3e-8)
-    qa = ustrip(u"W", f(a * u"W"))
-    qb = ustrip(u"W", f(b * u"W"))
 
-    c = 0.0
-    e = 0.0
-    d = 0.0
-
-    qc = qb
-
-    @inbounds for i in 1:maxiter
-        if qb * qc > 0.0
-            c = a
-            qc = qa
-            d = b - a
-            e = d
-        end
-        if abs(qc) < abs(qb)
-            a = b
-            b = c
-            c = a
-            qa = qb
-            qb = qc
-            qc = qa
-        end
-
-        tol1 = 2eps * abs(b) + tol/2
-        xm = (c - b) / 2
-
-        if abs(xm) ≤ tol1 || qb == 0.0
-            return b * u"W"
-        end
-        if abs(qb) ≤ tol1 && i > 1
-            return b * u"W"
-        end
-        if abs(e) ≥ tol1 && abs(qa) > abs(qb)
-            s = qb / qa
-            if a == c
-                p = 2xm * s
-                q = 1 - s
-            else
-                q = qa / qc
-                r = qb / qc
-                p = s * (2xm*q*(q - r) - (b - a)*(r - 1))
-                q = (q - 1)*(r - 1)*(s - 1)
-            end
-
-            if p > 0
-                q = -q
-            end
-            p = abs(p)
-
-            if 2p < min(3xm*q - abs(tol1*q), abs(e*q))
-                e = d
-                d = p / q
-            else
-                d = xm
-                e = d
-            end
-        else
-            d = xm
-            e = d
-        end
-
-        a = b
-        qa = qb
-
-        b += abs(d) > tol1 ? d : sign(xm)*tol1
-        qb = ustrip(u"W", f(b * u"W"))
-    end
-
-    return b * u"W"
-end
