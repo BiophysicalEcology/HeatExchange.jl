@@ -144,10 +144,21 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
     )
     Q_conv = conv_out.Q_conv
 
-    # evaporation
+    # evaporation — mouth opens when panting (NicheMapR PMOUTH: AEFF = (SKINW + PMOUTH)×area)
     transfer = TransferCoefficients(; heat=conv_out.hc, mass=conv_out.hd, mass_free=conv_out.hd_free)
+    evap_eff = if resp.pant > 1
+        EvaporationParameters(;
+            skin_wetness        = min(1.0, evap.skin_wetness + resp.mouth_fraction),
+            insulation_wetness  = evap.insulation_wetness,
+            eye_fraction        = evap.eye_fraction,
+            bare_skin_fraction  = evap.bare_skin_fraction,
+            insulation_fraction = evap.insulation_fraction,
+        )
+    else
+        evap
+    end
     evap_out = evaporation(
-        evap,
+        evap_eff,
         transfer,
         atmos,
         A_convection,
