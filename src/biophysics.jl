@@ -309,13 +309,7 @@ function nusselt_free(shape::Union{Cylinder,DesertIguana,LeopardFrog}, Gr, Pr)
                 if Ra < 10000.0
                     Nu_free = 0.7455 * Ra^0.2167
                 else
-                    if Ra < 1.0E+09
-                        Nu_free = 0.5168 * Ra^0.2501
-                    else
-                        if Ra < 1.0E+12
-                            Nu_free = 0.5168 * Ra^0.2501
-                        end
-                    end
+                    Nu_free = 0.5168 * Ra^0.2501
                 end
             end
         end
