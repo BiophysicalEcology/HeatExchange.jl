@@ -16,7 +16,7 @@ given gas concentrations, pressure, respiration rate and humidity.
 - `gasfrac::GasFractions`: Gas fractions for O2, CO2, N2 concentrations
 - `O2conversion::OxygenJoulesConversion`: Model to convert O2 to Watts
 
-# Returns
+# Returns #TODO define outputs, better names?
 NamedTuple with balance, Q_resp, m_resp, Q_gen, V_air, V_O2_STP, molar_fluxes
 """
 function respiration(
