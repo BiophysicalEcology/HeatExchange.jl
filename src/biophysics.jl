@@ -1,5 +1,11 @@
 # Biophysics
 
+# Extend BiophysicalGeometry.silhouette_area to support (body, orientation, zenith_angle).
+# Falls back to the orientation-based 2-arg method for shapes (like DesertIguana) that
+# compute silhouette from posture rather than sun angle.
+BiophysicalGeometry.silhouette_area(body::AbstractBody, orientation, zenith_angle) =
+    silhouette_area(shape(body), orientation)
+
 """
     conduction(; conduction_area, L, surface_temperature, substrate_temperature, substrate_conductivity)
     conduction(conduction_area, L, surface_temperature, substrate_temperature, substrate_conductivity)
@@ -288,13 +294,7 @@ function nusselt_free(shape::Union{Cylinder,DesertIguana,LeopardFrog}, grashof_n
                 if rayleigh_number < 10000.0
                     nusselt_number = 0.7455 * rayleigh_number^0.2167
                 else
-                    if rayleigh_number < 1.0E+09
-                        nusselt_number = 0.5168 * rayleigh_number^0.2501
-                    else
-                        if rayleigh_number < 1.0E+12
-                            nusselt_number = 0.5168 * rayleigh_number^0.2501
-                        end
-                    end
+                    nusselt_number = 0.5168 * rayleigh_number^0.2501
                 end
             end
         end

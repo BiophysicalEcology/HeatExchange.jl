@@ -364,6 +364,7 @@ radiation_pars = RadiationParameters(;
     sky_view_factor,
     ground_view_factor,
     ventral_fraction,
+    solar_orientation,
 )
 
 convection_pars = ConvectionParameters(; convection_area=A_convection)

@@ -83,6 +83,14 @@ function metabolic_rate(::McKechnieWolf, mass, core_temperature=nothing)
     return (metabolic_heat_flow)
 end
 
+"""
+    metabolic_rate(::Nothing, mass, T_body)
+
+Returns zero metabolic heat production. Use `model = nothing` in
+`MetabolismParameters` to disable metabolic heat generation entirely.
+"""
+metabolic_rate(::Nothing, mass, T_body) = 0.0u"W"
+
 # conversion from O2 consumption to Joules
 
 """

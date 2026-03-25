@@ -121,7 +121,7 @@ function insulation_properties(insulation::InsulationParameters, insulation_temp
     air_conductivity = dry_air_properties(insulation_temperature).thermal_conductivity
 
     # Bare-skin test (dorsal only)
-    insulation_test = dorsal.density * dorsal.diameter * dorsal.length * dorsal.depth
+    insulation_test = (dorsal.density * dorsal.diameter) * (dorsal.length * dorsal.depth)
 
     # Weighted average fibre properties
     avg_fibres = interpolate(dorsal, ventral, ventral_fraction)

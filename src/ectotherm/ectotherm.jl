@@ -50,14 +50,15 @@ function ectotherm(core_temperature, insulation::Naked, o::Organism, e)
     total_area = BiophysicalGeometry.total_area(o.body)
     convection_area = total_area * (1 - external_conduction.conduction_fraction)
     conduction_area = total_area * external_conduction.conduction_fraction
-    silhouette_area = rad_pars.silhouette_area
+    silhouette_area = silhouette_area(o.body, rad_pars.solar_orientation, environment_vars.zenith_angle)
 
     # calculate heat flows
 
     # metabolism
     metabolic_heat_flow = metabolic_rate(metab_pars.model, o.body.shape.mass, core_temperature)
 
-    # respiration
+    # respiration — clamp T_lung to [1°C, 50°C] matching NicheMapR RESP.f lines 154-160
+    T_lung_resp = clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C"))
     rates = MetabolicRates(; metabolic=metabolic_heat_flow)
     atmos = AtmosphericConditions(environment_vars)
     respiration_out = respiration(
@@ -65,7 +66,7 @@ function ectotherm(core_temperature, insulation::Naked, o::Organism, e)
         resp_pars,
         atmos,
         o.body.shape.mass,
-        core_temperature,  # lung_temperature
+        T_lung_resp,
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions,
     )
@@ -141,9 +142,20 @@ function ectotherm(core_temperature, insulation::Naked, o::Organism, e)
     )
     convection_heat_flow = convection_out.heat_flow
 
-    # evaporation
+    # evaporation — mouth opens when panting (NicheMapR PMOUTH: AEFF = (SKINW + PMOUTH)×area)
+    evap_eff = if resp_pars.pant > 1
+        EvaporationParameters(;
+            skin_wetness        = min(1.0, evap_pars.skin_wetness + resp_pars.mouth_fraction),
+            insulation_wetness  = evap_pars.insulation_wetness,
+            eye_fraction        = evap_pars.eye_fraction,
+            bare_skin_fraction  = evap_pars.bare_skin_fraction,
+            insulation_fraction = evap_pars.insulation_fraction,
+        )
+    else
+        evap_pars
+    end
     evaporation_out = evaporation(
-        evap_pars,
+        evap_eff,
         convection_out.mass,
         atmos,
         convection_area,

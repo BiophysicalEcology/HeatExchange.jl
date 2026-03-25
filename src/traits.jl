@@ -132,15 +132,18 @@ Physiological parameters relating to respiration of the organism.
 - `respiratory_quotient` — Respiratory quotient relating CO₂ produced to O₂ consumed (0–1).
 - `exhaled_temperature_offset` — Temperature offset between ambient air and exhaled air (K).
 - `exhaled_relative_humidity` — Relative humidity of exhaled air (fraction 0–1).
+- `mouth_fraction` — Fractional addition to `skin_wetness` when mouth is open for panting
+  (`pant > 1`). Replicates NicheMapR PMOUTH parameter. Default 0.0 (adds 0% of surface area).
 
 These parameters influence radiative and evaporative exchange.
 """
-Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE} <: AbstractPhysiologyParameters
+Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE,MF} <: AbstractPhysiologyParameters
     oxygen_extraction_efficiency::OE = Param(0.2, bounds=(0.0, 1.0))
     pant::PA = Param(1.0, bounds=(1.0, Inf))
     respiratory_quotient::RQ = Param(0.8, bounds=(0.5, 1.2))
     exhaled_temperature_offset::DB = Param(0.0u"K")
     exhaled_relative_humidity::RE = Param(1.0, bounds=(0.0, 1.0))
+    mouth_fraction::MF = Param(0.0, bounds=(0.0, 1.0))
 end
 
 """
