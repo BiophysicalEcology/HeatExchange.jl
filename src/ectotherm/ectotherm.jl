@@ -73,12 +73,12 @@ function ectotherm(core_temperature, insulation::Naked, o::Organism, e)
     oxygen_flow = u"ml/hr"(Joules_to_O2(metabolic_heat_flow))
 
     # net metabolic heat generation
-    net_generated_heat_flow = metabolic_heat_flow - respiration_heat_flow
-    specific_generated_heat_flow = net_generated_heat_flow / o.body.geometry.volume
+    net_metabolic_heat_production = metabolic_heat_flow - respiration_heat_flow
+    specific_metabolic_heat_production = net_metabolic_heat_production / o.body.geometry.volume
 
     # resultant surface and lung temperature
     (; surface_temperature, lung_temperature) = surface_and_lung_temperature(;
-        body=o.body, flesh_conductivity=internal_conduction.flesh_conductivity, specific_generated_heat_flow, core_temperature
+        body=o.body, flesh_conductivity=internal_conduction.flesh_conductivity, specific_metabolic_heat_production, core_temperature
     )
 
     # solar radiation
@@ -218,9 +218,9 @@ end
 #    metabolic_heat_flow = metab_out.metabolic_heat_flow
 #    resp_out = respiration_ectotherm(core_temperature, metabolic_heat_flow, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2)
 #    respiration_heat_flow = resp_out.respiration_heat_flow
-#    net_generated_heat_flow = metabolic_heat_flow - respiration_heat_flow
-#    specific_generated_heat_flow = net_generated_heat_flow / geometric_pars.geometry.volume
-#    (; surface_temperature, lung_temperature) = surface_and_lung_temperature(geometric_pars, k_flesh, specific_generated_heat_flow, core_temperature)
+#    net_metabolic_heat_production = metabolic_heat_flow - respiration_heat_flow
+#    specific_metabolic_heat_production = net_metabolic_heat_production / geometric_pars.geometry.volume
+#    (; surface_temperature, lung_temperature) = surface_and_lung_temperature(geometric_pars, k_flesh, specific_metabolic_heat_production, core_temperature)
 #    #Q_norm = direct_flow / cos(zenith_angle)
 #    solar_out = solar(α_body_dorsal, α_body_ventral, A_sil, A_total, A_conduction, F_ground, F_sky, α_substrate, solar_flow, direct_flow, diffuse_flow)
 #    solar_flow = solar_out.solar_flow

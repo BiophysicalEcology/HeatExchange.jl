@@ -21,7 +21,7 @@ accounting for convection, radiation, evaporation, and conduction through insula
 NamedTuple with:
 - `insulation_temperature`: Converged insulation surface temperature
 - `skin_temperature`: Converged mean skin temperature
-- `fluxes::HeatFluxes`: Heat flux components
+- `flows::HeatFlows`: Heat flow components
 - `insulation_conductivity`: Effective insulation conductivity
 - `tolerance`: Final tolerance used
 - `success`: Whether convergence was achieved
@@ -95,7 +95,7 @@ function solve_without_insulation!(
     area_convection = total_area #* (1 - conduction_fraction)
     r_skin = skin_radius(body)
     insulation_evaporation_heat_flow = 0.0u"W"
-    conduction_flux = 0.0u"W"
+    conduction_flow = 0.0u"W"
 
     while true
         ntry += 1
@@ -120,7 +120,7 @@ function solve_without_insulation!(
                 bare_skin_fraction,
             )
             atmos_local = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
-            skin_evaporation_flux = evaporation(
+            skin_evaporation_flow = evaporation(
                 evap_pars_local,
                 conv.mass,
                 atmos_local,
@@ -141,7 +141,7 @@ function solve_without_insulation!(
                 area_convection *
                 (view_factors.ground * 4.0 * ϵ_body * σ * ((skin_temperature + ground_temperature) / 2)^3)
             skin_temperature1 =
-                ((4.0 * flesh_conductivity * volume) / (r_skin^2) * core_temperature) - skin_evaporation_flux +
+                ((4.0 * flesh_conductivity * volume) / (r_skin^2) * core_temperature) - skin_evaporation_flow +
                 heat_transfer_coefficient * area_convection * air_temperature +
                 solar_flow
             skin_temperature2 =
@@ -156,27 +156,27 @@ function solve_without_insulation!(
 
             skin_temperature_calc = (skin_temperature1 + skin_temperature2) / skin_temperature3
 
-            sky_radiation_flux = sky_radiation_coeff * (skin_temperature_calc - sky_temperature)
-            bush_radiation_flux = bush_radiation_coeff * (skin_temperature_calc - bush_temperature)
-            vegetation_radiation_flux = vegetation_radiation_coeff * (skin_temperature_calc - vegetation_temperature)
-            ground_radiation_flux = ground_radiation_coeff * (skin_temperature_calc - ground_temperature)
+            sky_radiation_flow = sky_radiation_coeff * (skin_temperature_calc - sky_temperature)
+            bush_radiation_flow = bush_radiation_coeff * (skin_temperature_calc - bush_temperature)
+            vegetation_radiation_flow = vegetation_radiation_coeff * (skin_temperature_calc - vegetation_temperature)
+            ground_radiation_flow = ground_radiation_coeff * (skin_temperature_calc - ground_temperature)
 
-            longwave_flux = sky_radiation_flux + bush_radiation_flux + vegetation_radiation_flux + ground_radiation_flux
-            convection_flux = heat_transfer_coefficient * area_convection * (skin_temperature_calc - air_temperature)
+            longwave_flow = sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow
+            convection_flow = heat_transfer_coefficient * area_convection * (skin_temperature_calc - air_temperature)
 
-            # Build fluxes (net_generated updated on success)
-            fluxes = HeatFluxes(
-                convection_flux,
-                conduction_flux,
+            # Build flows (net_generated updated on success)
+            flows = HeatFlows(
+                convection_flow,
+                conduction_flow,
                 0.0u"W",  # net_generated placeholder
-                skin_evaporation_flux,
+                skin_evaporation_flow,
                 insulation_evaporation_heat_flow,
-                longwave_flux,
+                longwave_flow,
                 solar_flow,
-                sky_radiation_flux,
-                bush_radiation_flux,
-                vegetation_radiation_flux,
-                ground_radiation_flux,
+                sky_radiation_flow,
+                bush_radiation_flow,
+                vegetation_radiation_flow,
+                ground_radiation_flow,
             )
 
             Δskin_temperature = abs(skin_temperature - skin_temperature_calc)
@@ -184,11 +184,11 @@ function solve_without_insulation!(
             if Δskin_temperature < tolerance
                 #TODO why is this not shape-specific?
                 net_generated = (4 * flesh_conductivity * volume / r_skin^2) * (core_temperature - skin_temperature_calc)
-                fluxes = setproperties(fluxes; net_generated)
+                flows = setproperties(flows; net_generated)
                 return (;
                     insulation_temperature,
                     skin_temperature=skin_temperature_calc,
-                    fluxes,
+                    flows,
                     insulation_conductivity=nothing,
                     tolerance,
                     success=true,
@@ -206,7 +206,7 @@ function solve_without_insulation!(
                         return (;
                             insulation_temperature,
                             skin_temperature=skin_temperature_calc,
-                            fluxes,
+                            flows,
                             insulation_conductivity=nothing,
                             tolerance,
                             success=false,
@@ -296,7 +296,7 @@ function solve_with_insulation!(
                 bare_skin_fraction,
             )
             atmos_skin = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
-            skin_evaporation_flux = evaporation(
+            skin_evaporation_flow = evaporation(
                 evap_pars_skin,
                 conv.mass,
                 atmos_skin,
@@ -364,14 +364,14 @@ function solve_with_insulation!(
                 conductance_coefficient,
                 longwave_depth_fraction,
                 conduction_fraction,
-                evaporation_flux=skin_evaporation_flux,
+                evaporation_flow=skin_evaporation_flow,
                 substrate_temperature,
             )
             calculated_radiant_temperature = radiant_temp_result.radiant_temperature
             compressed_insulation_temperature = radiant_temp_result.compressed_insulation_temperature
             conductances = radiant_temp_result.conductances
             divisors = radiant_temp_result.divisors
-            # Radiative heat fluxes
+            # Radiative heat flows
             sky_radiation_coeff = area_convection * view_factors.sky * 4 * ϵ_body * σ * ((calculated_radiant_temperature + sky_temperature) / 2)^3
             bush_radiation_coeff =
                 area_convection * view_factors.bush * 4 * ϵ_body * σ * ((calculated_radiant_temperature + bush_temperature) / 2)^3
@@ -415,13 +415,13 @@ function solve_with_insulation!(
                 insulation_temperature_calc = insulation_temp_result.calculated_insulation_temperature
                 radiant_temperature2 = insulation_temp_result.radiant_temperature2
 
-                sky_radiation_flux = sky_radiation_coeff * (radiant_temperature2 - sky_temperature)
-                bush_radiation_flux = bush_radiation_coeff * (radiant_temperature2 - bush_temperature)
-                vegetation_radiation_flux = vegetation_radiation_coeff * (radiant_temperature2 - vegetation_temperature)
-                ground_radiation_flux = ground_radiation_coeff * (radiant_temperature2 - ground_temperature)
-                longwave_flux = sky_radiation_flux + bush_radiation_flux + vegetation_radiation_flux + ground_radiation_flux
-                convection_flux = heat_transfer_coefficient * area_convection * (insulation_temperature_calc - air_temperature)
-                conduction_flux = u"W"(conductance_coefficient * (compressed_insulation_temperature - substrate_temperature))
+                sky_radiation_flow = sky_radiation_coeff * (radiant_temperature2 - sky_temperature)
+                bush_radiation_flow = bush_radiation_coeff * (radiant_temperature2 - bush_temperature)
+                vegetation_radiation_flow = vegetation_radiation_coeff * (radiant_temperature2 - vegetation_temperature)
+                ground_radiation_flow = ground_radiation_coeff * (radiant_temperature2 - ground_temperature)
+                longwave_flow = sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow
+                convection_flow = heat_transfer_coefficient * area_convection * (insulation_temperature_calc - air_temperature)
+                conduction_flow = u"W"(conductance_coefficient * (compressed_insulation_temperature - substrate_temperature))
             else
                 (; compressed_insulation_temperature) = compressed_radiant_temperature(;
                     body,
@@ -433,18 +433,18 @@ function solve_with_insulation!(
                     core_temperature,
                     substrate_temperature,
                 )
-                sky_radiation_flux = 0.0u"W"
-                bush_radiation_flux = 0.0u"W"
-                vegetation_radiation_flux = 0.0u"W"
-                ground_radiation_flux = 0.0u"W"
-                longwave_flux = 0.0u"W"
-                convection_flux = 0.0u"W"
+                sky_radiation_flow = 0.0u"W"
+                bush_radiation_flow = 0.0u"W"
+                vegetation_radiation_flow = 0.0u"W"
+                ground_radiation_flow = 0.0u"W"
+                longwave_flow = 0.0u"W"
+                convection_flow = 0.0u"W"
                 insulation_evaporation_heat_flow = 0.0u"W"
                 solar_flow = 0.0u"W"
-                conduction_flux = conductance_coefficient * (compressed_insulation_temperature - substrate_temperature)
+                conduction_flow = conductance_coefficient * (compressed_insulation_temperature - substrate_temperature)
                 insulation_temperature_calc = compressed_insulation_temperature
             end
-            environment_flux = longwave_flux + convection_flux + conduction_flux + insulation_evaporation_heat_flow - solar_flow
+            environment_flow = longwave_flow + convection_flow + conduction_flow + insulation_evaporation_heat_flow - solar_flow
             skin_temperature_mean, skin_temperature_calc1 = mean_skin_temperature(;
                 body,
                 insulation,
@@ -452,26 +452,26 @@ function solve_with_insulation!(
                 conductivities,
                 conductances,
                 conduction_fraction,
-                environment_flux,
-                skin_evaporation_flux,
+                environment_flow,
+                skin_evaporation_flow,
                 core_temperature,
                 calculated_insulation_temperature=insulation_temperature_calc,
                 compressed_insulation_temperature,
             )
 
-            # Build fluxes (net_generated updated on success)
-            fluxes = HeatFluxes(
-                convection_flux,
-                conduction_flux,
+            # Build flows (net_generated updated on success)
+            flows = HeatFlows(
+                convection_flow,
+                conduction_flow,
                 net_generated,  # placeholder, updated below
-                skin_evaporation_flux,
+                skin_evaporation_flow,
                 insulation_evaporation_heat_flow,
-                longwave_flux,
+                longwave_flow,
                 solar_flow,
-                sky_radiation_flux,
-                bush_radiation_flux,
-                vegetation_radiation_flux,
-                ground_radiation_flux,
+                sky_radiation_flow,
+                bush_radiation_flow,
+                vegetation_radiation_flow,
+                ground_radiation_flow,
             )
 
             Δinsulation_temperature = abs(insulation_temperature - insulation_temperature_calc)
@@ -482,11 +482,11 @@ function solve_with_insulation!(
                 # Next check skin_temperature convergence
                 if Δskin_temperature < tolerance
                     net_generated = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature)
-                    fluxes = setproperties(fluxes; net_generated)
+                    flows = setproperties(flows; net_generated)
                     return (;
                         insulation_temperature,
                         skin_temperature=skin_temperature_mean,
-                        fluxes,
+                        flows,
                         insulation_conductivity,
                         tolerance,
                         success=true,
@@ -499,11 +499,11 @@ function solve_with_insulation!(
                         continue
                     else
                         net_generated = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature)
-                        fluxes = setproperties(fluxes; net_generated)
+                        flows = setproperties(flows; net_generated)
                         return (;
                             insulation_temperature,
                             skin_temperature=skin_temperature_mean,
-                            fluxes,
+                            flows,
                             insulation_conductivity,
                             tolerance,
                             success=false,
@@ -537,7 +537,7 @@ function solve_with_insulation!(
                         return (;
                             insulation_temperature,
                             skin_temperature,
-                            fluxes,
+                            flows,
                             insulation_conductivity,
                             tolerance,
                             success=false,
@@ -548,7 +548,7 @@ function solve_with_insulation!(
             end
         end
     end
-    return (; insulation_temperature, skin_temperature, fluxes, insulation_conductivity, tolerance, success, ntry)
+    return (; insulation_temperature, skin_temperature, flows, insulation_conductivity, tolerance, success, ntry)
 end
 
 function update_insulation_temperature!(

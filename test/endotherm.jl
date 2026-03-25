@@ -235,7 +235,7 @@ for shape_number in 1:4
 
         options = SolveMetabolicRateOptions(;
             respire=Bool(endo_input.RESPIRE),
-            temperature_tolerance=(endo_input.DIFTOL)u"K",
+            temperature_error_tolerance=(endo_input.DIFTOL)u"K",
             resp_tolerance=endo_input.BRENTOL,
         )
 

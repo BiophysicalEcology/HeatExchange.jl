@@ -34,7 +34,7 @@ where air, ground, and sky temperatures are equal.
 # Returns
 A `NamedTuple` with:
 - `skin_temperature`, `upper_critical_air_temperature`, `lower_critical_air_temperature`,
-- `generated_flux`, `final_generated_flux`, `respiration_heat_flow`, `evaporation_heat_flow`,
+- `required_metabolic_heat_production`, `final_metabolic_heat_production`, `respiration_heat_flow`, `evaporation_heat_flow`,
 - `oxygen_consumption_rate`, `respiratory_water_loss_rate`, `total_water_loss_rate`,
 - `basal_metabolic_rate_fraction`, `fractional_mass_loss`.
 
@@ -108,7 +108,7 @@ function ellipsoid_endotherm(
     # local aliases to match Porter & Kearney 2009 formulae
     ϵ = emissivity
     v = wind_speed
-    minimum_generated_flux = minimum_metabolic_rate
+    minimum_metabolic_heat_production = minimum_metabolic_rate
 
     # avoid divide-by-zero
     posture = posture == 1 ? 1.01 : posture
@@ -117,7 +117,7 @@ function ellipsoid_endotherm(
     if isnothing(minimum_metabolic_rate) || minimum_metabolic_rate === missing
         allometric_estimate =
             metabolic_rate(metabolic_rate_equation, mass, core_temperature) * metabolic_multiplier
-        minimum_generated_flux = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
+        minimum_metabolic_heat_production = allometric_estimate * q10^((ustrip(u"°C", core_temperature) - 37) / 10)
     end
 
     # constants
@@ -174,13 +174,13 @@ function ellipsoid_endotherm(
     R_rad = u"K/W"(1 / (4 * outer_area * ϵ * Unitful.σ * air_temperature^3)) # Eq. 39
     R_total = R_b + R_ins + (R_cv * R_rad) / (R_cv + R_rad)
 
-    upper_critical_air_temperature = core_temperature - (minimum_generated_flux * stress_factor * R_total)
-    lower_critical_air_temperature = core_temperature - minimum_generated_flux * R_total
+    upper_critical_air_temperature = core_temperature - (minimum_metabolic_heat_production * stress_factor * R_total)
+    lower_critical_air_temperature = core_temperature - minimum_metabolic_heat_production * R_total
 
-    required_generated_flux = (core_temperature - air_temperature) / R_total
-    final_generated_flux = max(required_generated_flux, minimum_generated_flux)
+    required_metabolic_heat_production = (core_temperature - air_temperature) / R_total
+    final_metabolic_heat_production = max(required_metabolic_heat_production, minimum_metabolic_heat_production)
 
-    oxygen_consumption_rate = u"ml/hr"(Joules_to_O2(final_generated_flux))
+    oxygen_consumption_rate = u"ml/hr"(Joules_to_O2(final_metabolic_heat_production))
     ρ_vap_f = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure).vapour_density # inhaled air
     ρ_vap_c = wet_air_properties(core_temperature, 1, atmospheric_pressure).vapour_density # exhaled air (saturated)
 
@@ -190,9 +190,9 @@ function ellipsoid_endotherm(
     latent_heat = enthalpy_of_vaporisation(air_temperature)
     respiration_heat_flow = u"W"(respiratory_water_loss_rate * latent_heat)
 
-    basal_metabolic_rate_fraction = final_generated_flux / minimum_generated_flux
+    basal_metabolic_rate_fraction = final_metabolic_heat_production / minimum_metabolic_heat_production
 
-    evaporation_heat_flow = -required_generated_flux + minimum_generated_flux
+    evaporation_heat_flow = -required_metabolic_heat_production + minimum_metabolic_heat_production
     total_water_loss_rate = u"g/hr"(max((u"J/hr"(evaporation_heat_flow) / latent_heat), 0.0u"kg/hr"))
     fractional_mass_loss = u"kg/hr"(total_water_loss_rate) / mass
 
@@ -200,8 +200,8 @@ function ellipsoid_endotherm(
         skin_temperature=u"°C"(skin_temperature),
         upper_critical_air_temperature=u"°C"(upper_critical_air_temperature),
         lower_critical_air_temperature=u"°C"(lower_critical_air_temperature),
-        required_generated_flux,
-        final_generated_flux,
+        required_metabolic_heat_production,
+        final_metabolic_heat_production,
         respiration_heat_flow,
         evaporation_heat_flow,
         oxygen_consumption_rate=u"mL/hr"(oxygen_consumption_rate),

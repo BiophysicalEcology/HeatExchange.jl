@@ -229,9 +229,9 @@ struct MolarFluxes{A,W,O,C,N}
 end
 
 """
-    HeatFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+    HeatFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
 
-Heat flux components from the heat balance solution.
+Heat flow components from the heat balance solution.
 
 # Fields
 - `convection` — Convective heat loss to air
@@ -246,7 +246,7 @@ Heat flux components from the heat balance solution.
 - `vegetation_radiation` — Radiation exchange with vegetation
 - `ground_radiation` — Radiation exchange with ground
 """
-struct HeatFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+struct HeatFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
     convection::T1
     conduction::T2
     net_generated::T3
@@ -390,7 +390,7 @@ Geometric and thermal parameters for heat exchange calculations on a body side.
 
 # Fields
 - `side` — Body side (`:dorsal` or `:ventral`)
-- `conductance_coefficient` — Thermal conductance to substrate (W/K), conduction_flux = conductance_coefficient × ΔT
+- `conductance_coefficient` — Thermal conductance to substrate (W/K), conduction_flow = conductance_coefficient × ΔT
 - `ventral_fraction` — Fraction of body surface that is ventral (0-1)
 - `conduction_fraction` — Fraction of surface area in contact with substrate (0-1)
 - `longwave_depth_fraction` — Fraction of insulation depth for longwave radiation exchange (0-1)

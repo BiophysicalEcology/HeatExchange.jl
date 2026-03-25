@@ -1,5 +1,5 @@
 """
-    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, conductance_coefficient, longwave_depth_fraction, conduction_fraction, evaporation_flux, substrate_temperature)
+    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, conductance_coefficient, longwave_depth_fraction, conduction_fraction, evaporation_flow, substrate_temperature)
 
 Calculate the radiant temperature at the insulation surface for longwave radiation exchange.
 
@@ -16,7 +16,7 @@ heat conduction equations through the insulation layer.
 - `conductance_coefficient`: Substrate conductance coefficient
 - `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
 - `conduction_fraction`: Fraction of body in contact with substrate
-- `evaporation_flux`: Evaporative heat loss
+- `evaporation_flow`: Evaporative heat loss
 - `substrate_temperature`: Substrate temperature
 
 # Returns
@@ -36,7 +36,7 @@ function radiant_temperature(;
     conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
-    evaporation_flux,
+    evaporation_flow,
     substrate_temperature,
 )
     radiant_temperature(
@@ -50,7 +50,7 @@ function radiant_temperature(;
         conductance_coefficient,
         longwave_depth_fraction,
         conduction_fraction,
-        evaporation_flux,
+        evaporation_flow,
         substrate_temperature,
     )
 end
@@ -65,7 +65,7 @@ function radiant_temperature(
     conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
-    evaporation_flux,
+    evaporation_flow,
     substrate_temperature,
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
@@ -100,8 +100,8 @@ function radiant_temperature(
         ((2 * π * length * r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
     evaporative_divisor =
-        evaporation_flux * ((r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
-        evaporation_flux * ((r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
+        evaporation_flow * ((r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
+        evaporation_flow * ((r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
     numerator_divisor =
         ((2 * π * length) / geometric_divisor) *
@@ -141,7 +141,7 @@ function radiant_temperature(
     conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
-    evaporation_flux,
+    evaporation_flow,
     substrate_temperature,
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
@@ -182,8 +182,8 @@ function radiant_temperature(
         ((r_skin - r_flesh) / (r_flesh * r_skin))
 
     evaporative_divisor =
-        evaporation_flux * ((r_flesh^2 * total_conductance) / (6 * conductivities.flesh * volume)) +
-        evaporation_flux *
+        evaporation_flow * ((r_flesh^2 * total_conductance) / (6 * conductivities.flesh * volume)) +
+        evaporation_flow *
         ((r_flesh^3 * total_conductance) / (3 * conductivities.fat * volume)) *
         ((r_skin - r_flesh) / (r_flesh * r_skin))
 
@@ -227,7 +227,7 @@ function radiant_temperature(
     conductance_coefficient,
     longwave_depth_fraction,
     conduction_fraction,
-    evaporation_flux,
+    evaporation_flow,
     substrate_temperature,
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
@@ -280,8 +280,8 @@ function radiant_temperature(
         (bs * total_conductance) / conductivities.fat * ((bs - bg) / (bs * bg))
 
     evaporative_divisor =
-        evaporation_flux * ((ssqg * total_conductance) / (2 * conductivities.flesh * volume)) +
-        evaporation_flux * ((sqrt(3 * ssqg)^3 * total_conductance) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bs * bg))
+        evaporation_flow * ((ssqg * total_conductance) / (2 * conductivities.flesh * volume)) +
+        evaporation_flow * ((sqrt(3 * ssqg)^3 * total_conductance) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bs * bg))
 
     numerator_divisor =
         (bs / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) / br

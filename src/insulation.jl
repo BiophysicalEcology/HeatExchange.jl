@@ -98,7 +98,7 @@ end
 """
     insulation_properties(insulation, insulation_temperature, ventral_fraction) -> InsulationProperties
 
-Compute parameters for heat conduction and infrared radiation through insulation (fur or plumage).
+Compute parameters for heat conduction and longwave radiation through insulation (fur or plumage).
 
 # Arguments
 - `insulation::InsulationParameters`: Insulation parameters with dorsal/ventral `FibreProperties`.

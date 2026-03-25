@@ -13,7 +13,7 @@ the metabolic heat production needed.
 - `skin_temperature`: Skin temperature
 
 # Returns
-- `net_generated_flux`: Net metabolic heat generation (W)
+- `net_metabolic_heat_production`: Net metabolic heat generation (W)
 """
 function net_metabolic_heat(; body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature)
     net_metabolic_heat(shape(body), body, conductivities, core_temperature, skin_temperature)
@@ -24,11 +24,11 @@ function net_metabolic_heat(
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
-    net_generated_flux = (core_temperature - skin_temperature) / (
+    net_metabolic_heat_production = (core_temperature - skin_temperature) / (
             (r_flesh ^ 2 / (4 * conductivities.flesh * volume)) +
             ((r_flesh^2 / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh))
         )
-    return net_generated_flux
+    return net_metabolic_heat_production
 end
 function net_metabolic_heat(
     shape::Sphere, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature
@@ -36,11 +36,11 @@ function net_metabolic_heat(
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
-    net_generated_flux = (core_temperature - skin_temperature) / (
+    net_metabolic_heat_production = (core_temperature - skin_temperature) / (
             (r_flesh ^ 2 / (6 * conductivities.flesh * volume)) +
             ((r_flesh^3 / (3 * conductivities.fat * volume)) * ((r_skin - r_flesh)/(r_flesh * r_skin)))
         )
-    return net_generated_flux
+    return net_metabolic_heat_production
 end
 function net_metabolic_heat(
     shape::Ellipsoid, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature
@@ -65,9 +65,9 @@ function net_metabolic_heat(
     bs = b_semi_minor
     bg = min(b_semi_minor, b_semi_minor_flesh)
 
-    net_generated_flux = (core_temperature - skin_temperature) / (
+    net_metabolic_heat_production = (core_temperature - skin_temperature) / (
             (ssqg / (2 * conductivities.flesh * volume)) +
             (((((3 * ssqg)^0.5)^3) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bg * bs)))
         )
-    return net_generated_flux
+    return net_metabolic_heat_production
 end
