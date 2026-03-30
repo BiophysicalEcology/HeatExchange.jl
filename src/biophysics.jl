@@ -211,7 +211,7 @@ function convection(;
 )
     β = 1 / T_air
     D = body.geometry.characteristic_dimension
-    dry_air_out = dry_air_properties(T_air, P_atmos; gasfrac)
+    dry_air_out = dry_air_properties(T_air, P_atmos; gas_fractions=gasfrac)
     D_w = dry_air_out.vapour_diffusivity
     # checking to see if the fluid is water, not air
     if fluid == 1
@@ -424,11 +424,11 @@ function evaporation(
     # get vapour density at surface based on water potential of body
     M_w = (u"kg"(1u"molH₂O")) / 1u"mol" # molar mass of water
     rh_surf = exp(water_potential / (Unitful.R / M_w * T_surface))
-    wet_air_out = wet_air_properties(T_surface, rh_surf, P_atmos; gasfrac)
+    wet_air_out = wet_air_properties(T_surface, rh_surf, P_atmos; gas_fractions=gasfrac)
     ρ_vap_surf = wet_air_out.vapour_density
 
     # get air vapour density
-    wet_air_out = wet_air_properties(T_air, rh, P_atmos; gasfrac)
+    wet_air_out = wet_air_properties(T_air, rh, P_atmos; gas_fractions=gasfrac)
     ρ_vap_air = wet_air_out.vapour_density
 
     # mass of water lost

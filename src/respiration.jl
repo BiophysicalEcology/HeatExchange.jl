@@ -34,7 +34,7 @@ function respiration(
     (; fO2_extract, pant, rq, Δ_breath, rh_exit) = resp_pars
     T_air_exit = T_lung  # exhaled air at lung temperature (original default)
     (; rh, P_atmos) = atmos
-    (; fO2, fCO2, fN2) = gasfrac
+    fO2, fCO2, fN2 = gasfrac.oxygen, gasfrac.carbon_dioxide, gasfrac.nitrogen
     # adjust O2 to ensure sum to 1
     if fO2 + fCO2 + fN2 != 1
         fO2 = 1 - (fN2 + fCO2)
@@ -101,9 +101,9 @@ function respiration(
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
     L_v = enthalpy_of_vaporisation(T_lung)
-    (; molar_mass) = dry_air_properties(T_air, P_atmos; gasfrac)
+    (; molar_mass) = dry_air_properties(T_air, P_atmos; gas_fractions=gasfrac)
     M_a = molar_mass
-    (; specific_heat) = wet_air_properties(T_air, rh, P_atmos; gasfrac)
+    (; specific_heat) = wet_air_properties(T_air, rh, P_atmos; gas_fractions=gasfrac)
     c_p = specific_heat
     Q_air = c_p * J_air_in * M_a * (T_air - T_lung)
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
