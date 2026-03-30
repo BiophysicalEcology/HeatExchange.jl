@@ -232,7 +232,7 @@ A_eff = A_convection * skin_wetness
 # organism state
 T_core = u"K"((ecto_output.TC)u"°C")
 
-# calculate heat fluxes
+# calculate heat flows
 
 # metabolism|
 Q_metab = metabolic_rate(
@@ -255,15 +255,15 @@ resp_out = respiration(
 Q_resp = resp_out.Q_resp
 
 # respiration test
-molar_fluxes = resp_out.molar_fluxes
-@test u"mol/s"(molar_fluxes.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
+molar_flows = resp_out.molar_flows
+@test u"mol/s"(molar_flows.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
 @test resp_out.Q_resp ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
@@ -445,15 +445,15 @@ heat_balance_out = ectotherm(T_core_s, lizard, environment)
 @test heat_balance_out.masbal.m_cut ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 @test heat_balance_out.masbal.m_eye ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 
-molar_fluxes = heat_balance_out.resp_out.molar_fluxes
-@test u"mol/s"(molar_fluxes.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-3
-@test u"mol/s"(molar_fluxes.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
+molar_flows = heat_balance_out.resp_out.molar_flows
+@test u"mol/s"(molar_flows.J_CO2_in) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows.J_CO2_out) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows.J_H2O_in) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows.J_H2O_out) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-3
+@test u"mol/s"(molar_flows.J_O2_in) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows.J_O2_out) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows.J_air_in) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows.J_air_out) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
 @test heat_balance_out.resp_out.Q_resp ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test heat_balance_out.resp_out.m_resp ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 

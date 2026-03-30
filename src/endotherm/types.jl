@@ -194,23 +194,23 @@ struct ThermalConductivities{F,FA,I}
 end
 
 """
-    MolarFluxes
+    MolarFlows
 
-Molar fluxes for respiratory gas exchange (mol/s).
+Molar flow rates for respiratory gas exchange (mol/s).
 
 # Fields
-- `J_air_in` — Molar flux of air inhaled
-- `J_air_out` — Molar flux of air exhaled
-- `J_H2O_in` — Molar flux of water vapor inhaled
-- `J_H2O_out` — Molar flux of water vapor exhaled
-- `J_O2_in` — Molar flux of oxygen inhaled
-- `J_O2_out` — Molar flux of oxygen exhaled
-- `J_CO2_in` — Molar flux of CO2 inhaled
-- `J_CO2_out` — Molar flux of CO2 exhaled
-- `J_N2_in` — Molar flux of nitrogen inhaled
-- `J_N2_out` — Molar flux of nitrogen exhaled
+- `J_air_in` — Molar flow rate of air inhaled
+- `J_air_out` — Molar flow rate of air exhaled
+- `J_H2O_in` — Molar flow rate of water vapor inhaled
+- `J_H2O_out` — Molar flow rate of water vapor exhaled
+- `J_O2_in` — Molar flow rate of oxygen inhaled
+- `J_O2_out` — Molar flow rate of oxygen exhaled
+- `J_CO2_in` — Molar flow rate of CO2 inhaled
+- `J_CO2_out` — Molar flow rate of CO2 exhaled
+- `J_N2_in` — Molar flow rate of nitrogen inhaled
+- `J_N2_out` — Molar flow rate of nitrogen exhaled
 """
-struct MolarFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10}
+struct MolarFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10}
     J_air_in::T1
     J_air_out::T2
     J_H2O_in::T3
@@ -224,9 +224,9 @@ struct MolarFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10}
 end
 
 """
-    HeatFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+    HeatFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
 
-Heat flux components from the heat balance solution.
+Heat flow components from the heat balance solution.
 
 # Fields
 - `Q_convection` — Convective heat loss to air
@@ -241,7 +241,7 @@ Heat flux components from the heat balance solution.
 - `Q_rad_vegetation` — Radiation exchange with vegetation
 - `Q_rad_ground` — Radiation exchange with ground
 """
-struct HeatFluxes{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+struct HeatFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
     Q_convection::T1
     Q_conduction::T2
     Q_gen_net::T3
@@ -304,7 +304,7 @@ Metabolic heat generation rates for respiration calculations.
 
 # Fields
 - `metabolic` — Current metabolic heat rate (W)
-- `sum` — Sum of heat fluxes for balance (W), defaults to metabolic
+- `sum` — Sum of heat flows for balance (W), defaults to metabolic
 - `minimum` — Minimum metabolic rate (W), defaults to metabolic
 """
 Base.@kwdef struct MetabolicRates{M,S,N}

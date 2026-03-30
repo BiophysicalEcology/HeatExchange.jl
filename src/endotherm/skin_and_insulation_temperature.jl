@@ -21,7 +21,7 @@ accounting for convection, radiation, evaporation, and conduction through insula
 NamedTuple with:
 - `T_insulation`: Converged insulation surface temperature
 - `T_skin`: Converged mean skin temperature
-- `fluxes::HeatFluxes`: Heat flux components
+- `flows::HeatFlows`: Heat flow components
 - `k_insulation`: Effective insulation conductivity
 - `tolerance`: Final tolerance used
 - `success`: Whether convergence was achieved
@@ -168,8 +168,8 @@ function solve_without_insulation!(
             Q_longwave = Q_rad_sky + Q_rad_bush + Q_rad_vegetation + Q_rad_ground
             Q_convection = hc * area_convection * (T_skin_calc - T_air)
 
-            # Build fluxes (Q_gen_net updated on success)
-            fluxes = HeatFluxes(
+            # Build flows (Q_gen_net updated on success)
+            flows = HeatFlows(
                 Q_convection,
                 Q_conduction,
                 0.0u"W",  # Q_gen_net placeholder
@@ -188,11 +188,11 @@ function solve_without_insulation!(
             if ΔT_skin < tolerance
                 #TODO why is this not shape-specific?
                 Q_gen_net = (4 * k_flesh * volume / r_skin^2) * (T_core - T_skin_calc)
-                fluxes = setproperties(fluxes; Q_gen_net)
+                flows = setproperties(flows; Q_gen_net)
                 return (;
                     T_insulation,
                     T_skin=T_skin_calc,
-                    fluxes,
+                    flows,
                     k_insulation=nothing,
                     tolerance,
                     success=true,
@@ -210,7 +210,7 @@ function solve_without_insulation!(
                         return (;
                             T_insulation,
                             T_skin=T_skin_calc,
-                            fluxes,
+                            flows,
                             k_insulation=nothing,
                             tolerance,
                             success=false,
@@ -375,7 +375,7 @@ function solve_with_insulation!(
                 Q_evap=Q_evap_skin,
                 T_substrate,
             )
-            # Radiative heat fluxes
+            # Radiative heat flows
             Q_rad1 = area_convection * F_sky * 4 * ϵ_body * σ * ((T_radiant + T_sky) / 2)^3
             Q_rad2 =
                 area_convection * F_bush * 4 * ϵ_body * σ * ((T_radiant + T_bush) / 2)^3
@@ -461,8 +461,8 @@ function solve_with_insulation!(
                 T_ins_compressed,
             )
 
-            # Build fluxes (Q_gen_net updated on success)
-            fluxes = HeatFluxes(
+            # Build flows (Q_gen_net updated on success)
+            flows = HeatFlows(
                 Q_convection,
                 Q_conduction,
                 Q_gen_net,  # placeholder, updated below
@@ -484,11 +484,11 @@ function solve_with_insulation!(
                 # Next check T_skin convergence
                 if ΔT_skin < tolerance
                     Q_gen_net = net_metabolic_heat(; body=body, ks, T_core, T_skin)
-                    fluxes = setproperties(fluxes; Q_gen_net)
+                    flows = setproperties(flows; Q_gen_net)
                     return (;
                         T_insulation,
                         T_skin=T_skin_mean,
-                        fluxes,
+                        flows,
                         k_insulation,
                         tolerance,
                         success=true,
@@ -501,11 +501,11 @@ function solve_with_insulation!(
                         continue
                     else
                         Q_gen_net = net_metabolic_heat(; body=body, ks, T_core, T_skin)
-                        fluxes = setproperties(fluxes; Q_gen_net)
+                        flows = setproperties(flows; Q_gen_net)
                         return (;
                             T_insulation,
                             T_skin=T_skin_mean,
-                            fluxes,
+                            flows,
                             k_insulation,
                             tolerance,
                             success=false,
@@ -539,7 +539,7 @@ function solve_with_insulation!(
                         return (;
                             T_insulation,
                             T_skin,
-                            fluxes,
+                            flows,
                             k_insulation,
                             tolerance,
                             success=false,
@@ -550,7 +550,7 @@ function solve_with_insulation!(
             end
         end
     end
-    return (; T_insulation, T_skin, fluxes, k_insulation, tolerance, success, ntry)
+    return (; T_insulation, T_skin, flows, k_insulation, tolerance, success, ntry)
 end
 
 function update_T_insulation!(

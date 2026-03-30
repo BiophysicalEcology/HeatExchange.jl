@@ -20,7 +20,7 @@ Calculate conductive heat transfer between organism and substrate.
 - `k_substrate`: Thermal conductivity of substrate
 
 # Returns
-- Heat flux from organism to substrate (W). Positive = heat loss.
+- Heat flow from organism to substrate (W). Positive = heat loss.
 """
 function conduction(;
     A_conduction=0.0u"m^2",

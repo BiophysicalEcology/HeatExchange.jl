@@ -267,8 +267,8 @@ for shape_number in 1:4
 
         thermoregulation = endotherm_out.thermoregulation
         morphology = endotherm_out.morphology
-        energy_fluxes = endotherm_out.energy_fluxes
-        mass_fluxes = endotherm_out.mass_fluxes
+        energy_flows = endotherm_out.energy_flows
+        mass_flows = endotherm_out.mass_flows
 
         (; insulation_test) = insulation_properties(
             insulation_pars, thermoregulation.T_insulation, radiation_pars.ventral_fraction
@@ -354,52 +354,52 @@ for shape_number in 1:4
         QEVAP = enbal_output_vec.QEVAP < 1.0e-20 ? 0.0 : enbal_output_vec.QEVAP
 
         rtol = 1e-3
-        @testset "endotherm energy flux comparisons" begin
-            @test enbal_output_vec.QSOL ≈ ustrip(u"W", energy_fluxes.Q_solar) rtol = rtol
-            @test enbal_output_vec.QIRIN ≈ ustrip(u"W", energy_fluxes.Q_longwave_in) rtol =
+        @testset "endotherm energy flow comparisons" begin
+            @test enbal_output_vec.QSOL ≈ ustrip(u"W", energy_flows.Q_solar) rtol = rtol
+            @test enbal_output_vec.QIRIN ≈ ustrip(u"W", energy_flows.Q_longwave_in) rtol =
                 rtol
-            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_fluxes.Q_gen) rtol = rtol * 10
-            @test QEVAP ≈ ustrip(u"W", energy_fluxes.Q_evaporation) rtol = rtol
-            @test enbal_output_vec.QIROUT ≈ ustrip(u"W", energy_fluxes.Q_longwave_out) rtol =
+            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_flows.Q_gen) rtol = rtol * 10
+            @test QEVAP ≈ ustrip(u"W", energy_flows.Q_evaporation) rtol = rtol
+            @test enbal_output_vec.QIROUT ≈ ustrip(u"W", energy_flows.Q_longwave_out) rtol =
                 rtol
-            @test enbal_output_vec.QCONV ≈ ustrip(u"W", energy_fluxes.Q_convection) rtol =
+            @test enbal_output_vec.QCONV ≈ ustrip(u"W", energy_flows.Q_convection) rtol =
                 rtol
-            @test enbal_output_vec.QCOND ≈ ustrip(u"W", energy_fluxes.Q_conduction) rtol =
+            @test enbal_output_vec.QCOND ≈ ustrip(u"W", energy_flows.Q_conduction) rtol =
                 rtol * 100 # could be because it's a very small number
-            if !isnothing(energy_fluxes.balance)
-                @test enbal_output_vec.ENB ≈ ustrip(u"W", energy_fluxes.balance) atol = 1e-3
+            if !isnothing(energy_flows.balance)
+                @test enbal_output_vec.ENB ≈ ustrip(u"W", energy_flows.balance) atol = 1e-3
             end
-            @test enbal_output_vec.NTRY ≈ energy_fluxes.ntry
-            @test Bool(enbal_output_vec.SUCCESS) ≈ energy_fluxes.success
+            @test enbal_output_vec.NTRY ≈ energy_flows.ntry
+            @test Bool(enbal_output_vec.SUCCESS) ≈ energy_flows.success
         end
 
         rtol = 1e-3
-        @testset "endotherm mass flux comparisons" begin
+        @testset "endotherm mass flow comparisons" begin
             if options.respire
-                @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_fluxes.V_air) rtol =
+                @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_flows.V_air) rtol =
                     rtol
-                @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_fluxes.V_O2_STP) rtol =
+                @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_flows.V_O2_STP) rtol =
                     rtol
-                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_fluxes.m_resp) rtol =
+                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_flows.m_resp) rtol =
                     rtol
-                @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_fluxes.m_sweat) rtol =
+                @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_flows.m_sweat) rtol =
                     rtol
-                #@test masbal_output_vec.H2O_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_H2O_in) rtol = rtol
-                #@test masbal_output_vec.H2O_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_H2O_out) rtol = rtol
-                @test masbal_output_vec.O2_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_O2_in) rtol =
+                #@test masbal_output_vec.H2O_mol_in ≈ ustrip(u"mol/hr", mass_flows.J_H2O_in) rtol = rtol
+                #@test masbal_output_vec.H2O_mol_out ≈ ustrip(u"mol/hr", mass_flows.J_H2O_out) rtol = rtol
+                @test masbal_output_vec.O2_mol_in ≈ ustrip(u"mol/hr", mass_flows.J_O2_in) rtol =
                     rtol
-                @test masbal_output_vec.O2_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_O2_out) rtol =
+                @test masbal_output_vec.O2_mol_out ≈ ustrip(u"mol/hr", mass_flows.J_O2_out) rtol =
                     rtol
-                #@test masbal_output_vec.CO2_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_CO2_in) rtol = rtol
-                #@test masbal_output_vec.CO2_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_CO2_out) rtol = rtol
-                @test masbal_output_vec.N2_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_N2_in) rtol =
+                #@test masbal_output_vec.CO2_mol_in ≈ ustrip(u"mol/hr", mass_flows.J_CO2_in) rtol = rtol
+                #@test masbal_output_vec.CO2_mol_out ≈ ustrip(u"mol/hr", mass_flows.J_CO2_out) rtol = rtol
+                @test masbal_output_vec.N2_mol_in ≈ ustrip(u"mol/hr", mass_flows.J_N2_in) rtol =
                     rtol
-                @test masbal_output_vec.N2_mol_out ≈ ustrip(u"mol/hr", mass_fluxes.J_N2_out) rtol =
+                @test masbal_output_vec.N2_mol_out ≈ ustrip(u"mol/hr", mass_flows.J_N2_out) rtol =
                     rtol
-                @test masbal_output_vec.AIR_mol_in ≈ ustrip(u"mol/hr", mass_fluxes.J_air_in) rtol =
+                @test masbal_output_vec.AIR_mol_in ≈ ustrip(u"mol/hr", mass_flows.J_air_in) rtol =
                     rtol
                 @test masbal_output_vec.AIR_mol_out ≈
-                    ustrip(u"mol/hr", mass_fluxes.J_air_out) rtol = rtol
+                    ustrip(u"mol/hr", mass_flows.J_air_out) rtol = rtol
             end
         end
     end

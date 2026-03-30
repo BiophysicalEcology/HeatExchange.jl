@@ -1,7 +1,7 @@
 """
     mean_skin_temperature(; body, insulation, insulation_pars, ks, cds, conduction_fraction, Q_env, Q_evap_skin, T_core, T_insulation_calc, T_ins_compressed)
 
-Calculate the mean skin temperature for an endotherm given heat fluxes and body geometry.
+Calculate the mean skin temperature for an endotherm given heat flows and body geometry.
 
 Dispatches on body shape (Cylinder, Plate, Sphere, Ellipsoid) to use shape-specific
 heat conduction equations through flesh and fat layers.
@@ -13,7 +13,7 @@ heat conduction equations through flesh and fat layers.
 - `ks::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
 - `cds::ConductanceCoeffs`: Conductance coefficients
 - `conduction_fraction`: Fraction of body in contact with substrate
-- `Q_env`: Environmental heat flux
+- `Q_env`: Environmental heat flow
 - `Q_evap_skin`: Evaporative heat loss from skin
 - `T_core`: Core body temperature
 - `T_insulation_calc`: Calculated insulation surface temperature

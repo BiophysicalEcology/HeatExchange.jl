@@ -5,7 +5,7 @@
 
 Calculate heat balance for an ectotherm at a given body temperature.
 
-Computes all heat flux components (solar, infrared, convection, evaporation,
+Computes all heat flow components (solar, infrared, convection, evaporation,
 conduction, respiration, metabolism) and returns the energy balance.
 
 # Arguments
@@ -52,7 +52,7 @@ function ectotherm(T_x, insulation::Naked, o::Organism, e)
     A_conduction = A_total * cond_ex.conduction_fraction
     A_silhouette = silhouette_area(o.body, rad.solar_orientation, e_vars.zenith_angle)
 
-    # calculate heat fluxes
+    # calculate heat flows
 
     # metabolism
     Q_metab = metabolic_rate(metab.model, o.body.shape.mass, T_x)
@@ -228,7 +228,7 @@ end
 #    A_convection = A_total * (1 - conduction_fraction)
 #    A_sil = silhouette_area(geometric_pars, zenith_angle)
 
-#    # calculate heat fluxes
+#    # calculate heat flows
 #    metab_out = metabolic_rate(geometric_pars.shape.mass, T_x, M1, M2, M3)
 #    Q_metab = metab_out.Q_metab
 #    resp_out = respiration_ectotherm(T_x, Q_metab, fO2_extract, pant, rq, T_air, rh, elevation, P_atmos, fO2, fCO2, fN2)

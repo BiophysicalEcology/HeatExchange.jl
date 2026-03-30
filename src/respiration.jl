@@ -17,7 +17,7 @@ given gas concentrations, pressure, respiration rate and humidity.
 - `O2conversion::OxygenJoulesConversion`: Model to convert O2 to Watts
 
 # Returns #TODO define outputs, better names?
-NamedTuple with balance, Q_resp, m_resp, Q_gen, V_air, V_O2_STP, molar_fluxes
+NamedTuple with balance, Q_resp, m_resp, Q_gen, V_air, V_O2_STP, molar_flows
 """
 function respiration(
     rates::MetabolicRates,
@@ -109,7 +109,7 @@ function respiration(
     Q_resp = uconvert(u"W", L_v * m_resp) - Q_air
     Q_net_check = Q_metab - Q_resp
     balance = Q_net_check - Q_sum
-    molar_fluxes = MolarFluxes(
+    molar_flows = MolarFlows(
         J_air_in,
         J_air_out,
         J_H2O_in,
@@ -121,5 +121,5 @@ function respiration(
         J_N2_in,
         J_N2_out,
     )
-    return (; balance, Q_resp, m_resp, Q_gen=Q_metab, V_air, V_O2_STP, molar_fluxes)
+    return (; balance, Q_resp, m_resp, Q_gen=Q_metab, V_air, V_O2_STP, molar_flows)
 end

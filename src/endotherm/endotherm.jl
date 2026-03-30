@@ -20,7 +20,7 @@ end
 Solve for the metabolic rate that balances heat production with heat loss for an endotherm.
 
 This is the main entry point for endotherm heat balance calculations. It computes heat
-fluxes for dorsal and ventral body surfaces separately, then uses root-finding to
+flows for dorsal and ventral body surfaces separately, then uses root-finding to
 determine the metabolic rate that satisfies the respiratory heat balance.
 
 # Arguments
@@ -33,8 +33,8 @@ determine the metabolic rate that satisfies the respiratory heat balance.
 NamedTuple with:
 - `thermoregulation`: Temperature and conductivity outputs
 - `morphology`: Body geometry and areas
-- `energy_fluxes`: Heat flux components (solar, longwave, convection, etc.)
-- `mass_fluxes`: Water and gas exchange rates
+- `energy_flows`: Heat flow components (solar, longwave, convection, etc.)
+- `mass_flows`: Water and gas exchange rates
 """
 function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     e_pars = stripparams(e.environment_pars)
@@ -233,8 +233,8 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     # zbrent and respfun
 
     # Now compute a weighted mean heat generation for all the parts/components = (dorsal value *(F_sky+F_vegetation))+(ventral value*F_ground)
-    gen_d = simulsol_out[1].fluxes.Q_gen_net
-    gen_v = simulsol_out[2].fluxes.Q_gen_net
+    gen_d = simulsol_out[1].flows.Q_gen_net
+    gen_v = simulsol_out[2].flows.Q_gen_net
     dmult = F_sky_ref + F_vegetation_ref
     vmult = 1 - dmult # assume that reflectivity of veg below equals reflectivity of soil so vmult left as 1 - dmult
     x = gen_d * dmult + gen_v * vmult # weighted estimate of metabolic heat generation
@@ -300,24 +300,24 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
     # simusol outputs
     T_insulation_dorsal = simulsol_out[1].T_insulation   # feather/fur-air interface temp (°C)
     T_skin_dorsal = simulsol_out[1].T_skin   # average skin temp
-    Q_convection_dorsal = simulsol_out[1].fluxes.Q_convection   # convection (W)
-    Q_conduction_dorsal = simulsol_out[1].fluxes.Q_conduction   # conduction (W)
-    Q_evap_skin_dorsal = simulsol_out[1].fluxes.Q_evap_skin   # cutaneous evaporation (W)
-    Q_longwave_dorsal = simulsol_out[1].fluxes.Q_longwave   # radiative loss (W)
-    Q_solar_dorsal = simulsol_out[1].fluxes.Q_solar   # solar (W)
-    Q_evap_insulation_dorsal = simulsol_out[1].fluxes.Q_evap_insulation  # fur evaporation (W)
+    Q_convection_dorsal = simulsol_out[1].flows.Q_convection   # convection (W)
+    Q_conduction_dorsal = simulsol_out[1].flows.Q_conduction   # conduction (W)
+    Q_evap_skin_dorsal = simulsol_out[1].flows.Q_evap_skin   # cutaneous evaporation (W)
+    Q_longwave_dorsal = simulsol_out[1].flows.Q_longwave   # radiative loss (W)
+    Q_solar_dorsal = simulsol_out[1].flows.Q_solar   # solar (W)
+    Q_evap_insulation_dorsal = simulsol_out[1].flows.Q_evap_insulation  # fur evaporation (W)
     ntry_dorsal = simulsol_out[1].ntry  # attempts
     success_dorsal = simulsol_out[1].success  # success?
     k_insulation_dorsal = simulsol_out[1].k_insulation  # fur conductivity? (same as FORTRAN)
 
     T_insulation_ventral = simulsol_out[2].T_insulation   # feather/fur-air interface temp (°C)
     T_skin_ventral = simulsol_out[2].T_skin   # average skin temp
-    Q_convection_ventral = simulsol_out[2].fluxes.Q_convection   # convection (W)
-    Q_conduction_ventral = simulsol_out[2].fluxes.Q_conduction   # conduction (W)
-    Q_evap_skin_ventral = simulsol_out[2].fluxes.Q_evap_skin   # cutaneous evaporation (W)
-    Q_longwave_ventral = simulsol_out[2].fluxes.Q_longwave   # radiative loss (W)
-    Q_solar_ventral = simulsol_out[2].fluxes.Q_solar   # solar (W)
-    Q_evap_insulation_ventral = simulsol_out[2].fluxes.Q_evap_insulation  # fur evaporation (W)
+    Q_convection_ventral = simulsol_out[2].flows.Q_convection   # convection (W)
+    Q_conduction_ventral = simulsol_out[2].flows.Q_conduction   # conduction (W)
+    Q_evap_skin_ventral = simulsol_out[2].flows.Q_evap_skin   # cutaneous evaporation (W)
+    Q_longwave_ventral = simulsol_out[2].flows.Q_longwave   # radiative loss (W)
+    Q_solar_ventral = simulsol_out[2].flows.Q_solar   # solar (W)
+    Q_evap_insulation_ventral = simulsol_out[2].flows.Q_evap_insulation  # fur evaporation (W)
     ntry_ventral = simulsol_out[2].ntry  # attempts
     success_ventral = simulsol_out[2].success  # success?
     k_insulation_ventral = simulsol_out[2].k_insulation  # fur conductivity? (same as FORTRAN)
@@ -328,17 +328,17 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         m_resp = respiration_out.m_resp
         V_air = respiration_out.V_air
         V_O2_STP = respiration_out.V_O2_STP
-        molar_fluxes = respiration_out.molar_fluxes
-        J_air_in = molar_fluxes.J_air_in
-        J_air_out = molar_fluxes.J_air_out
-        J_H2O_in = molar_fluxes.J_H2O_in
-        J_H2O_out = molar_fluxes.J_H2O_out
-        J_O2_in = molar_fluxes.J_O2_in
-        J_O2_out = molar_fluxes.J_O2_out
-        J_CO2_in = molar_fluxes.J_CO2_in
-        J_CO2_out = molar_fluxes.J_CO2_out
-        J_N2_in = molar_fluxes.J_N2_in
-        J_N2_out = molar_fluxes.J_N2_out
+        molar_flows = respiration_out.molar_flows
+        J_air_in = molar_flows.J_air_in
+        J_air_out = molar_flows.J_air_out
+        J_H2O_in = molar_flows.J_H2O_in
+        J_H2O_out = molar_flows.J_H2O_out
+        J_O2_in = molar_flows.J_O2_in
+        J_O2_out = molar_flows.J_O2_out
+        J_CO2_in = molar_flows.J_CO2_in
+        J_CO2_out = molar_flows.J_CO2_out
+        J_N2_in = molar_flows.J_N2_in
+        J_N2_out = molar_flows.J_N2_out
     else
         balance = nothing
         Q_resp = 0.0u"W"
@@ -462,7 +462,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         geometry_pars.geometry.length...,
     )
 
-    energy_fluxes = (;
+    energy_flows = (;
         Q_solar,
         Q_longwave_in,
         Q_gen,
@@ -475,7 +475,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         success=all((success_dorsal, success_ventral)),
     )
 
-    mass_fluxes = (;
+    mass_flows = (;
         V_air,
         V_O2_STP,
         m_evap,
@@ -492,7 +492,7 @@ function solve_metabolic_rate(o::Organism, e, T_skin, T_insulation)
         J_air_in,
         J_air_out,
     )
-    return (; thermoregulation, morphology, energy_fluxes, mass_fluxes)
+    return (; thermoregulation, morphology, energy_flows, mass_flows)
 end
 
 function bracket_root(f, a, b; factor=2, maxiter=20)
