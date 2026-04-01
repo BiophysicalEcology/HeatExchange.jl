@@ -255,7 +255,7 @@ function convection(;
     hc_forc = Nu * k_fluid / D # heat transfer coefficient, forced
     Sh_forc = Nu * (Sc / Pr)^(1 / 3) # Sherwood number, forced
     hd_forc = Sh_forc * D_w / D # mass transfer coefficient
-    Q_forc = hd_forc * area * (T_surface - T_air) # forced convective heat transfer
+    Q_forc = hc_forc * area * (T_surface - T_air) # forced convective heat transfer
     # combined free and forced convection
     # using Bird, Stewart & Lightfoot's mixed convection formula (p. 445, Transport Phenomena, 2002)
     Nu_comb = (Nu_free^3 + Nu^3)^(1 / 3)
