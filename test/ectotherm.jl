@@ -273,7 +273,7 @@ net_generated_heat_flow = metabolic_heat_flow - respiration_heat_flow
 specific_generated_heat_flow = net_generated_heat_flow / geometry.geometry.volume
 
 # compute skin and lung temperature
-(; surface_temperature, lung_temperature) = surface_and_lung_temperature(; body=geometry, flesh_conductivity, specific_generated_heat_flow, core_temperature)
+(; surface_temperature, lung_temperature) = surface_and_lung_temperature(; body=geometry, flesh_conductivity, specific_metabolic_heat_production=specific_generated_heat_flow, core_temperature)
 skin_temperature = surface_temperature  # alias for later use
 
 # test lung temperature

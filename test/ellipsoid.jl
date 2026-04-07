@@ -43,8 +43,8 @@ ellipsoid_out = DataFrame(
 
 rtol=1e-3
 @testset "ellipsoid model" begin
-    @test ellipsoid_out.required_generated_flux ≈ (ellipsoid_output.Qgen)u"W" rtol=rtol
-    @test ellipsoid_out.final_generated_flux ≈ (ellipsoid_output.QgenFinal)u"W" rtol=rtol
+    @test ellipsoid_out.required_metabolic_heat_production ≈ (ellipsoid_output.Qgen)u"W" rtol=rtol
+    @test ellipsoid_out.final_metabolic_heat_production ≈ (ellipsoid_output.QgenFinal)u"W" rtol=rtol
     @test ellipsoid_out.oxygen_consumption_rate ≈ (ellipsoid_output.mlO2ph)u"ml/hr" rtol=rtol
     @test ellipsoid_out.basal_metabolic_rate_fraction ≈ ellipsoid_output.PctBasal/100 rtol=rtol
     @test u"K".(ellipsoid_out.skin_temperature) ≈ (ellipsoid_output.Tskin .+ 273.15)u"K" rtol=rtol

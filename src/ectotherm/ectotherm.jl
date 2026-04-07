@@ -50,7 +50,7 @@ function ectotherm(core_temperature, insulation::Naked, o::Organism, e)
     total_area = BiophysicalGeometry.total_area(o.body)
     convection_area = total_area * (1 - external_conduction.conduction_fraction)
     conduction_area = total_area * external_conduction.conduction_fraction
-    silhouette_area = silhouette_area(o.body, rad_pars.solar_orientation, environment_vars.zenith_angle)
+    silhouette_area = BiophysicalGeometry.silhouette_area(o.body, rad_pars.solar_orientation, environment_vars.zenith_angle)
 
     # calculate heat flows
 

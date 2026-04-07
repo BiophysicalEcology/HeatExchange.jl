@@ -249,7 +249,7 @@ function convection(;
     forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dimension # heat transfer coefficient, forced
     forced_sherwood_number = forced_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, forced
     forced_mass_transfer_coefficient = forced_sherwood_number * vapour_diffusivity / characteristic_dimension # mass transfer coefficient
-    forced_convection_flow = forced_mass_transfer_coefficient * area * (surface_temperature - air_temperature) # forced convective heat transfer
+    forced_convection_flow = forced_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # forced convective heat transfer
     # combined free and forced convection
     # using Bird, Stewart & Lightfoot's mixed convection formula (p. 445, Transport Phenomena, 2002)
     combined_nusselt_number = (free_nusselt_number^3 + forced_nusselt_number^3)^(1 / 3)
