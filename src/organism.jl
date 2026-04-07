@@ -11,20 +11,20 @@ abstract type AbstractModelParameters end
 
 abstract type AbstractFunctionalTraits end
 
-shapepars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
-insulationpars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
-function conductionpars_external(t::AbstractFunctionalTraits)
+shape_pars(t::AbstractFunctionalTraits) = stripparams(t.shape_pars)
+insulation_pars(t::AbstractFunctionalTraits) = stripparams(t.insulation_pars)
+function conduction_pars_external(t::AbstractFunctionalTraits)
     stripparams(t.conduction_pars_external)
 end
-function conductionpars_internal(t::AbstractFunctionalTraits)
+function conduction_pars_internal(t::AbstractFunctionalTraits)
     stripparams(t.conduction_pars_internal)
 end
-convectionpars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
-radiationpars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
-evaporationpars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
-hydraulicpars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
-respirationpars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
-metabolismpars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
+convection_pars(t::AbstractFunctionalTraits) = stripparams(t.convection_pars)
+radiation_pars(t::AbstractFunctionalTraits) = stripparams(t.radiation_pars)
+evaporation_pars(t::AbstractFunctionalTraits) = stripparams(t.evaporation_pars)
+hydraulic_pars(t::AbstractFunctionalTraits) = stripparams(t.hydraulic_pars)
+respiration_pars(t::AbstractFunctionalTraits) = stripparams(t.respiration_pars)
+metabolism_pars(t::AbstractFunctionalTraits) = stripparams(t.metabolism_pars)
 options(t::AbstractFunctionalTraits) = stripparams(t.options)
 
 # TODO more specific subtypes
@@ -68,16 +68,16 @@ traits(o::AbstractOrganism) = o.traits
 #insulation(o::AbstractOrganism) = insulation(body(o)) # gets the insulation from an object of type AbstractOrganism
 
 # Forwarding methods from organism to traits
-shapepars(o::AbstractOrganism) = shapepars(traits(o))
-insulationpars(o::AbstractOrganism) = insulationpars(traits(o))
-conductionpars_external(o::AbstractOrganism) = conductionpars_external(traits(o))
-conductionpars_internal(o::AbstractOrganism) = conductionpars_internal(traits(o))
-convectionpars(o::AbstractOrganism) = convectionpars(traits(o))
-radiationpars(o::AbstractOrganism) = radiationpars(traits(o))
-evaporationpars(o::AbstractOrganism) = evaporationpars(traits(o))
-hydraulicpars(o::AbstractOrganism) = hydraulicpars(traits(o))
-respirationpars(o::AbstractOrganism) = respirationpars(traits(o))
-metabolismpars(o::AbstractOrganism) = metabolismpars(traits(o))
+shape_pars(o::AbstractOrganism) = shape_pars(traits(o))
+insulation_pars(o::AbstractOrganism) = insulation_pars(traits(o))
+conduction_pars_external(o::AbstractOrganism) = conduction_pars_external(traits(o))
+conduction_pars_internal(o::AbstractOrganism) = conduction_pars_internal(traits(o))
+convection_pars(o::AbstractOrganism) = convection_pars(traits(o))
+radiation_pars(o::AbstractOrganism) = radiation_pars(traits(o))
+evaporation_pars(o::AbstractOrganism) = evaporation_pars(traits(o))
+hydraulic_pars(o::AbstractOrganism) = hydraulic_pars(traits(o))
+respiration_pars(o::AbstractOrganism) = respiration_pars(traits(o))
+metabolism_pars(o::AbstractOrganism) = metabolism_pars(traits(o))
 options(o::AbstractOrganism) = options(traits(o))
 
 """
@@ -104,14 +104,14 @@ abstract type AbstractOrganismalVars end
 """
     OrganismalVars <: AbstractOrganismalVars
 
-    - `ψ_org` — Body water potential (determines humidity at skin surface 
+    - `water_potential` — Body water potential (determines humidity at skin surface
     and liquid water exchange) (J/kg).
 Variables for an [`AbstractOrganism`](@ref) model.
 """
 Base.@kwdef mutable struct OrganismalVars{TC,TS,TI,TL,P} <: AbstractOrganismalVars
-    T_core::TC
-    T_skin::TS
-    T_insulation::TI = T_core
-    T_lung::TL
-    ψ_org::P
+    core_temperature::TC
+    skin_temperature::TS
+    insulation_temperature::TI = core_temperature
+    lung_temperature::TL
+    water_potential::P
 end
