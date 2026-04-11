@@ -103,6 +103,26 @@ Base.@kwdef struct EvaporationParameters{SW,IW,EF,BF,IF} <: AbstractMorphologyPa
 end
 
 """
+    LeafEvaporationParameters <: AbstractMorphologyParameters
+
+Evaporation parameters for a leaf using stomatal vapour conductances (mol/m²/s).
+The boundary layer conductance is supplied via `mass::TransferCoefficients` from
+a prior `convection()` call, ensuring the same body geometry and convective
+enhancement factor are used for both heat and mass transfer.
+
+# Parameters
+- `abaxial_vapour_conductance` — Stomatal conductance of the abaxial (lower) surface (mol/m²/s); default 0.3.
+- `adaxial_vapour_conductance` — Stomatal conductance of the adaxial (upper) surface (mol/m²/s); default 0.0.
+- `cuticular_conductance` — Baseline conductance when stomata are closed (mol/m²/s); added equally
+  to both surfaces (`cuticular_conductance / 2` per side). Equivalent to ~0.1 µmol H₂O/(m²·s·Pa); default 0.01.
+"""
+Base.@kwdef struct LeafEvaporationParameters{AB,AD,CC} <: AbstractMorphologyParameters
+    abaxial_vapour_conductance::AB = Param(0.3u"mol/m^2/s",  bounds=(0.0, Inf))
+    adaxial_vapour_conductance::AD = Param(0.0u"mol/m^2/s",  bounds=(0.0, Inf))
+    cuticular_conductance::CC      = Param(0.01u"mol/m^2/s", bounds=(0.0, Inf))
+end
+
+"""
     HydraulicParameters <: AbstractPhysiologyParameters
 
 Morphological parameters relating to radiation exchange.

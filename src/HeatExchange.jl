@@ -21,7 +21,7 @@ using FluidProperties:
     molO₂,
     molN₂
 
-using BiophysicalGeometry: AbstractBody, shape
+using BiophysicalGeometry: AbstractBody, shape, CharDimFormula, VolumeCubeRoot, ShortestDimension
 
 export Organism,
     HeatExchangeTraits,
@@ -32,6 +32,7 @@ export Organism,
     RadiationParameters,
     ConvectionParameters,
     EvaporationParameters,
+    LeafEvaporationParameters,
     HydraulicParameters,
     RespirationParameters,
     MetabolismParameters
@@ -91,6 +92,8 @@ export ConductanceCoeffs,
     Absorptivities,
     InsulationProperties,
     GeometryVariables
+
+export CharDimFormula, VolumeCubeRoot, ShortestDimension
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
 

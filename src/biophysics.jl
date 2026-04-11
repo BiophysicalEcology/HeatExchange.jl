@@ -426,3 +426,75 @@ function evaporation(
     m_cut = uconvert(u"g/s", m_cut)
     return (; evaporation_heat_flow, m_cut, m_eyes)
 end
+
+"""
+    evaporation(evap_pars::LeafEvaporationParameters, mass, atmos, area, surface_temperature, air_temperature; kw...)
+
+Compute leaf transpiration using stomatal vapour conductances combined with the boundary layer
+mass transfer coefficient from a prior `convection()` call. Using `mass` from `convection()`
+ensures that the same body geometry and convective enhancement factor govern both heat and
+mass transfer — no separate leaf width or enhancement parameter is needed.
+
+Stomatal conductances (mol/m²/s) are converted to m/s via the ideal gas relation
+`h = g_mol × R·T/P`, then combined with the boundary layer in series+parallel.
+
+# Arguments
+- `evap_pars::LeafEvaporationParameters`: Stomatal and cuticular conductances
+- `mass::TransferCoefficients`: Mass transfer coefficients from `convection()` (combined, free, forced)
+- `atmos::AtmosphericConditions`: Atmospheric conditions (relative_humidity, atmospheric_pressure)
+- `area`: Total leaf surface area
+- `surface_temperature`: Leaf surface temperature
+- `air_temperature`: Air temperature
+
+# Keywords
+- `water_potential`: Leaf water potential (J/kg), default 0.0 (fully saturated surface)
+- `gas_fractions::GasFractions`: Gas fractions for air properties
+
+# Returns
+NamedTuple with evaporation_heat_flow, transpiration_water_loss
+"""
+function evaporation(
+    evap_pars::LeafEvaporationParameters,
+    mass::TransferCoefficients,
+    atmos::AtmosphericConditions,
+    area,
+    surface_temperature,
+    air_temperature;
+    water_potential=0.0u"J/kg",
+    gas_fractions::GasFractions=GasFractions(),
+)
+    (; abaxial_vapour_conductance, adaxial_vapour_conductance, cuticular_conductance) = evap_pars
+    (; relative_humidity, atmospheric_pressure) = atmos
+
+    # convert stomatal conductances from mol/m²/s → m/s via ideal gas: h = g_mol × R·T/P
+    molar_volume_air = Unitful.R * air_temperature / atmospheric_pressure
+    effective_abaxial_mass_transfer =
+        (abaxial_vapour_conductance + cuticular_conductance / 2) * molar_volume_air
+    effective_adaxial_mass_transfer =
+        (adaxial_vapour_conductance + cuticular_conductance / 2) * molar_volume_air
+
+    # series+parallel combination: each surface in series with boundary layer, both sides parallel
+    # mass.combined uses the same body geometry and enhancement factor as convection heat transfer
+    boundary_layer_mass_transfer_coefficient = mass.combined
+    effective_mass_transfer_coefficient =
+        (0.5 * effective_abaxial_mass_transfer * boundary_layer_mass_transfer_coefficient) /
+            (effective_abaxial_mass_transfer + boundary_layer_mass_transfer_coefficient) +
+        (0.5 * effective_adaxial_mass_transfer * boundary_layer_mass_transfer_coefficient) /
+            (effective_adaxial_mass_transfer + boundary_layer_mass_transfer_coefficient)
+
+    # vapour density at leaf surface and in air (same as animal evaporation)
+    molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
+    rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
+    wet_air_out = wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions)
+    surface_vapour_density = wet_air_out.vapour_density
+    wet_air_out = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions)
+    air_vapour_density = wet_air_out.vapour_density
+
+    # transpiration mass flux and latent heat
+    transpiration_water_loss =
+        effective_mass_transfer_coefficient * area * (surface_vapour_density - air_vapour_density)
+    latent_heat_vaporisation = enthalpy_of_vaporisation(air_temperature)
+    evaporation_heat_flow = uconvert(u"W", transpiration_water_loss * latent_heat_vaporisation)
+    transpiration_water_loss = uconvert(u"g/s", transpiration_water_loss)
+    return (; evaporation_heat_flow, transpiration_water_loss)
+end

@@ -1,7 +1,7 @@
 name = "HeatExchange"
 uuid = "720bd838-cdd6-4aad-926b-452b962dce21"
-authors = ["Michael Kearney, Urtzi Enriquez Urzelai and Rafael Schouten"]
 version = "0.1.0"
+authors = ["Michael Kearney, Urtzi Enriquez Urzelai and Rafael Schouten"]
 
 [deps]
 BiophysicalGeometry = "06c61620-4f66-4020-a018-07befe374221"
@@ -13,14 +13,14 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [sources]
+BiophysicalGeometry = {rev = "characteristic-dimension-options", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
 FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
-BiophysicalGeometry = {rev = "main", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
 
 [compat]
 Aqua = "0.8"
 BiophysicalGeometry = "0.1"
-ConstructionBase = "1"
 CSV = "0.10.15"
+ConstructionBase = "1"
 DataFrames = "1"
 DataStructures = "0.18, 0.19"
 FluidProperties = "0.1.0"
