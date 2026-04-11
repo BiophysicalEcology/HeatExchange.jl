@@ -3,12 +3,12 @@ using ModelParameters
 using Unitful
 
 environment_pars = EnvironmentalPars(;
-    α_ground=0.8,
-    ϵ_ground=1.0,
-    ϵ_sky=1.0,
+    ground_albedo=0.8,
+    ground_emissivity=1.0,
+    sky_emissivity=1.0,
     elevation=0.0u"m",
     fluid=0,
-    gasfrac=GasFractions(0.2095, 0.0003, 0.79),
+    gas_fractions=GasFractions(0.2095, 0.0003, 0.79),
 )
 env_params = Model(environment_pars)
 environment_pars = stripparams(env_params)
@@ -24,7 +24,7 @@ environment_vars = EnvironmentalVars(;
     atmospheric_pressure=101325.0u"Pa",
     zenith_angle=20.0u"°",
     global_radiation=1000.0u"W/m^2",
-    k_substrate=0.5u"W/m/K",
+    substrate_conductivity=0.5u"W/m/K",
     diffuse_fraction=0.15,
     shade=0.0,
 )
