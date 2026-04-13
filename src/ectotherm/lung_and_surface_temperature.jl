@@ -52,6 +52,16 @@ function surface_and_lung_temperature(shape::LeopardFrog, body::AbstractBody, fl
     return (; surface_temperature, lung_temperature)
 end
 
+function surface_and_lung_temperature(shape::Plate, body::AbstractBody, flesh_conductivity, specific_metabolic_heat_production, core_temperature)
+    # flat slab: half-thickness h = height/2 (shortest dimension)
+    # from plane-wall solution (Bird, Stewart & Lightfoot, Transport Phenomena)
+    h = body.geometry.length.height_skin / 2
+    surface_temperature = core_temperature - specific_metabolic_heat_production * h ^ 2 / (2 * flesh_conductivity)
+    lung_temperature = (specific_metabolic_heat_production * h ^ 2) / (4 * flesh_conductivity) + surface_temperature
+
+    return (; surface_temperature, lung_temperature)
+end
+
 function surface_and_lung_temperature(shape::Ellipsoid, body::AbstractBody, flesh_conductivity, specific_metabolic_heat_production, core_temperature)
     a = body.geometry.length[1] ^ 2
     b = body.geometry.length[2] ^ 2

@@ -82,7 +82,7 @@ Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,VF} <:
 end
 
 """
-    EvaporationParameters <: AbstractMorphologyParameters
+    AnimalEvaporationParameters <: AbstractMorphologyParameters
 
 Morphological parameters relating to cutaneous evaporation of the organism.
 
@@ -94,7 +94,7 @@ Morphological parameters relating to cutaneous evaporation of the organism.
 - `insulation_fraction::F` — Fraction of surface area covered by insulation (0–1).
 
 """
-Base.@kwdef struct EvaporationParameters{SW,IW,EF,BF,IF} <: AbstractMorphologyParameters
+Base.@kwdef struct AnimalEvaporationParameters{SW,IW,EF,BF,IF} <: AbstractMorphologyParameters
     skin_wetness::SW = Param(0.0, bounds=(0.0, 1.0))
     insulation_wetness::IW = Param(1, bounds=(0.0, 1.0))
     eye_fraction::EF = Param(0.0, bounds=(0.0, 1.0))

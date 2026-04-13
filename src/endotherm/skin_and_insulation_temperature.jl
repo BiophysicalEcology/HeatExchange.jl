@@ -114,7 +114,7 @@ function solve_without_insulation!(
                 convection_enhancement,
             )
             heat_transfer_coefficient = conv.heat.combined
-            evap_pars_local = EvaporationParameters(;
+            evap_pars_local = AnimalEvaporationParameters(;
                 skin_wetness,
                 eye_fraction,
                 bare_skin_fraction,
@@ -290,7 +290,7 @@ function solve_with_insulation!(
                 convection_enhancement,
             )
             heat_transfer_coefficient = conv.heat.combined
-            evap_pars_skin = EvaporationParameters(;
+            evap_pars_skin = AnimalEvaporationParameters(;
                 skin_wetness,
                 eye_fraction,
                 bare_skin_fraction,
@@ -307,7 +307,7 @@ function solve_with_insulation!(
             ).evaporation_heat_flow
             # second from insulation
             if insulation_wetness > 0 && insulation_test > 0.0u"m"
-                evap_pars_ins = EvaporationParameters(;
+                evap_pars_ins = AnimalEvaporationParameters(;
                     skin_wetness=insulation_wetness,
                     eye_fraction=0.0,
                     bare_skin_fraction=1.0,

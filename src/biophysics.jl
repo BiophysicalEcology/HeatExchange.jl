@@ -370,7 +370,7 @@ Compute surface evaporation based on mass transfer coefficient, wetness fraction
 and vapor density gradient between surface and air.
 
 # Arguments
-- `evap_pars::EvaporationParameters`: Evaporation parameters (wetness, eye_fraction, bare_skin_fraction)
+- `evap_pars::AnimalEvaporationParameters`: Evaporation parameters (wetness, eye_fraction, bare_skin_fraction)
 - `mass::TransferCoefficients`: Mass transfer coefficients (combined, free, forced)
 - `atmos::AtmosphericConditions`: Atmospheric conditions (relative_humidity, atmospheric_pressure)
 - `area`: Total surface area for evaporation
@@ -385,7 +385,7 @@ and vapor density gradient between surface and air.
 NamedTuple with evaporation_heat_flow, m_cut, m_eyes
 """
 function evaporation(
-    evap_pars::EvaporationParameters,
+    evap_pars::AnimalEvaporationParameters,
     mass::TransferCoefficients,
     atmos::AtmosphericConditions,
     area,

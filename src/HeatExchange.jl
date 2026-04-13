@@ -31,7 +31,7 @@ export Organism,
     InternalConductionParameters,
     RadiationParameters,
     ConvectionParameters,
-    EvaporationParameters,
+    AnimalEvaporationParameters,
     LeafEvaporationParameters,
     HydraulicParameters,
     RespirationParameters,
@@ -58,7 +58,7 @@ export get_Tb
 export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
-export ectotherm, surface_and_lung_temperature
+export heat_balance, solve_temperature, surface_and_lung_temperature
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -95,7 +95,7 @@ export ConductanceCoeffs,
 
 export CharDimFormula, VolumeCubeRoot, ShortestDimension
 
-export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
+export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, PlantDarkRespiration
 
 export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
@@ -116,6 +116,7 @@ include("insulation.jl")
 
 include("ectotherm/lung_and_surface_temperature.jl")
 include("ectotherm/ectotherm.jl")
+include("leaf/leaf.jl")
 
 include("endotherm/ellipsoid_model.jl")
 include("endotherm/radiant_temperature.jl")

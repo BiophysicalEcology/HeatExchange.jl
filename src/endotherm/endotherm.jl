@@ -60,7 +60,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     fibres = insulation.fibres
     # if no insulation, reset bare_skin_fraction if necessary
     if insulation.insulation_test <= 0.0u"m" && evap_pars.bare_skin_fraction < 1.0
-        evap_temp = EvaporationParameters(;
+        evap_temp = AnimalEvaporationParameters(;
             skin_wetness=evap_pars.skin_wetness,
             insulation_wetness=evap_pars.insulation_wetness,
             eye_fraction=evap_pars.eye_fraction,
