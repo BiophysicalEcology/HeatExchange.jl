@@ -248,7 +248,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
                 resp_pars,
                 resp_atmos,
                 geometry_pars.shape.mass,
-                lung_temperature,
+                exit_air_temperature,
                 environment_vars.air_temperature;
                 gas_fractions=environment_pars.gas_fractions,
                 O2conversion=Kleiber1961(),

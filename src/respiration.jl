@@ -31,8 +31,8 @@ function respiration(
 )
     (; metabolic, sum, minimum) = rates
     metabolic_heat_flow, heat_flow_sum, minimum_heat_flow = metabolic, sum, minimum
-    (; oxygen_extraction_efficiency, pant, respiratory_quotient, exhaled_temperature_offset, exhaled_relative_humidity) = resp_pars
-    exit_air_temperature = lung_temperature  # exhaled air at lung temperature (original default)
+    (; oxygen_extraction_efficiency, pant, respiratory_quotient, exhaled_relative_humidity) = resp_pars
+    exit_air_temperature = lung_temperature
     (; relative_humidity, atmospheric_pressure) = atmos
     fO2 = gas_fractions.oxygen
     fCO2 = gas_fractions.carbon_dioxide
@@ -49,8 +49,8 @@ function respiration(
 
     # converting standard temperature and pressure -> vol. of O2 at animal lung temperature, atm. press.
     O2_partial_pressure = atmospheric_pressure * fO2
-    oxygen_flow = oxygen_flow_standard * (lung_temperature / 273.15u"K") * (101325u"Pa" / atmospheric_pressure)
-    #n = PV/RT (ideal gas law: number of moles from press,vol,temp)
+    O2_ref = 101325u"Pa" * fO2
+    oxygen_flow = oxygen_flow_standard * (O2_ref / 273.15u"K") * (lung_temperature / O2_partial_pressure)    #n = PV/RT (ideal gas law: number of moles from press,vol,temp)
     oxygen_consumed = uconvert(u"mol/s", atmospheric_pressure * oxygen_flow / (Unitful.R * lung_temperature)) # mol O2 consumed
     # moles/s of O2, N2, dry air at entrance [air flow = f(O2 consumption)]
     oxygen_in = oxygen_consumed / oxygen_extraction_efficiency # actual oxygen flow in (moles/s), accounting for efficiency of extraction
@@ -72,8 +72,7 @@ function respiration(
     # total moles of air at exit will be approximately the same as at entrance, since
     # the moles of O2 removed = approx. the # moles of co2 added
     air_out = (oxygen_out + nitrogen_out + carbon_dioxide_out) * pant
-    # assuming saturated air at exit
-    exit_vapour_pressure = vapour_pressure(exit_air_temperature)
+    exit_vapour_pressure = vapour_pressure(exit_air_temperature) * exhaled_relative_humidity
     water_out = air_out * (exit_vapour_pressure / (atmospheric_pressure - exit_vapour_pressure))
     # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume
     # P,T,V constant, so not significant flow energy, PV. (H = U + PV)
