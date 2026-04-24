@@ -1,4 +1,50 @@
 
+# Characteristic dimension formulas
+
+"""
+    CharacteristicDimFormula
+
+Abstract supertype for characteristic dimension formulas used in convection calculations.
+"""
+abstract type CharacteristicDimFormula end
+
+"""
+    VolumeCubeRoot <: CharacteristicDimFormula
+
+Use `V^(1/3) + insulation_thickness` as the characteristic dimension (default).
+Insulation thickness is added for furred animals to reflect the outer scale.
+"""
+struct VolumeCubeRoot <: CharacteristicDimFormula end
+
+"""
+    ScaledDimension(factor, dimension::Symbol)
+
+Characteristic dimension = `factor × body.geometry.length.<dimension>`.
+
+`dimension` names a field in the shape's `length` NamedTuple —
+e.g. `:width_skin`, `:b_semi_minor_skin`, `:radius_skin`. Use this when
+the volume-cube-root scale is inappropriate, such as flat plates or oblate ellipsoids.
+The factor defaults to 1.0.
+"""
+struct ScaledDimension{F} <: CharacteristicDimFormula
+    factor::F
+    dimension::Symbol
+end
+ScaledDimension(dimension::Symbol) = ScaledDimension(1.0, dimension)
+
+_outer_insulation_thickness(::Naked)   = 0.0u"m"
+_outer_insulation_thickness(::Fat)     = 0.0u"m"
+_outer_insulation_thickness(f::Fur)    = f.thickness
+function _outer_insulation_thickness(ci::CompositeInsulation)
+    _outer_insulation_thickness(BiophysicalGeometry.outer_insulation(ci))
+end
+
+characteristic_dimension(::VolumeCubeRoot, body) =
+    body.geometry.volume^(1/3) + _outer_insulation_thickness(body.insulation)
+
+characteristic_dimension(sd::ScaledDimension, body) =
+    sd.factor * getproperty(body.geometry.length, sd.dimension)
+
 """
     ExternalConductionParameters <: AbstractMorphologyParameters
 
@@ -38,10 +84,12 @@ Morphological parameters relating to convective heat exchange.
 
 # Parameters
 - `convection_area` — surface area involved in convection.
-
+- `characteristic_dimension_formula` — formula used to compute the characteristic dimension
+  for convection scaling (default: `VolumeCubeRoot()`).
 """
-Base.@kwdef struct ConvectionParameters{A} <: AbstractMorphologyParameters
+Base.@kwdef struct ConvectionParameters{A,CDF} <: AbstractMorphologyParameters
     convection_area::A = Param(0.0u"m^2")
+    characteristic_dimension_formula::CDF = VolumeCubeRoot()
 end
 
 """

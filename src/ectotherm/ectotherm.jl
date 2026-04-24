@@ -20,6 +20,7 @@ Returns a NamedTuple:
 function _radiative_convective_flows(surface_temperature, o::Organism, environment_pars, environment_vars)
     external_conduction = conduction_pars_external(o)
     rad_pars = radiation_pars(o)
+    conv_pars = convection_pars(o)
 
     total_area = BiophysicalGeometry.total_area(o.body)
     convection_area = total_area * (1 - external_conduction.conduction_fraction)
@@ -58,6 +59,7 @@ function _radiative_convective_flows(surface_temperature, o::Organism, environme
         fluid=environment_pars.fluid,
         gas_fractions=environment_pars.gas_fractions,
         convection_enhancement=environment_pars.convection_enhancement,
+        characteristic_dimension_formula=conv_pars.characteristic_dimension_formula,
     )
     convection_heat_flow = convection_out.heat_flow
 

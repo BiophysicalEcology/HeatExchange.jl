@@ -176,7 +176,7 @@ end
 Calculate combined free and forced convective heat transfer for an organism.
 
 # Keywords
-- `body`: Organism body with geometry (must have `shape` and `geometry.characteristic_dimension`)
+- `body`: Organism body with geometry (must have `shape` and `geometry`)
 - `area`: Surface area for convection
 - `air_temperature`: Air temperature
 - `surface_temperature`: Surface temperature
@@ -202,9 +202,10 @@ function convection(;
     fluid,
     gas_fractions::GasFractions=GasFractions(),
     convection_enhancement=1.0,
+    characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
-    characteristic_dimension = body.geometry.characteristic_dimension
+    characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
     dry_air_out = dry_air_properties(air_temperature, atmospheric_pressure; gas_fractions)
     vapour_diffusivity = dry_air_out.vapour_diffusivity
     # checking to see if the fluid is water, not air
@@ -233,30 +234,30 @@ function convection(;
     if temperature_difference <= 0.0u"K" # stability check - avoiding zero
         temperature_difference = temperature_difference + 0.00001u"K"
     end
-    grashof_number = abs(((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dimension^3) * temperature_difference) / (dynamic_viscosity^2))
-    reynolds_number = fluid_density * wind_speed * characteristic_dimension / dynamic_viscosity
+    grashof_number = abs(((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2))
+    reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
     free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)
-    free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dimension # heat transfer coefficient, free
+    free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
     free_sherwood_number = free_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, free
     # calculating the mass transfer coefficient from the Sherwood number
-    free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dimension # mass transfer coefficient, free
+    free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, free
     free_convection_flow = free_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # free convective heat loss at surface
     # forced convection
     forced_nusselt_number = nusselt_forced(body.shape, reynolds_number) * convection_enhancement
     # forced convection for object
-    forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dimension # heat transfer coefficient, forced
+    forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dim # heat transfer coefficient, forced
     forced_sherwood_number = forced_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, forced
-    forced_mass_transfer_coefficient = forced_sherwood_number * vapour_diffusivity / characteristic_dimension # mass transfer coefficient
+    forced_mass_transfer_coefficient = forced_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient
     forced_convection_flow = forced_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # forced convective heat transfer
     # combined free and forced convection
     # using Bird, Stewart & Lightfoot's mixed convection formula (p. 445, Transport Phenomena, 2002)
     combined_nusselt_number = (free_nusselt_number^3 + forced_nusselt_number^3)^(1 / 3)
-    combined_heat_transfer_coefficient = combined_nusselt_number * (fluid_conductivity / characteristic_dimension) # mixed convection heat transfer
+    combined_heat_transfer_coefficient = combined_nusselt_number * (fluid_conductivity / characteristic_dim) # mixed convection heat transfer
     convection_flow = combined_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # total convective heat loss
     combined_sherwood_number = combined_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, combined
-    combined_mass_transfer_coefficient = combined_sherwood_number * vapour_diffusivity / characteristic_dimension # mass transfer coefficient, combined
+    combined_mass_transfer_coefficient = combined_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, combined
 
     heat = TransferCoefficients(combined_heat_transfer_coefficient, free_heat_transfer_coefficient, forced_heat_transfer_coefficient)
     mass = TransferCoefficients(combined_mass_transfer_coefficient, free_mass_transfer_coefficient, forced_mass_transfer_coefficient)

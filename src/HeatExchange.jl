@@ -21,7 +21,7 @@ using FluidProperties:
     molO₂,
     molN₂
 
-using BiophysicalGeometry: AbstractBody, shape, CharDimFormula, VolumeCubeRoot, ShortestDimension
+using BiophysicalGeometry: AbstractBody, shape, outer_insulation
 
 export Organism,
     HeatExchangeTraits,
@@ -93,7 +93,7 @@ export ConductanceCoeffs,
     InsulationProperties,
     GeometryVariables
 
-export CharDimFormula, VolumeCubeRoot, ShortestDimension
+export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, PlantDarkRespiration
 

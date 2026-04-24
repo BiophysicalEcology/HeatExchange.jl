@@ -421,7 +421,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         ground_view_factor=ground_factor_ref,
         volume,
         volume_flesh,
-        characteristic_dimension=geometry_pars.geometry.characteristic_dimension,
+        characteristic_dimension=characteristic_dimension(VolumeCubeRoot(), geometry_pars),
         fat_mass,
         geometry_pars.geometry.length...,
     )

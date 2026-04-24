@@ -48,7 +48,7 @@ environment = (; environment_pars, environment_vars)
 leaf_density  = 700.0u"kg/m^3"       # typical mesophyll
 leaf_mass     = 0.2u"g" |> u"kg"     # a small leaf
 leaf_shape    = Plate(leaf_mass, leaf_density, 1.0, 100.0)   # b=1 (square), c=100 (thin)
-leaf_body     = Body(leaf_shape, Naked(); characteristic_dimension=ShortestDimension(0.7))
+leaf_body     = Body(leaf_shape, Naked())
 
 # Traits
 leaf_traits = HeatExchangeTraits(
@@ -68,7 +68,7 @@ leaf_traits = HeatExchangeTraits(
         ventral_fraction=0.5,
         solar_orientation=Intermediate(),
     ),
-    ConvectionParameters(),
+    ConvectionParameters(; characteristic_dimension_formula=ScaledDimension(0.7, :width_skin)),
     LeafEvaporationParameters(;
         abaxial_vapour_conductance=0.3u"mol/m^2/s",    # stomata open
         adaxial_vapour_conductance=0.0u"mol/m^2/s",
@@ -116,7 +116,7 @@ closed_traits = HeatExchangeTraits(
         ventral_fraction=0.5,
         solar_orientation=Intermediate(),
     ),
-    ConvectionParameters(),
+    ConvectionParameters(; characteristic_dimension_formula=ScaledDimension(0.7, :width_skin)),
     closed_pars,
     HydraulicParameters(; water_potential=0.0u"J/kg"),
     RespirationParameters(),

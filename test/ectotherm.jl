@@ -225,7 +225,7 @@ A_eff = A_convection * skin_wetness
 @test A_sil_normal ≈ (ecto_output.ASILN)u"m^2" rtol=1e-9
 @test A_sil_parallel ≈ (ecto_output.ASILP)u"m^2" rtol=1e-9
 @test A_eff ≈ (ecto_output.AEFF)u"m^2" rtol=1e-9
-@test geometry.geometry.characteristic_dimension ≈ (ecto_output.AL)u"m" rtol=1e-9
+@test characteristic_dimension(HeatExchange.VolumeCubeRoot(), geometry) ≈ (ecto_output.AL)u"m" rtol=1e-9
 @test geometry.geometry.length[1] ≈ (ecto_output.R1)u"m" rtol=1e-9
 @test geometry.geometry.volume ≈ (ecto_output.VOL)u"m^3" rtol=1e-9
 
