@@ -126,5 +126,6 @@ include("endotherm/mean_skin_temperature.jl")
 include("endotherm/net_metabolic_heat.jl")
 include("endotherm/skin_and_insulation_temperature.jl")
 include("endotherm/endotherm.jl")
+include("endotherm/heat_balance.jl")
 
 end
