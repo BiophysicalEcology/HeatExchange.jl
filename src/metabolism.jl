@@ -6,46 +6,46 @@ metabolic rate of squamates, Eq. 2 in Andrews & Pough 1985. Physiol. Zool. 58:21
 
 # Arguments
 
-- `M1`: mass normalisation constant.
-- `M2`: mass allometric exponent. 
-- `M3`: thermal senstivity constant. 
-- `M4`: metabolic state (0 = standard, 1 = resting) 
+- `mass_normalisation`: mass normalisation constant.
+- `mass_exponent`: mass allometric exponent.
+- `thermal_sensitivity`: thermal senstivity constant.
+- `metabolic_state`: metabolic state (0 = standard, 1 = resting)
 - `O2conversion`: `OxygenJoulesConversion`, `Typical` by default.
 
 The `metabolic_rate` equation reports metabolic rate as oxygen consumption rate given mass
 (g) and body temperature (°C). Predictions are capped betwen 1 °C and 50 °C body temperature.
 """
 @kwdef struct AndrewsPough2 <: MetabolicRateEquation
-    M1::Float64 = 0.013
-    M2::Float64 = 0.8
-    M3::Float64 = 0.038
-    M4::Float64 = 0.0
+    mass_normalisation::Float64 = 0.013
+    mass_exponent::Float64 = 0.8
+    thermal_sensitivity::Float64 = 0.038
+    metabolic_state::Float64 = 0.0
     O2conversion::OxygenJoulesConversion = Typical()
 end
 
 """
-    metabolic_rate(eq::MetabolicRateEquation, mass, T_body)
+    metabolic_rate(eq::MetabolicRateEquation, mass, core_temperature)
 
 Calculate metabolic rate using an empirical allometric equation.
 
 # Arguments
 - `eq::MetabolicRateEquation`: The metabolic rate model (e.g., `Kleiber()`, `McKechnieWolf()`, `AndrewsPough2()`)
 - `mass`: Body mass
-- `T_body`: Body temperature (required for `AndrewsPough2`, ignored for others)
+- `core_temperature`: Core temperature (required for `AndrewsPough2`, ignored for others)
 
 # Returns
-- `Q_metab`: Metabolic heat generation rate (W)
+- `metabolic_heat_flow`: Metabolic heat generation rate (W)
 """
-function metabolic_rate(eq::AndrewsPough2, mass, T_body)
-    (; M1, M2, M3, M4, O2conversion) = eq
+function metabolic_rate(eq::AndrewsPough2, mass, core_temperature)
+    (; mass_normalisation, mass_exponent, thermal_sensitivity, metabolic_state, O2conversion) = eq
 
     mass_g = ustrip(u"g", mass)
-    T_c = clamp(ustrip(u"°C", T_body), 1.0, 50.0)
-    V_O2 = M1 * mass_g^M2 * 10^(M3 * T_c) * 10.0 ^ M4
+    temperature_celsius = clamp(ustrip(u"°C", core_temperature), 1.0, 50.0)
+    oxygen_flow = mass_normalisation * mass_g^mass_exponent * 10^(thermal_sensitivity * temperature_celsius) * 10.0 ^ metabolic_state
 
-    Q_metab = u"W"(O2_to_Joules(O2conversion, (V_O2)u"ml/hr", 0.8))
+    metabolic_heat_flow = u"W"(O2_to_Joules(O2conversion, (oxygen_flow)u"ml/hr", 0.8))
 
-    return Q_metab
+    return metabolic_heat_flow
 end
 
 """
@@ -57,12 +57,12 @@ Kleiber, M. 1947. Body size and metabolic rate. Physiological Reviews 27:511–5
 """
 struct Kleiber <: MetabolicRateEquation end
 
-function metabolic_rate(::Kleiber, mass, T_body=nothing)
+function metabolic_rate(::Kleiber, mass, core_temperature=nothing)
     mass_kg = ustrip(u"kg", mass)
     m_rate_kcal_day = 70.0 * mass_kg^0.75 # general equation for mammals, p. 535, kcal/day
-    Q_metab = (m_rate_kcal_day * 4.185 / (24 * 3.6))u"W" # convert to Watts
+    metabolic_heat_flow = (m_rate_kcal_day * 4.185 / (24 * 3.6))u"W" # convert to Watts
 
-    return (Q_metab)
+    return (metabolic_heat_flow)
 end
 
 """
@@ -76,11 +76,11 @@ McKechnie, A. E., and B. O. Wolf. 2004. The Allometry of Avian Basal Metabolic R
 """
 struct McKechnieWolf <: MetabolicRateEquation end
 
-function metabolic_rate(::McKechnieWolf, mass, T_body=nothing)
+function metabolic_rate(::McKechnieWolf, mass, core_temperature=nothing)
     mass_g = ustrip(u"g", mass)
-    Q_metab = (10.0^(-1.461 + 0.669 * log10(mass_g)))u"W"
+    metabolic_heat_flow = (10.0^(-1.461 + 0.669 * log10(mass_g)))u"W"
 
-    return (Q_metab)
+    return (metabolic_heat_flow)
 end
 
 """
@@ -99,53 +99,53 @@ metabolic_rate(::Nothing, mass, T_body) = 0.0u"W"
 Standard conversion between O₂ consumption and energy use.
 
 # Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
-- `Q_metab` — metabolic rate (W).
+- `metabolic_heat_flow` — metabolic rate (W).
 
 # Outputs (Joules_to_O2) / Arguments (O2_to_Joules)
-- V_O2_STP, oxygen consumption rate, standard temperature and pressure, L/s
+- `oxygen_flow_standard` — oxygen consumption rate at standard temperature and pressure (L/s)
 
 TODO - add a ref?
 """
 struct Typical <: OxygenJoulesConversion end
 
 """
-    O2_to_Joules(conversion::OxygenJoulesConversion, V_O2_STP, rq)
-    O2_to_Joules(V_O2_STP)
+    O2_to_Joules(conversion::OxygenJoulesConversion, oxygen_flow_standard, rq)
+    O2_to_Joules(oxygen_flow_standard)
 
 Convert oxygen consumption rate to metabolic heat rate.
 
 # Arguments
 - `conversion::OxygenJoulesConversion`: Conversion model (e.g., `Typical()`, `Kleiber1961()`)
-- `V_O2_STP`: Oxygen consumption rate at STP
+- `oxygen_flow_standard`: Oxygen consumption rate at standard temperature and pressure
 - `rq`: Respiratory quotient (CO₂ produced / O₂ consumed)
 
 # Returns
-- `Q_metab`: Metabolic heat rate (W)
+- `metabolic_heat_flow`: Metabolic heat rate (W)
 """
-function O2_to_Joules(::Typical, V_O2_STP, rq)
-    Q_ox = 20.1u"J/ml"
-    Q_metab = V_O2_STP * Q_ox
-    return (Q_metab)
+function O2_to_Joules(::Typical, oxygen_flow_standard, rq)
+    O2_energy_equivalent = 20.1u"J/ml"
+    metabolic_heat_flow = oxygen_flow_standard * O2_energy_equivalent
+    return (metabolic_heat_flow)
 end
 
 """
-    Joules_to_O2(conversion::OxygenJoulesConversion, Q_metab, rq)
-    Joules_to_O2(Q_metab)
+    Joules_to_O2(conversion::OxygenJoulesConversion, metabolic_heat_flow, rq)
+    Joules_to_O2(metabolic_heat_flow)
 
 Convert metabolic heat rate to oxygen consumption rate.
 
 # Arguments
 - `conversion::OxygenJoulesConversion`: Conversion model (e.g., `Typical()`, `Kleiber1961()`)
-- `Q_metab`: Metabolic heat rate (W)
+- `metabolic_heat_flow`: Metabolic heat rate (W)
 - `rq`: Respiratory quotient (CO₂ produced / O₂ consumed)
 
 # Returns
-- `V_O2_STP`: Oxygen consumption rate at STP
+- `oxygen_flow_standard`: Oxygen consumption rate at standard temperature and pressure
 """
-function Joules_to_O2(::Typical, Q_metab, rq)
-    Q_ox = 20.1u"J/ml"
-    V_O2_STP = Q_metab / Q_ox
-    return (V_O2_STP)
+function Joules_to_O2(::Typical, metabolic_heat_flow, rq)
+    O2_energy_equivalent = 20.1u"J/ml"
+    oxygen_flow_standard = metabolic_heat_flow / O2_energy_equivalent
+    return (oxygen_flow_standard)
 end
 
 """
@@ -155,43 +155,43 @@ Kleiber's conversion between O₂ consumption and energy use, from
 the bottom of Table 7.3.
 
 # Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
-- `Q_metab` — metabolic rate (W).
+- `metabolic_heat_flow` — metabolic rate (W).
 
 # Outputs (Joules_to_O2) / Arguments (O2_to_Joules)
-- V_O2_STP, oxygen consumption rate, standard temperature and pressure, L/s
+- `oxygen_flow_standard` — oxygen consumption rate at standard temperature and pressure (L/s)
 
 Kleiber, M. 1961. The Fire of Life. An Introduction to Animal Energetics.
 """
 struct Kleiber1961 <: OxygenJoulesConversion end
 
-function Joules_to_O2(::Kleiber1961, Q_metab, rq)
-    Q_ox_carbohydrate = u"J/ml"(5.0u"kcal"/1u"L")
-    Q_ox_fat = u"J/ml"(4.7u"kcal"/1u"L")
-    Q_ox_protein = u"J/ml"(4.5u"kcal"/1u"L")
+function Joules_to_O2(::Kleiber1961, metabolic_heat_flow, rq)
+    carbohydrate_energy_equivalent = u"J/ml"(5.0u"kcal"/1u"L")
+    fat_energy_equivalent = u"J/ml"(4.7u"kcal"/1u"L")
+    protein_energy_equivalent = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0
-        V_O2_STP = Q_metab / Q_ox_carbohydrate
+        oxygen_flow_standard = metabolic_heat_flow / carbohydrate_energy_equivalent
     end
     if rq ≤ 0.7
-        V_O2_STP = Q_metab / Q_ox_fat
+        oxygen_flow_standard = metabolic_heat_flow / fat_energy_equivalent
     else
-        V_O2_STP = Q_metab / Q_ox_protein
+        oxygen_flow_standard = metabolic_heat_flow / protein_energy_equivalent
     end
-    return (V_O2_STP)
+    return (oxygen_flow_standard)
 end
 
-function O2_to_Joules(::Kleiber1961, V_O2_STP, rq)
-    Q_ox_carbohydrate = u"J/ml"(5.0u"kcal"/1u"L")
-    Q_ox_fat = u"J/ml"(4.7u"kcal"/1u"L")
-    Q_ox_protein = u"J/ml"(4.5u"kcal"/1u"L")
+function O2_to_Joules(::Kleiber1961, oxygen_flow_standard, rq)
+    carbohydrate_energy_equivalent = u"J/ml"(5.0u"kcal"/1u"L")
+    fat_energy_equivalent = u"J/ml"(4.7u"kcal"/1u"L")
+    protein_energy_equivalent = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0
-        Q_metab = V_O2_STP * Q_ox_carbohydrate
+        metabolic_heat_flow = oxygen_flow_standard * carbohydrate_energy_equivalent
     end
     if rq ≤ 0.7
-        Q_metab = V_O2_STP * Q_ox_fat
+        metabolic_heat_flow = oxygen_flow_standard * fat_energy_equivalent
     else
-        Q_metab = V_O2_STP * Q_ox_protein
+        metabolic_heat_flow = oxygen_flow_standard * protein_energy_equivalent
     end
-    return (Q_metab)
+    return (metabolic_heat_flow)
 end
 
 
@@ -199,8 +199,8 @@ end
 O2_to_Joules(::Missing) = missing
 Joules_to_O2(::Missing) = missing
 
-Joules_to_O2(Q_metab) = Joules_to_O2(Typical(), Q_metab, one(Q_metab))
-O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(V_O2_STP))
+Joules_to_O2(metabolic_heat_flow) = Joules_to_O2(Typical(), metabolic_heat_flow, one(metabolic_heat_flow))
+O2_to_Joules(oxygen_flow_standard) = O2_to_Joules(Typical(), oxygen_flow_standard, one(oxygen_flow_standard))
 
 # TODO
 # """
@@ -209,7 +209,7 @@ O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(V_O2_STP))
 # Elliott and Davison conversion between O₂ consumption and energy use.
 
 # # Arguments (Joules_to_O2) / Outputs (O2_to_Joules)
-# - `Q_metab` — metabolic rate (W).
+# - `metabolic_flux` — metabolic rate (W).
 
 # # Outputs (Joules_to_O2) / Arguments (O2_to_Joules)
 # - V_O2_STP, oxygen consumption rate, standard temperature and pressure, L/s
@@ -218,19 +218,19 @@ O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(V_O2_STP))
 # """
 # struct ElliottDavison <: OxygenJoulesConversion end
 
-# function Joules_to_O2(::ElliottDavison, Q_metab, rq)
+# function Joules_to_O2(::ElliottDavison, metabolic_flux, rq)
 #     if rq ≥ 1.0
 #         # carbohydrate metabolism
 #         # carbohydrates ≈ 4193 cal/g
 #         # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
-#         V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal")
+#         V_O2_STP = metabolic_flux * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal")
 #     end
 #     if rq ≤ 0.7
 #         # fat metabolism; fats ≈ 9400 cal/g
-#         V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal")
+#         V_O2_STP = metabolic_flux * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal")
 #     else
 #         # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
-#         V_O2_STP = Q_metab * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal")
+#         V_O2_STP = metabolic_flux * (1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal")
 #     end
 #     return (V_O2_STP)
 # end
@@ -240,14 +240,14 @@ O2_to_Joules(V_O2_STP) = O2_to_Joules(Typical(), V_O2_STP, one(V_O2_STP))
 #         # carbohydrate metabolism
 #         # carbohydrates ≈ 4193 cal/g
 #         # L/s = (J/s) * (cal/J) * (kcal/cal) * (L O2 / kcal)
-#         Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal"))
+#         metabolic_flux  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/5.057u"kcal"))
 #     end
 #     if rq ≤ 0.7
 #         # fat metabolism; fats ≈ 9400 cal/g
-#         Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal"))
+#         metabolic_flux  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.7u"kcal"))
 #     else
 #         # protein metabolism (RQ ≈ 0.8); ≈ 4300 cal/g
-#         Q_metab  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal"))
+#         metabolic_flux  = V_O2_STP / ((1u"cal"/4.185u"J") * (1u"kcal"/1000u"cal") * (1u"L"/4.5u"kcal"))
 #     end
-#     return (Q_metab)
+#     return (metabolic_flux)
 # end

@@ -17,14 +17,14 @@ air_temperature = u"K".(
 )
 wind_speed = (ellipsoid_input.windspd)u"m/s"
 relative_humidity = ellipsoid_input.rh/100
-P_atmos = 101325.0u"Pa"
+atmospheric_pressure = 101325.0u"Pa"
 
 ellipsoid_out = DataFrame(
     ellipsoid_endotherm.(
         air_temperature,
         wind_speed,
         relative_humidity,
-        P_atmos;
+        atmospheric_pressure;
         posture=ellipsoid_input.posture,
         mass=(ellipsoid_input.mass)u"kg",
         density=(ellipsoid_input.density)u"kg/m^3",
@@ -37,23 +37,23 @@ ellipsoid_out = DataFrame(
         q10=ellipsoid_input.Q10,
         minimum_metabolic_rate=missing,
         metabolic_multiplier=ellipsoid_input.basmult,
-        f_O2=0.2094,
+        oxygen_fraction=0.2094,
     ),
 )
 
 rtol=1e-3
 @testset "ellipsoid model" begin
-    @test ellipsoid_out.Q_gen_required ≈ (ellipsoid_output.Qgen)u"W" rtol=rtol
-    @test ellipsoid_out.Q_gen_final ≈ (ellipsoid_output.QgenFinal)u"W" rtol=rtol
-    @test ellipsoid_out.O2_consumption_rate ≈ (ellipsoid_output.mlO2ph)u"ml/hr" rtol=rtol
+    @test ellipsoid_out.required_metabolic_heat_production ≈ (ellipsoid_output.Qgen)u"W" rtol=rtol
+    @test ellipsoid_out.final_metabolic_heat_production ≈ (ellipsoid_output.QgenFinal)u"W" rtol=rtol
+    @test ellipsoid_out.oxygen_consumption_rate ≈ (ellipsoid_output.mlO2ph)u"ml/hr" rtol=rtol
     @test ellipsoid_out.basal_metabolic_rate_fraction ≈ ellipsoid_output.PctBasal/100 rtol=rtol
     @test u"K".(ellipsoid_out.skin_temperature) ≈ (ellipsoid_output.Tskin .+ 273.15)u"K" rtol=rtol
     @test u"K".(ellipsoid_out.lower_critical_air_temperature) ≈
         (ellipsoid_output.LCT .+ 273.15)u"K" rtol=rtol
     @test u"K".(ellipsoid_out.upper_critical_air_temperature) ≈
         (ellipsoid_output.UCT .+ 273.15)u"K" rtol=rtol
-    @test ellipsoid_out.Q_respiration ≈ (ellipsoid_output.Qresp_W)u"W" rtol=rtol
-    @test ellipsoid_out.Q_evap ≈ (ellipsoid_output.H2Oloss_W)u"W" rtol=rtol
+    @test ellipsoid_out.respiration_heat_flow ≈ (ellipsoid_output.Qresp_W)u"W" rtol=rtol
+    @test ellipsoid_out.evaporation_heat_flow ≈ (ellipsoid_output.H2Oloss_W)u"W" rtol=rtol
     @test ellipsoid_out.respiratory_water_loss_rate ≈ (ellipsoid_output.Qresp_gph)u"g/hr" rtol=rtol
     @test ellipsoid_out.total_water_loss_rate ≈ (ellipsoid_output.H2O_gph)u"g/hr" rtol=rtol
     @test ellipsoid_out.fractional_mass_loss ≈ (ellipsoid_output.massph_percent/100)u"1/hr" rtol=rtol

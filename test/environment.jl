@@ -2,7 +2,7 @@ using HeatExchange
 using ModelParameters
 using Unitful
 
-env_pars = EnvironmentalPars(;
+environment_pars = EnvironmentalPars(;
     α_ground=0.8,
     ϵ_ground=1.0,
     ϵ_sky=1.0,
@@ -10,18 +10,18 @@ env_pars = EnvironmentalPars(;
     fluid=0,
     gasfrac=GasFractions(0.2095, 0.0003, 0.79),
 )
-env_params = Model(env_pars)
-env_pars = stripparams(env_params)
+env_params = Model(environment_pars)
+environment_pars = stripparams(env_params)
 
-env_vars = EnvironmentalVars(;
-    T_air=(273.15+20.0)u"K",
-    T_sky=(273.15-5.0)u"K",
-    T_ground=(273.15+30.0)u"K",
-    T_substrate=(273.15+20.0)u"K",
-    T_bush=(273.15+20.0)u"K",
-    rh=0.05,
+environment_vars = EnvironmentalVars(;
+    air_temperature=(273.15+20.0)u"K",
+    sky_temperature=(273.15-5.0)u"K",
+    ground_temperature=(273.15+30.0)u"K",
+    substrate_temperature=(273.15+20.0)u"K",
+    bush_temperature=(273.15+20.0)u"K",
+    relative_humidity=0.05,
     wind_speed=1.0u"m/s",
-    P_atmos=101325.0u"Pa",
+    atmospheric_pressure=101325.0u"Pa",
     zenith_angle=20.0u"°",
     global_radiation=1000.0u"W/m^2",
     k_substrate=0.5u"W/m/K",

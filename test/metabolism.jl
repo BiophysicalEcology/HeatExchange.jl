@@ -21,8 +21,8 @@ using Test
         @test metabolic_rate(eq, mass, 30.0u"°C") > metabolic_rate(eq, mass, 20.0u"°C")
         @test metabolic_rate(eq, 100.0u"g", T) > metabolic_rate(eq, 10.0u"g", T)
 
-        # Resting (M4=1) > standard (M4=0)
-        @test metabolic_rate(AndrewsPough2(M4=1.0), mass, T) > metabolic_rate(AndrewsPough2(M4=0.0), mass, T)
+        # Resting (metabolic_state=1) > standard (metabolic_state=0)
+        @test metabolic_rate(AndrewsPough2(metabolic_state=1.0), mass, T) > metabolic_rate(AndrewsPough2(metabolic_state=0.0), mass, T)
 
         # Accepts Kelvin
         @test metabolic_rate(eq, mass, 303.15u"K") ≈ metabolic_rate(eq, mass, 30.0u"°C")
@@ -36,7 +36,7 @@ using Test
         # Metabolic rate increases with mass (allometric scaling)
         @test metabolic_rate(Kleiber(), 10.0u"kg") > metabolic_rate(Kleiber(), 1.0u"kg")
 
-        # T_body argument is ignored
+        # body_temperature argument is ignored
         @test metabolic_rate(Kleiber(), 1.0u"kg", 37.0u"°C") == metabolic_rate(Kleiber(), 1.0u"kg")
     end
 
@@ -48,7 +48,7 @@ using Test
         # Metabolic rate increases with mass
         @test metabolic_rate(McKechnieWolf(), 1000.0u"g") > metabolic_rate(McKechnieWolf(), 100.0u"g")
 
-        # T_body argument is ignored
+        # body_temperature argument is ignored
         @test metabolic_rate(McKechnieWolf(), 100.0u"g", 40.0u"°C") == metabolic_rate(McKechnieWolf(), 100.0u"g")
     end
 end
