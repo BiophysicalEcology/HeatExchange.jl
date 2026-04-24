@@ -20,7 +20,7 @@ end
 Solve for the metabolic rate that balances heat production with heat loss for an endotherm.
 
 This is the main entry point for endotherm heat balance calculations. It computes heat
-fluxes for dorsal and ventral body surfaces separately, then uses root-finding to
+flows for dorsal and ventral body surfaces separately, then uses root-finding to
 determine the metabolic rate that satisfies the respiratory heat balance.
 
 # Arguments
@@ -33,8 +33,8 @@ determine the metabolic rate that satisfies the respiratory heat balance.
 NamedTuple with:
 - `thermoregulation`: Temperature and conductivity outputs
 - `morphology`: Body geometry and areas
-- `energy_fluxes`: Heat flux components (solar, longwave, convection, etc.)
-- `mass_fluxes`: Water and gas exchange rates
+- `energy_flows`: Heat flow components (solar, longwave, convection, etc.)
+- `mass_flows`: Water and gas exchange rates
 """
 function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_temperature)
     environment_pars = stripparams(e.environment_pars)

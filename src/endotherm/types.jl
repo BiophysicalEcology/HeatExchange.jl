@@ -209,9 +209,9 @@ struct ThermalConductivities{F,FA,I}
 end
 
 """
-    MolarFluxes
+    MolarFlows
 
-Molar fluxes for respiratory gas exchange (mol/s).
+Molar flow rates for respiratory gas exchange (mol/s).
 
 # Fields
 - `air` — Molar flux of air
@@ -309,7 +309,7 @@ Metabolic heat generation rates for respiration calculations.
 
 # Fields
 - `metabolic` — Current metabolic heat rate (W)
-- `sum` — Sum of heat fluxes for balance (W), defaults to metabolic
+- `sum` — Sum of heat flows for balance (W), defaults to metabolic
 - `minimum` — Minimum metabolic rate (W), defaults to metabolic
 """
 Base.@kwdef struct MetabolicRates{M,S,N}

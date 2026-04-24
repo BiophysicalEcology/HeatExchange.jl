@@ -232,7 +232,7 @@ A_eff = A_convection * skin_wetness
 # organism state
 core_temperature = u"K"((ecto_output.TC)u"°C")
 
-# calculate heat fluxes
+# calculate heat flows
 
 # metabolism
 metabolic_heat_flow = metabolic_rate(
