@@ -116,7 +116,8 @@ closed_traits = HeatExchangeTraits(
         ventral_fraction=0.5,
         solar_orientation=Intermediate(),
     ),
-    ConvectionParameters(; characteristic_dimension_formula=ScaledDimension(0.7, :width_skin)),
+    ConvectionParameters(; 
+    characteristic_dimension_formula=ScaledDimension(0.7, :width_skin)), # Campbell and Norman 1998 suggests 0.7 for leaf boundary layer
     closed_pars,
     HydraulicParameters(; water_potential=0.0u"J/kg"),
     RespirationParameters(),
