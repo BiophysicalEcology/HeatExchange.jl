@@ -33,6 +33,7 @@ function respiration(
     metabolic_heat_flow, heat_flow_sum, minimum_heat_flow = metabolic, sum, minimum
     (; oxygen_extraction_efficiency, pant, respiratory_quotient, exhaled_relative_humidity) = resp_pars
     exit_air_temperature = lung_temperature
+    exhaled_rh = exhaled_relative_humidity[]
     (; relative_humidity, atmospheric_pressure) = atmos
     fO2 = gas_fractions.oxygen
     fCO2 = gas_fractions.carbon_dioxide
@@ -72,7 +73,7 @@ function respiration(
     # total moles of air at exit will be approximately the same as at entrance, since
     # the moles of O2 removed = approx. the # moles of co2 added
     air_out = (oxygen_out + nitrogen_out + carbon_dioxide_out) * pant
-    exit_vapour_pressure = vapour_pressure(exit_air_temperature) * exhaled_relative_humidity
+    exit_vapour_pressure = vapour_pressure(exit_air_temperature) * exhaled_rh
     water_out = air_out * (exit_vapour_pressure / (atmospheric_pressure - exit_vapour_pressure))
     # enthalpy = U2-U1, internal energy only, i.e. lat. heat of vap. only involved, since assume
     # P,T,V constant, so not significant flow energy, PV. (H = U + PV)
