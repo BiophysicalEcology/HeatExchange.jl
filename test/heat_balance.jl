@@ -212,11 +212,21 @@ hb_d = heat_balance(
     insulation_pars   = insulation_pars,
     insulation        = ins_d,
     geometry_vars     = geometry_vars_d,
+    minimum_metabolic_heat = Q_gen, # what should this be?
     environment_vars  = env_d,
     traits            = traits_d,
     resp_pars         = respiration_pars,
 )
+balance = Q_gen + hb_d.solar_heat_flow - 
+    hb_d.radiation_heat_flow - 
+    hb_d.convection_heat_flow - 
+    hb_d.conduction_heat_flow - 
+    hb_d.skin_evaporation_heat_flow -
+    hb_d.insulation_evaporation_heat_flow - 
+    hb_d.respiration_heat_flow - 
+    hb_d.net_metabolic_heat_internal
 
+@test abs(ustrip(u"W", balance)) < 0.01
 # The iterative solver converged T_skin, so residual_skin_temperature must be near zero.
 # residual_energy_balance and residual_internal_conduction use the full-organism Q_gen
 # against per-side losses, so they need not be zero for a one-sided call.
