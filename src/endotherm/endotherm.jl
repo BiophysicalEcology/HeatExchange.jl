@@ -384,9 +384,9 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     skin_temperature = skin_temperature_dorsal * dmult + skin_temperature_ventral * vmult
     insulation_temperature = insulation_temperature_dorsal * dmult + insulation_temperature_ventral * vmult
     if o.body.shape isa Sphere
-        shape_b = 1.0
+        aspect_ratio_b = 1.0
     else
-        shape_b = o.body.shape.b
+        aspect_ratio_b = o.body.shape.aspect_ratio_b
     end
     thermoregulation = (;
         metab_pars.core_temperature,
@@ -397,7 +397,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         skin_temperature_ventral,
         insulation_temperature_dorsal,
         insulation_temperature_ventral,
-        shape_b,
+        aspect_ratio_b,
         pant=resp_pars.pant,
         skin_wetness=evap_pars.skin_wetness,
         flesh_conductivity=internal_conduction.flesh_conductivity,
