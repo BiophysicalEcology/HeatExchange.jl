@@ -413,19 +413,13 @@ environment_vars = EnvironmentalVars(;
 )
 
 environment = (; environment_pars, environment_vars)
-# define the method 'heat_balance' for passing to find_zero, which dispatches off 'lizard'
-air_temperature = environment_vars.air_temperature
-heat_balance(air_temperature, lizard, environment)
 
-core_temperature_s = find_zero(
-    t -> heat_balance(t, lizard, environment), (air_temperature - 40u"K", air_temperature + 100u"K"), Bisection()
-)
-core_temperature_C = (Unitful.ustrip(core_temperature_s) - 273.15)u"°C"
+heat_balance_out = solve_temperature(lizard, environment)
+core_temperature_s = heat_balance_out.core_temperature
+core_temperature_C = (Unitful.ustrip(u"K", core_temperature_s) - 273.15)u"°C"
 
 # test core temperature calculation
 @test core_temperature_C ≈ (ecto_output.TC)u"°C" rtol=1e-4
-
-heat_balance_out = heat_balance(core_temperature_s, lizard, environment)
 
 @test heat_balance_out.core_temperature ≈ (ecto_output.TC + 273.15)u"K" rtol=1e-5
 @test heat_balance_out.surface_temperature ≈ (ecto_output.TSKIN + 273.15)u"K" rtol=1e-5

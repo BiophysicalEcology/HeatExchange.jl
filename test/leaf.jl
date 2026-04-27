@@ -130,12 +130,12 @@ out_closed = heat_balance(T_leaf, leaf_closed, environment)
 @test out_closed.mass_balance.transpiration_mass < out.mass_balance.transpiration_mass
 
 # solve_temperature should converge to a steady state
-T_eq = solve_temperature(leaf, environment)
+eq_out = solve_temperature(leaf, environment)
+T_eq = eq_out.core_temperature
 @test isfinite(ustrip(T_eq))
 @test 273.0u"K" < T_eq < 370.0u"K"
 
 # At steady state, heat_balance should be near zero
-eq_out = heat_balance(T_eq, leaf, environment)
 @test abs(ustrip(u"W", eq_out.heat_balance)) < 1e-2   # within 0.01 W of zero
 
 # PlantDarkRespiration: metabolic rate at 25°C should be positive and small

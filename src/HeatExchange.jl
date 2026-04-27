@@ -62,6 +62,8 @@ export heat_balance, solve_temperature, surface_and_lung_temperature
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
+export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
+
 export solve_metabolic_rate,
     ellipsoid_endotherm,
     solve_with_insulation!,
@@ -101,31 +103,35 @@ export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
 export zbrac, zbrent
 
+export NLPStrategy, WeightedMeanNLP, MultiSidedNLP
+export WeightedMeanNLPPacked, MultiSidedNLPPacked
+export nlp_pack, nlp_residuals, nlp_assemble_output
+
 include("rootfinding.jl")
 include("organism.jl")
 include("traits.jl")
 include("environment.jl")
 
-include("endotherm/types.jl")
-include("endotherm/utils.jl")
+include("insulated/types.jl")
+include("insulated/utils.jl")
 
 include("biophysics.jl")
 include("metabolism.jl")
 include("respiration.jl")
-include("insulation.jl")
+include("insulated/insulation.jl")
 
-include("ectotherm/lung_and_surface_temperature.jl")
-include("ectotherm/ectotherm.jl")
-include("leaf/leaf.jl")
+include("internal_temperature.jl")
+include("heat_balance.jl")
+include("solve_temperature.jl")
 
-include("endotherm/ellipsoid_model.jl")
-include("endotherm/radiant_temperature.jl")
-include("endotherm/insulation_radiant_temperature.jl")
-include("endotherm/compressed_radiant_temperature.jl")
-include("endotherm/mean_skin_temperature.jl")
-include("endotherm/net_metabolic_heat.jl")
-include("endotherm/skin_and_insulation_temperature.jl")
-include("endotherm/endotherm.jl")
-include("endotherm/heat_balance.jl")
+include("ellipsoid_model.jl")
+include("insulated/radiant_temperature.jl")
+include("insulated/insulation_radiant_temperature.jl")
+include("insulated/compressed_radiant_temperature.jl")
+include("insulated/mean_skin_temperature.jl")
+include("insulated/net_metabolic_heat.jl")
+include("insulated/skin_and_insulation_temperature.jl")
+include("solve_metabolic_rate.jl")
+include("nlp_interface.jl")
 
 end

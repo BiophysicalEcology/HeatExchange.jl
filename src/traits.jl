@@ -1,4 +1,32 @@
 
+# Evaluation strategy
+
+"""
+    EvaluationStrategy
+
+Abstract supertype for heat balance evaluation strategies.
+"""
+abstract type EvaluationStrategy end
+
+"""
+    SingleBody <: EvaluationStrategy
+
+Evaluate the organism as a single body (default for naked animals and leaves).
+"""
+struct SingleBody <: EvaluationStrategy end
+
+"""
+    MultiSided <: EvaluationStrategy
+
+Evaluate dorsal and ventral sides independently and combine with `ventral_fraction` weighting.
+Required for insulated organisms; also valid for naked animals.
+"""
+struct MultiSided <: EvaluationStrategy end
+
+evaluation_strategy(o::Organism) = evaluation_strategy(insulation(body(o)))
+evaluation_strategy(::Naked)                          = SingleBody()
+evaluation_strategy(::Union{Fur, CompositeInsulation}) = MultiSided()
+
 # Characteristic dimension formulas
 
 """
