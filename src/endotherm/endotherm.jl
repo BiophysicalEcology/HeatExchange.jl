@@ -60,7 +60,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     fibres = insulation.fibres
     # if no insulation, reset bare_skin_fraction if necessary
     if insulation.insulation_test <= 0.0u"m" && evap_pars.bare_skin_fraction < 1.0
-        evap_temp = EvaporationParameters(;
+        evap_temp = AnimalEvaporationParameters(;
             skin_wetness=evap_pars.skin_wetness,
             insulation_wetness=evap_pars.insulation_wetness,
             eye_fraction=evap_pars.eye_fraction,
@@ -248,7 +248,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
                 resp_pars,
                 resp_atmos,
                 geometry_pars.shape.mass,
-                lung_temperature,
+                exit_air_temperature,
                 environment_vars.air_temperature;
                 gas_fractions=environment_pars.gas_fractions,
                 O2conversion=Kleiber1961(),
@@ -384,9 +384,9 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     skin_temperature = skin_temperature_dorsal * dmult + skin_temperature_ventral * vmult
     insulation_temperature = insulation_temperature_dorsal * dmult + insulation_temperature_ventral * vmult
     if o.body.shape isa Sphere
-        shape_b = 1.0
+        aspect_ratio_b = 1.0
     else
-        shape_b = o.body.shape.b
+        aspect_ratio_b = o.body.shape.aspect_ratio_b
     end
     thermoregulation = (;
         metab_pars.core_temperature,
@@ -397,7 +397,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         skin_temperature_ventral,
         insulation_temperature_dorsal,
         insulation_temperature_ventral,
-        shape_b,
+        aspect_ratio_b,
         pant=resp_pars.pant,
         skin_wetness=evap_pars.skin_wetness,
         flesh_conductivity=internal_conduction.flesh_conductivity,
@@ -421,7 +421,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         ground_view_factor=ground_factor_ref,
         volume,
         volume_flesh,
-        characteristic_dimension=geometry_pars.geometry.characteristic_dimension,
+        characteristic_dimension=characteristic_dimension(VolumeCubeRoot(), geometry_pars),
         fat_mass,
         geometry_pars.geometry.length...,
     )

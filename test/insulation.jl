@@ -1,3 +1,7 @@
+using HeatExchange
+using BiophysicalGeometry
+using ModelParameters
+using Unitful
 
 insulation = InsulationParameters(;
     dorsal=FibreProperties(;

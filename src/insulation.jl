@@ -115,7 +115,7 @@ Compute parameters for heat conduction and longwave radiation through insulation
 - `conductivity_compressed`: Conductivity of compressed ventral insulation (W/m/K).
 """
 function insulation_properties(insulation::InsulationParameters, insulation_temperature, ventral_fraction)
-    (; dorsal, ventral, depth_compressed) = insulation
+    (; dorsal, ventral, depth_compressed) = stripparams(insulation)
 
     # Physical constants
     air_conductivity = dry_air_properties(insulation_temperature).thermal_conductivity

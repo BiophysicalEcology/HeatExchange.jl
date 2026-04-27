@@ -18,7 +18,7 @@ at the compressed insulation-substrate interface.
 
 # Returns
 NamedTuple with:
-- `cf1`: Compression factor coefficient
+- `compression_fraction`: Compression factor coefficient
 - `compressed_insulation_temperature`: Temperature at compressed insulation interface
 """
 function compressed_radiant_temperature(;
@@ -47,19 +47,21 @@ function compressed_radiant_temperature(
     core_temperature,
     substrate_temperature,
 )
-    r_skin = get_r_skin(body)
-    r_flesh = get_r_flesh(body)
+    volume = flesh_volume(body)
+    length = body.geometry.length.length_skin
+    r_skin = skin_radius(body)
+    r_flesh = flesh_radius(body)
     r_compressed = r_skin + insulation_pars.depth_compressed
 
-    cf1 = (2 * π * insulation.conductivity_compressed * length) / (log(r_compressed / r_skin))
-    dv5 =
+    compression_fraction = (2 * π * insulation.conductivity_compressed * length) / (log(r_compressed / r_skin))
+    geometric_divisor =
         1 +
-        ((cf1 * r_flesh^2) / (4 * conductivities.flesh * volume)) +
-        ((cf1 * r_flesh^2) / (2 * conductivities.fat * volume)) * log(r_skin / RFLESH)
-    compressed_insulation_temperature_calc1 = (cf1 / dv5) * core_temperature + conductance_coefficient * substrate_temperature
-    compressed_insulation_temperature_calc2 = conductance_coefficient + cf1 / dv5
+        ((compression_fraction * r_flesh^2) / (4 * conductivities.flesh * volume)) +
+        ((compression_fraction * r_flesh^2) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
+    compressed_insulation_temperature_calc1 = (compression_fraction / geometric_divisor) * core_temperature + conductance_coefficient * substrate_temperature
+    compressed_insulation_temperature_calc2 = conductance_coefficient + compression_fraction / geometric_divisor
     compressed_insulation_temperature = compressed_insulation_temperature_calc1 / compressed_insulation_temperature_calc2
-    return (; cf1, compressed_insulation_temperature)
+    return (; compression_fraction, compressed_insulation_temperature)
 end
 
 function compressed_radiant_temperature(
@@ -73,20 +75,21 @@ function compressed_radiant_temperature(
     core_temperature,
     substrate_temperature,
 )
-    r_skin = get_r_skin(body)
-    r_flesh = get_r_flesh(body)
+    volume = flesh_volume(body)
+    r_skin = skin_radius(body)
+    r_flesh = flesh_radius(body)
     r_compressed = r_skin + insulation_pars.depth_compressed
 
-    cf1 = (4 * π * insulation.conductivity_compressed * r_compressed) / (r_compressed - r_skin)
-    dv5 =
+    compression_fraction = (4 * π * insulation.conductivity_compressed * r_compressed) / (r_compressed - r_skin)
+    geometric_divisor =
         1 +
-        ((cf1 * r_flesh^2.0) / (6 * conductivities.flesh * volume)) +
-        ((cf1 * r_flesh^3) / (3 * conductivities.fat * volume)) *
-        ((r_skin - r_flesh) / (r_skin - r_flesh))
-    compressed_insulation_temperature_calc1 = (cf1 / dv5) * core_temperature + conductance_coefficient * substrate_temperature
-    compressed_insulation_temperature_calc2 = conductance_coefficient + cf1 / dv5
+        ((compression_fraction * r_flesh^2.0) / (6 * conductivities.flesh * volume)) +
+        ((compression_fraction * r_flesh^3) / (3 * conductivities.fat * volume)) *
+        ((r_skin - r_flesh) / (r_flesh * r_skin))
+    compressed_insulation_temperature_calc1 = (compression_fraction / geometric_divisor) * core_temperature + conductance_coefficient * substrate_temperature
+    compressed_insulation_temperature_calc2 = conductance_coefficient + compression_fraction / geometric_divisor
     compressed_insulation_temperature = compressed_insulation_temperature_calc1 / compressed_insulation_temperature_calc2
-    return (; cf1, compressed_insulation_temperature)
+    return (; compression_fraction, compressed_insulation_temperature)
 end
 
 function compressed_radiant_temperature(
@@ -129,16 +132,16 @@ function compressed_radiant_temperature(
     bl_compressed = b_semi_minor + insulation_pars.depth_compressed
     bg = min(b_semi_minor, b_semi_minor_flesh)
 
-    cf1 =
+    compression_fraction =
         (3 * insulation.conductivity_compressed * volume * bl_compressed * bs) /
         ((((3 * ssqg)^0.5)^3) * (bl - bs))
-    dv5 =
+    geometric_divisor =
         1 +
-        ((cf1 * ssqg) / (2 * conductivities.flesh * volume)) +
-        ((cf1 * (((3 * ssqg)^0.5)^3)) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bs * bg))
-    compressed_insulation_temperature_calc1 = (cf1 / dv5) * core_temperature + conductance_coefficient * substrate_temperature
-    compressed_insulation_temperature_calc2 = conductance_coefficient + cf1 / dv5
+        ((compression_fraction * ssqg) / (2 * conductivities.flesh * volume)) +
+        ((compression_fraction * (((3 * ssqg)^0.5)^3)) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bs * bg))
+    compressed_insulation_temperature_calc1 = (compression_fraction / geometric_divisor) * core_temperature + conductance_coefficient * substrate_temperature
+    compressed_insulation_temperature_calc2 = conductance_coefficient + compression_fraction / geometric_divisor
     compressed_insulation_temperature = compressed_insulation_temperature_calc1 / compressed_insulation_temperature_calc2
 
-    return (; cf1, compressed_insulation_temperature)
+    return (; compression_fraction, compressed_insulation_temperature)
 end

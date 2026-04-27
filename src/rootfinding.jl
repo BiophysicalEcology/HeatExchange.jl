@@ -75,7 +75,7 @@ function zbrent(f, a::Real, b::Real, tol::Real; maxiter::Int=300, eps::Float64=3
         xm   = (c - b) / 2
 
         (abs(xm) ≤ tol1 || qb == 0) && return b
-        abs(qb) ≤ tol1 && i > 1     && return b
+        abs(qb) ≤ tol && i > 1     && return b
 
         if abs(e) ≥ tol1 && abs(qa) > abs(qb)
             s = qb / qa

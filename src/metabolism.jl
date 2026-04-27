@@ -84,6 +84,44 @@ function metabolic_rate(::McKechnieWolf, mass, core_temperature=nothing)
 end
 
 """
+    PlantDarkRespiration <: MetabolicRateEquation
+
+Leaf/plant dark (mitochondrial) respiration using mass scaling and Arrhenius
+temperature dependence (Reich et al. 2006; CLM/LPJ parameterisation).
+
+    R = mass_normalisation × mass^mass_exponent
+        × exp(-activation_energy / (k × T))
+        / exp(-activation_energy / (k × reference_temperature))
+
+# Parameters
+- `mass_normalisation` — respiration rate per unit mass at reference temperature (W/kg)
+- `mass_exponent` — allometric exponent; default 1.0 (near-isometric for plants; Reich 2006)
+- `activation_energy` — Arrhenius activation energy (eV); default 0.65 eV
+- `reference_temperature` — normalisation temperature (K); default 298.15 K (25 °C)
+
+# References
+- Reich, P. B., et al. (2006). Universal scaling of respiratory metabolism, size and nitrogen in plants.
+  *Nature*, 439, 457–461.
+"""
+@kwdef struct PlantDarkRespiration <: MetabolicRateEquation
+    mass_normalisation::Float64    = 4.6e-4    # W/kg at 25 °C; broad C3 leaf estimate
+    mass_exponent::Float64         = 1.0
+    activation_energy::Float64     = 0.65      # eV
+    reference_temperature::Float64 = 298.15    # K
+end
+
+function metabolic_rate(eq::PlantDarkRespiration, mass, temperature)
+    (; mass_normalisation, mass_exponent, activation_energy, reference_temperature) = eq
+    k_eV = 8.617333e-5   # Boltzmann constant, eV/K
+    T    = ustrip(u"K", temperature)
+    M    = ustrip(u"kg", mass)
+    rate = mass_normalisation * M^mass_exponent *
+           exp(-activation_energy / (k_eV * T)) /
+           exp(-activation_energy / (k_eV * reference_temperature))
+    return rate * u"W"
+end
+
+"""
     metabolic_rate(::Nothing, mass, T_body)
 
 Returns zero metabolic heat production. Use `model = nothing` in
@@ -170,8 +208,7 @@ function Joules_to_O2(::Kleiber1961, metabolic_heat_flow, rq)
     protein_energy_equivalent = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0
         oxygen_flow_standard = metabolic_heat_flow / carbohydrate_energy_equivalent
-    end
-    if rq ≤ 0.7
+    elseif rq ≤ 0.7
         oxygen_flow_standard = metabolic_heat_flow / fat_energy_equivalent
     else
         oxygen_flow_standard = metabolic_heat_flow / protein_energy_equivalent
@@ -185,8 +222,7 @@ function O2_to_Joules(::Kleiber1961, oxygen_flow_standard, rq)
     protein_energy_equivalent = u"J/ml"(4.5u"kcal"/1u"L")
     if rq ≥ 1.0
         metabolic_heat_flow = oxygen_flow_standard * carbohydrate_energy_equivalent
-    end
-    if rq ≤ 0.7
+    elseif rq ≤ 0.7
         metabolic_heat_flow = oxygen_flow_standard * fat_energy_equivalent
     else
         metabolic_heat_flow = oxygen_flow_standard * protein_energy_equivalent

@@ -55,19 +55,19 @@ struct RadiationCoeffs{T1,T2,T3,T4}
 end
 
 """
-    BodyRegionValues{T}
+    BodyRegionValues{A,D,V}
 
 Container for average, dorsal, and ventral surface values.
 
 # Fields
-- `average::T` — Weighted average value across body surface
-- `dorsal::T` — Dorsal (upper/back) surface value
-- `ventral::T` — Ventral (lower/belly) surface value
+- `average::A` — Weighted average value across body surface
+- `dorsal::D` — Dorsal (upper/back) surface value
+- `ventral::V` — Ventral (lower/belly) surface value
 """
-struct BodyRegionValues{T}
-    average::T
-    dorsal::T
-    ventral::T
+struct BodyRegionValues{A,D,V}
+    average::A
+    dorsal::D
+    ventral::V
 end
 
 """

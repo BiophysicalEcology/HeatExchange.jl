@@ -1,3 +1,34 @@
+function _insulation_evaporation(conv, atmos, area_convection, T_ins, air_temperature,
+                                  insulation_wetness, insulation_test; gas_fractions)
+    insulation_wetness > 0 && insulation_test > 0.0u"m" || return 0.0u"W"
+    evap_pars_ins = AnimalEvaporationParameters(;
+        skin_wetness = insulation_wetness,
+        eye_fraction = 0.0,
+        bare_skin_fraction = 1.0,
+    )
+    mass_ins = TransferCoefficients(conv.mass.combined, conv.mass.combined, conv.mass.forced)
+    evaporation(evap_pars_ins, mass_ins, atmos, area_convection, T_ins, air_temperature;
+                gas_fractions).evaporation_heat_flow
+end
+
+function _insulation_conductivity(insulation, insulation_pars, side, T_ins, T_skin, longwave_depth_fraction, σ)
+    insulation_temp_mean = T_ins * 0.7 + T_skin * 0.3
+    air_k = dry_air_properties(insulation_temp_mean).thermal_conductivity
+    side_depth = getproperty(insulation.fibres, side).depth
+    side_fibres = setproperties(getproperty(insulation_pars, side); depth = side_depth)
+    effective_conductivity = insulation_thermal_conductivity(side_fibres, air_k).effective_conductivity
+    absorption_coefficient = getproperty(insulation.absorption_coefficients, side)
+    approx_radiant_temperature = T_skin * (1 - longwave_depth_fraction) + T_ins * longwave_depth_fraction
+    radiative_conductivity = (16 * σ * approx_radiant_temperature^3) / (3 * absorption_coefficient)
+    return (; insulation_conductivity = effective_conductivity + radiative_conductivity, effective_conductivity)
+end
+
+function _radiation_coefficients(area, view_factors, ϵ, σ, T_rad, T_sky, T_bush, T_veg, T_gnd)
+    coeff(vf, T) = area * vf * 4 * ϵ * σ * ((T_rad + T) / 2)^3
+    RadiationCoeffs(coeff(view_factors.sky, T_sky), coeff(view_factors.bush, T_bush),
+                    coeff(view_factors.vegetation, T_veg), coeff(view_factors.ground, T_gnd))
+end
+
 """
     solve_temperatures(; body, insulation_pars, insulation, geometry_vars, environment_vars, traits, temperature_tolerance, skin_temperature, insulation_temperature)
 
@@ -114,7 +145,7 @@ function solve_without_insulation!(
                 convection_enhancement,
             )
             heat_transfer_coefficient = conv.heat.combined
-            evap_pars_local = EvaporationParameters(;
+            evap_pars_local = AnimalEvaporationParameters(;
                 skin_wetness,
                 eye_fraction,
                 bare_skin_fraction,
@@ -131,15 +162,12 @@ function solve_without_insulation!(
             ).evaporation_heat_flow
 
             # Q_rad variables for radiant exchange
-            sky_radiation_coeff = area_convection * (view_factors.sky * 4.0 * ϵ_body * σ * ((skin_temperature + sky_temperature) / 2)^3)
-            bush_radiation_coeff =
-                area_convection * (view_factors.bush * 4.0 * ϵ_body * σ * ((skin_temperature + bush_temperature) / 2)^3)
-            vegetation_radiation_coeff =
-                area_convection *
-                (view_factors.vegetation * 4.0 * ϵ_body * σ * ((skin_temperature + vegetation_temperature) / 2)^3)
-            ground_radiation_coeff =
-                area_convection *
-                (view_factors.ground * 4.0 * ϵ_body * σ * ((skin_temperature + ground_temperature) / 2)^3)
+            _rc = _radiation_coefficients(area_convection, view_factors, ϵ_body, σ, skin_temperature,
+                sky_temperature, bush_temperature, vegetation_temperature, ground_temperature)
+            sky_radiation_coeff        = _rc.sky
+            bush_radiation_coeff       = _rc.bush
+            vegetation_radiation_coeff = _rc.vegetation
+            ground_radiation_coeff     = _rc.ground
             skin_temperature1 =
                 ((4.0 * flesh_conductivity * volume) / (r_skin^2) * core_temperature) - skin_evaporation_flow +
                 heat_transfer_coefficient * area_convection * air_temperature +
@@ -290,7 +318,7 @@ function solve_with_insulation!(
                 convection_enhancement,
             )
             heat_transfer_coefficient = conv.heat.combined
-            evap_pars_skin = EvaporationParameters(;
+            evap_pars_skin = AnimalEvaporationParameters(;
                 skin_wetness,
                 eye_fraction,
                 bare_skin_fraction,
@@ -306,52 +334,22 @@ function solve_with_insulation!(
                 gas_fractions,
             ).evaporation_heat_flow
             # second from insulation
-            if insulation_wetness > 0 && insulation_test > 0.0u"m"
-                evap_pars_ins = EvaporationParameters(;
-                    skin_wetness=insulation_wetness,
-                    eye_fraction=0.0,
-                    bare_skin_fraction=1.0,
-                )
-                # Use combined for free (insulation uses combined mass transfer for all)
-                mass_ins = TransferCoefficients(conv.mass.combined, conv.mass.combined, conv.mass.forced)
-                insulation_evaporation_heat_flow = evaporation(
-                    evap_pars_ins,
-                    mass_ins,
-                    atmos_skin,
-                    area_convection,
-                    insulation_temperature,
-                    air_temperature;
-                    gas_fractions,
-                ).evaporation_heat_flow
-            else
-                insulation_evaporation_heat_flow = 0.0u"W"
-            end
+            insulation_evaporation_heat_flow = _insulation_evaporation(
+                conv, atmos_skin, area_convection, insulation_temperature, air_temperature,
+                insulation_wetness, insulation_test; gas_fractions)
             # Recompute insulation thermal properties for current temperatures
-            insulation_temp = insulation_temperature * 0.7 + skin_temperature * 0.3
-            air_k = dry_air_properties(insulation_temp).thermal_conductivity
-            side_depth = getproperty(insulation.fibres, side).depth
-            side_fibres = setproperties(getproperty(insulation_pars, side); depth=side_depth)
-            side_thermal = insulation_thermal_conductivity(side_fibres, air_k)
-
-            # Update conductivities for the current side
+            (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
+                insulation, insulation_pars, side, insulation_temperature, skin_temperature,
+                longwave_depth_fraction, σ)
             side_conductivities = if side == :dorsal
-                setproperties(insulation.conductivities; dorsal=side_thermal.effective_conductivity)
+                setproperties(insulation.conductivities; dorsal=effective_conductivity)
             else
-                setproperties(insulation.conductivities; ventral=side_thermal.effective_conductivity)
+                setproperties(insulation.conductivities; ventral=effective_conductivity)
             end
-            absorption_coefficient = getproperty(insulation.absorption_coefficients, side)
-            effective_conductivity = getproperty(side_conductivities, side)
-            # update thermally sensitive insulation parameters for current skin/insulation temperature
             insulation = setproperties(insulation;
-                conductivity_compressed=side_thermal.effective_conductivity,
+                conductivity_compressed=effective_conductivity,
                 conductivities=side_conductivities,
             )
-            # Effective insulation conductivity
-            approx_radiant_temperature =
-                skin_temperature * (1 - longwave_depth_fraction) +
-                insulation_temperature * longwave_depth_fraction
-            radiative_conductivity = (16 * σ * approx_radiant_temperature^3) / (3 * absorption_coefficient)
-            insulation_conductivity = effective_conductivity + radiative_conductivity
             conductivities = ThermalConductivities(flesh_conductivity, fat_conductivity, insulation_conductivity)
             org_temps = OrganismTemperatures(core_temperature, skin_temperature, insulation_temperature)
             radiant_temp_result = radiant_temperature(;
@@ -372,19 +370,13 @@ function solve_with_insulation!(
             conductances = radiant_temp_result.conductances
             divisors = radiant_temp_result.divisors
             # Radiative heat flows
-            sky_radiation_coeff = area_convection * view_factors.sky * 4 * ϵ_body * σ * ((calculated_radiant_temperature + sky_temperature) / 2)^3
-            bush_radiation_coeff =
-                area_convection * view_factors.bush * 4 * ϵ_body * σ * ((calculated_radiant_temperature + bush_temperature) / 2)^3
-            vegetation_radiation_coeff =
-                area_convection *
-                view_factors.vegetation *
-                4 *
-                ϵ_body *
-                σ *
-                ((calculated_radiant_temperature + vegetation_temperature) / 2)^3
-            ground_radiation_coeff =
-                area_convection * view_factors.ground * 4 * ϵ_body * σ * ((calculated_radiant_temperature + ground_temperature) / 2)^3
-            radiation_coeffs = RadiationCoeffs(sky_radiation_coeff, bush_radiation_coeff, vegetation_radiation_coeff, ground_radiation_coeff)
+            radiation_coeffs = _radiation_coefficients(area_convection, view_factors, ϵ_body, σ,
+                calculated_radiant_temperature,
+                sky_temperature, bush_temperature, vegetation_temperature, ground_temperature)
+            sky_radiation_coeff        = radiation_coeffs.sky
+            bush_radiation_coeff       = radiation_coeffs.bush
+            vegetation_radiation_coeff = radiation_coeffs.vegetation
+            ground_radiation_coeff     = radiation_coeffs.ground
             env_temps = EnvironmentTemperatures(
                 air_temperature, sky_temperature, ground_temperature, vegetation_temperature, bush_temperature, substrate_temperature
             )

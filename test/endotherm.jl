@@ -187,7 +187,7 @@ for shape_number in 1:4
             solar_orientation,
         )
 
-        evaporation_pars = EvaporationParameters(;
+        evaporation_pars = AnimalEvaporationParameters(;
             skin_wetness=(endo_input.PCTWET / 100.0),
             insulation_wetness=(endo_input.FURWET / 100.0),
             eye_fraction=(endo_input.PCTEYES / 100.0),

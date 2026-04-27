@@ -170,8 +170,8 @@ convection_enhancement = ecto_input.conv_enhance
 # organism morphology
 mass = u"kg"((ecto_input.Ww_g)u"g")
 ρ_flesh = (ecto_input.rho_body)u"kg/m^3"
-shape_b = ecto_input.shape_b
-shape_c = ecto_input.shape_c
+aspect_ratio_b = ecto_input.shape_b
+aspect_ratio_c = ecto_input.shape_c
 eye_fraction = ecto_input.pct_eyes / 100
 conduction_fraction = ecto_input.pct_cond / 100
 
@@ -209,7 +209,7 @@ pant = 1.0
 
 # geometry
 shape_pars = DesertIguana(mass, ρ_flesh)
-#shape_pars = Cylinder(mass, ρ_flesh, shape_b)
+#shape_pars = Cylinder(mass, ρ_flesh, aspect_ratio_b)
 geometry = Body(shape_pars, Naked())
 A_total = total_area(geometry)
 A_sil_normal = silhouette_area(shape_pars, NormalToSun())
@@ -225,7 +225,7 @@ A_eff = A_convection * skin_wetness
 @test A_sil_normal ≈ (ecto_output.ASILN)u"m^2" rtol=1e-9
 @test A_sil_parallel ≈ (ecto_output.ASILP)u"m^2" rtol=1e-9
 @test A_eff ≈ (ecto_output.AEFF)u"m^2" rtol=1e-9
-@test geometry.geometry.characteristic_dimension ≈ (ecto_output.AL)u"m" rtol=1e-9
+@test characteristic_dimension(HeatExchange.VolumeCubeRoot(), geometry) ≈ (ecto_output.AL)u"m" rtol=1e-9
 @test geometry.geometry.length[1] ≈ (ecto_output.R1)u"m" rtol=1e-9
 @test geometry.geometry.volume ≈ (ecto_output.VOL)u"m^3" rtol=1e-9
 
@@ -325,7 +325,7 @@ conv_out = convection(;
 convection_heat_flow = conv_out.heat_flow
 
 # evaporation
-evap_pars_test = EvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction=1.0)
+evap_pars_test = AnimalEvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction=1.0)
 atmos_test = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
 evap_out = evaporation(evap_pars_test, conv_out.mass, atmos_test, A_convection, skin_temperature, air_temperature; water_potential=ψ_org, gas_fractions)
 evaporation_heat_flow = evap_out.evaporation_heat_flow
@@ -369,7 +369,7 @@ radiation_pars = RadiationParameters(;
 
 convection_pars = ConvectionParameters(; convection_area=A_convection)
 
-evaporation_pars = EvaporationParameters(; skin_wetness, eye_fraction)
+evaporation_pars = AnimalEvaporationParameters(; skin_wetness, eye_fraction)
 
 hydraulic_pars = HydraulicParameters(; water_potential=ψ_org)
 
@@ -413,36 +413,36 @@ environment_vars = EnvironmentalVars(;
 )
 
 environment = (; environment_pars, environment_vars)
-# define the method 'ectotherm' for passing to find_zero, which dispatches off 'lizard'
+# define the method 'heat_balance' for passing to find_zero, which dispatches off 'lizard'
 air_temperature = environment_vars.air_temperature
-ectotherm(air_temperature, lizard, environment)
+heat_balance(air_temperature, lizard, environment)
 
 core_temperature_s = find_zero(
-    t -> ectotherm(t, lizard, environment), (air_temperature - 40u"K", air_temperature + 100u"K"), Bisection()
+    t -> heat_balance(t, lizard, environment), (air_temperature - 40u"K", air_temperature + 100u"K"), Bisection()
 )
 core_temperature_C = (Unitful.ustrip(core_temperature_s) - 273.15)u"°C"
 
 # test core temperature calculation
 @test core_temperature_C ≈ (ecto_output.TC)u"°C" rtol=1e-4
 
-heat_balance_out = ectotherm(core_temperature_s, lizard, environment)
+heat_balance_out = heat_balance(core_temperature_s, lizard, environment)
 
 @test heat_balance_out.core_temperature ≈ (ecto_output.TC + 273.15)u"K" rtol=1e-5
 @test heat_balance_out.surface_temperature ≈ (ecto_output.TSKIN + 273.15)u"K" rtol=1e-5
 @test heat_balance_out.lung_temperature ≈ (ecto_output.TLUNG + 273.15)u"K" rtol=1e-5
 
-@test heat_balance_out.enbal.solar_flow ≈ (ecto_output.QSOL)u"W" rtol=1e-9
-@test heat_balance_out.enbal.longwave_flow_in ≈ (ecto_output.QIRIN)u"W" rtol=1e-3 # TODO make better?
-@test heat_balance_out.enbal.longwave_flow_out ≈ (ecto_output.QIROUT)u"W" rtol=1e-3 # TODO make better?
-@test heat_balance_out.enbal.conduction_flow ≈ (ecto_output.QCOND)u"W" rtol=1e-3 # TODO make better?
-@test heat_balance_out.enbal.convection_heat_flow ≈ (ecto_output.QCONV)u"W" rtol=1e-4
-@test heat_balance_out.enbal.evaporation_heat_flow ≈ (ecto_output.QEVAP)u"W" rtol=1e-4
-@test heat_balance_out.enbal.metabolic_heat_flow ≈ (ecto_output.QMET)u"W" rtol=1e-4 # TODO make better?
-@test heat_balance_out.enbal.respiration_heat_flow ≈ (ecto_output.QRESP)u"W" rtol=1e-3 # TODO make better?
+@test heat_balance_out.energy_balance.solar_flow ≈ (ecto_output.QSOL)u"W" rtol=1e-9
+@test heat_balance_out.energy_balance.longwave_flow_in ≈ (ecto_output.QIRIN)u"W" rtol=1e-3 # TODO make better?
+@test heat_balance_out.energy_balance.longwave_flow_out ≈ (ecto_output.QIROUT)u"W" rtol=1e-3 # TODO make better?
+@test heat_balance_out.energy_balance.conduction_flow ≈ (ecto_output.QCOND)u"W" rtol=1e-3 # TODO make better?
+@test heat_balance_out.energy_balance.convection_heat_flow ≈ (ecto_output.QCONV)u"W" rtol=1e-4
+@test heat_balance_out.energy_balance.evaporation_heat_flow ≈ (ecto_output.QEVAP)u"W" rtol=1e-4
+@test heat_balance_out.energy_balance.metabolic_heat_flow ≈ (ecto_output.QMET)u"W" rtol=1e-4 # TODO make better?
+@test heat_balance_out.energy_balance.respiration_heat_flow ≈ (ecto_output.QRESP)u"W" rtol=1e-3 # TODO make better?
 
-@test heat_balance_out.masbal.oxygen_flow ≈ (ecto_output.O2_ml)u"ml/hr" rtol=1e-4 # TODO make better?
-@test heat_balance_out.masbal.cutaneous_mass ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
-@test heat_balance_out.masbal.eye_mass ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
+@test heat_balance_out.mass_balance.oxygen_flow ≈ (ecto_output.O2_ml)u"ml/hr" rtol=1e-4 # TODO make better?
+@test heat_balance_out.mass_balance.cutaneous_mass ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
+@test heat_balance_out.mass_balance.eye_mass ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 
 molar_fluxes_in = heat_balance_out.respiration_out.molar_fluxes_in
 molar_fluxes_out = heat_balance_out.respiration_out.molar_fluxes_out

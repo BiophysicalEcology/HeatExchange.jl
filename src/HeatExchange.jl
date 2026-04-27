@@ -21,7 +21,7 @@ using FluidProperties:
     molO₂,
     molN₂
 
-using BiophysicalGeometry: AbstractBody, shape
+using BiophysicalGeometry: AbstractBody, shape, outer_insulation
 
 export Organism,
     HeatExchangeTraits,
@@ -31,7 +31,8 @@ export Organism,
     InternalConductionParameters,
     RadiationParameters,
     ConvectionParameters,
-    EvaporationParameters,
+    AnimalEvaporationParameters,
+    LeafEvaporationParameters,
     HydraulicParameters,
     RespirationParameters,
     MetabolismParameters
@@ -57,7 +58,7 @@ export get_Tb
 export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
-export ectotherm, surface_and_lung_temperature
+export heat_balance, solve_temperature, surface_and_lung_temperature
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -92,7 +93,9 @@ export ConductanceCoeffs,
     InsulationProperties,
     GeometryVariables
 
-export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf
+export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
+
+export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, PlantDarkRespiration
 
 export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
@@ -113,6 +116,7 @@ include("insulation.jl")
 
 include("ectotherm/lung_and_surface_temperature.jl")
 include("ectotherm/ectotherm.jl")
+include("leaf/leaf.jl")
 
 include("endotherm/ellipsoid_model.jl")
 include("endotherm/radiant_temperature.jl")
@@ -122,5 +126,6 @@ include("endotherm/mean_skin_temperature.jl")
 include("endotherm/net_metabolic_heat.jl")
 include("endotherm/skin_and_insulation_temperature.jl")
 include("endotherm/endotherm.jl")
+include("endotherm/heat_balance.jl")
 
 end

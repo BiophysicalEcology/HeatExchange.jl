@@ -176,7 +176,7 @@ end
 Calculate combined free and forced convective heat transfer for an organism.
 
 # Keywords
-- `body`: Organism body with geometry (must have `shape` and `geometry.characteristic_dimension`)
+- `body`: Organism body with geometry (must have `shape` and `geometry`)
 - `area`: Surface area for convection
 - `air_temperature`: Air temperature
 - `surface_temperature`: Surface temperature
@@ -202,9 +202,10 @@ function convection(;
     fluid,
     gas_fractions::GasFractions=GasFractions(),
     convection_enhancement=1.0,
+    characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
-    characteristic_dimension = body.geometry.characteristic_dimension
+    characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
     dry_air_out = dry_air_properties(air_temperature, atmospheric_pressure; gas_fractions)
     vapour_diffusivity = dry_air_out.vapour_diffusivity
     # checking to see if the fluid is water, not air
@@ -233,30 +234,30 @@ function convection(;
     if temperature_difference <= 0.0u"K" # stability check - avoiding zero
         temperature_difference = temperature_difference + 0.00001u"K"
     end
-    grashof_number = abs(((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dimension^3) * temperature_difference) / (dynamic_viscosity^2))
-    reynolds_number = fluid_density * wind_speed * characteristic_dimension / dynamic_viscosity
+    grashof_number = abs(((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2))
+    reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
     free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)
-    free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dimension # heat transfer coefficient, free
+    free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
     free_sherwood_number = free_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, free
     # calculating the mass transfer coefficient from the Sherwood number
-    free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dimension # mass transfer coefficient, free
+    free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, free
     free_convection_flow = free_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # free convective heat loss at surface
     # forced convection
     forced_nusselt_number = nusselt_forced(body.shape, reynolds_number) * convection_enhancement
     # forced convection for object
-    forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dimension # heat transfer coefficient, forced
+    forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dim # heat transfer coefficient, forced
     forced_sherwood_number = forced_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, forced
-    forced_mass_transfer_coefficient = forced_sherwood_number * vapour_diffusivity / characteristic_dimension # mass transfer coefficient
+    forced_mass_transfer_coefficient = forced_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient
     forced_convection_flow = forced_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # forced convective heat transfer
     # combined free and forced convection
     # using Bird, Stewart & Lightfoot's mixed convection formula (p. 445, Transport Phenomena, 2002)
     combined_nusselt_number = (free_nusselt_number^3 + forced_nusselt_number^3)^(1 / 3)
-    combined_heat_transfer_coefficient = combined_nusselt_number * (fluid_conductivity / characteristic_dimension) # mixed convection heat transfer
+    combined_heat_transfer_coefficient = combined_nusselt_number * (fluid_conductivity / characteristic_dim) # mixed convection heat transfer
     convection_flow = combined_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # total convective heat loss
     combined_sherwood_number = combined_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, combined
-    combined_mass_transfer_coefficient = combined_sherwood_number * vapour_diffusivity / characteristic_dimension # mass transfer coefficient, combined
+    combined_mass_transfer_coefficient = combined_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, combined
 
     heat = TransferCoefficients(combined_heat_transfer_coefficient, free_heat_transfer_coefficient, forced_heat_transfer_coefficient)
     mass = TransferCoefficients(combined_mass_transfer_coefficient, free_mass_transfer_coefficient, forced_mass_transfer_coefficient)
@@ -363,6 +364,17 @@ function nusselt_forced(shape::Union{Ellipsoid,Sphere,DesertIguana,LeopardFrog},
     0.35 * reynolds_number ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end
 
+function _vapour_densities(surface_temperature, air_temperature, water_potential,
+                           relative_humidity, atmospheric_pressure; gas_fractions)
+    molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
+    rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
+    surface_vapour_density =
+        wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions).vapour_density
+    air_vapour_density =
+        wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions).vapour_density
+    return (; surface_vapour_density, air_vapour_density)
+end
+
 """
     evaporation(evap_pars, mass, atmos, area, surface_temperature, air_temperature; kw...)
 
@@ -370,7 +382,7 @@ Compute surface evaporation based on mass transfer coefficient, wetness fraction
 and vapor density gradient between surface and air.
 
 # Arguments
-- `evap_pars::EvaporationParameters`: Evaporation parameters (wetness, eye_fraction, bare_skin_fraction)
+- `evap_pars::AnimalEvaporationParameters`: Evaporation parameters (wetness, eye_fraction, bare_skin_fraction)
 - `mass::TransferCoefficients`: Mass transfer coefficients (combined, free, forced)
 - `atmos::AtmosphericConditions`: Atmospheric conditions (relative_humidity, atmospheric_pressure)
 - `area`: Total surface area for evaporation
@@ -385,7 +397,7 @@ and vapor density gradient between surface and air.
 NamedTuple with evaporation_heat_flow, m_cut, m_eyes
 """
 function evaporation(
-    evap_pars::EvaporationParameters,
+    evap_pars::AnimalEvaporationParameters,
     mass::TransferCoefficients,
     atmos::AtmosphericConditions,
     area,
@@ -402,15 +414,10 @@ function evaporation(
     effective_area_insulated = (area - effective_area_eye) * skin_wetness * (1 - bare_skin_fraction)
     effective_area_bare = (area - effective_area_eye) * skin_wetness * bare_skin_fraction
 
-    # get vapour density at surface based on water potential of body
-    molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
-    rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
-    wet_air_out = wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions)
-    surface_vapour_density = wet_air_out.vapour_density
-
-    # get air vapour density
-    wet_air_out = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions)
-    air_vapour_density = wet_air_out.vapour_density
+    (; surface_vapour_density, air_vapour_density) = _vapour_densities(
+        surface_temperature, air_temperature, water_potential,
+        relative_humidity, atmospheric_pressure; gas_fractions,
+    )
 
     # mass of water lost
     m_eyes = mass.combined * effective_area_eye * (surface_vapour_density - air_vapour_density) # forced + free
@@ -425,4 +432,74 @@ function evaporation(
     m_eyes = uconvert(u"g/s", m_eyes)
     m_cut = uconvert(u"g/s", m_cut)
     return (; evaporation_heat_flow, m_cut, m_eyes)
+end
+
+"""
+    evaporation(evap_pars::LeafEvaporationParameters, mass, atmos, area, surface_temperature, air_temperature; kw...)
+
+Compute leaf transpiration using stomatal vapour conductances combined with the boundary layer
+mass transfer coefficient from a prior `convection()` call. Using `mass` from `convection()`
+ensures that the same body geometry and convective enhancement factor govern both heat and
+mass transfer — no separate leaf width or enhancement parameter is needed.
+
+Stomatal conductances (mol/m²/s) are converted to m/s via the ideal gas relation
+`h = g_mol × R·T/P`, then combined with the boundary layer in series+parallel.
+
+# Arguments
+- `evap_pars::LeafEvaporationParameters`: Stomatal and cuticular conductances
+- `mass::TransferCoefficients`: Mass transfer coefficients from `convection()` (combined, free, forced)
+- `atmos::AtmosphericConditions`: Atmospheric conditions (relative_humidity, atmospheric_pressure)
+- `area`: Total leaf surface area
+- `surface_temperature`: Leaf surface temperature
+- `air_temperature`: Air temperature
+
+# Keywords
+- `water_potential`: Leaf water potential (J/kg), default 0.0 (fully saturated surface)
+- `gas_fractions::GasFractions`: Gas fractions for air properties
+
+# Returns
+NamedTuple with evaporation_heat_flow, transpiration_water_loss
+"""
+function evaporation(
+    evap_pars::LeafEvaporationParameters,
+    mass::TransferCoefficients,
+    atmos::AtmosphericConditions,
+    area,
+    surface_temperature,
+    air_temperature;
+    water_potential=0.0u"J/kg",
+    gas_fractions::GasFractions=GasFractions(),
+)
+    (; abaxial_vapour_conductance, adaxial_vapour_conductance, cuticular_conductance) = evap_pars
+    (; relative_humidity, atmospheric_pressure) = atmos
+
+    # convert stomatal conductances from mol/m²/s → m/s via ideal gas: h = g_mol × R·T/P
+    molar_volume_air = Unitful.R * air_temperature / atmospheric_pressure
+    effective_abaxial_mass_transfer =
+        (abaxial_vapour_conductance + cuticular_conductance / 2) * molar_volume_air
+    effective_adaxial_mass_transfer =
+        (adaxial_vapour_conductance + cuticular_conductance / 2) * molar_volume_air
+
+    # series+parallel combination: each surface in series with boundary layer, both sides parallel
+    # mass.combined uses the same body geometry and enhancement factor as convection heat transfer
+    boundary_layer_mass_transfer_coefficient = mass.combined
+    effective_mass_transfer_coefficient =
+        (0.5 * effective_abaxial_mass_transfer * boundary_layer_mass_transfer_coefficient) /
+            (effective_abaxial_mass_transfer + boundary_layer_mass_transfer_coefficient) +
+        (0.5 * effective_adaxial_mass_transfer * boundary_layer_mass_transfer_coefficient) /
+            (effective_adaxial_mass_transfer + boundary_layer_mass_transfer_coefficient)
+
+    # vapour density at leaf surface and in air (same as animal evaporation)
+    (; surface_vapour_density, air_vapour_density) = _vapour_densities(
+        surface_temperature, air_temperature, water_potential,
+        relative_humidity, atmospheric_pressure; gas_fractions,
+    )
+
+    # transpiration mass flux and latent heat
+    transpiration_water_loss =
+        effective_mass_transfer_coefficient * area * (surface_vapour_density - air_vapour_density)
+    latent_heat_vaporisation = enthalpy_of_vaporisation(air_temperature)
+    evaporation_heat_flow = uconvert(u"W", transpiration_water_loss * latent_heat_vaporisation)
+    transpiration_water_loss = uconvert(u"g/s", transpiration_water_loss)
+    return (; evaporation_heat_flow, transpiration_water_loss)
 end
