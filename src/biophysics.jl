@@ -364,6 +364,17 @@ function nusselt_forced(shape::Union{Ellipsoid,Sphere,DesertIguana,LeopardFrog},
     0.35 * reynolds_number ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end
 
+function _vapour_densities(surface_temperature, air_temperature, water_potential,
+                           relative_humidity, atmospheric_pressure; gas_fractions)
+    molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
+    rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
+    surface_vapour_density =
+        wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions).vapour_density
+    air_vapour_density =
+        wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions).vapour_density
+    return (; surface_vapour_density, air_vapour_density)
+end
+
 """
     evaporation(evap_pars, mass, atmos, area, surface_temperature, air_temperature; kw...)
 
@@ -403,15 +414,10 @@ function evaporation(
     effective_area_insulated = (area - effective_area_eye) * skin_wetness * (1 - bare_skin_fraction)
     effective_area_bare = (area - effective_area_eye) * skin_wetness * bare_skin_fraction
 
-    # get vapour density at surface based on water potential of body
-    molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
-    rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
-    wet_air_out = wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions)
-    surface_vapour_density = wet_air_out.vapour_density
-
-    # get air vapour density
-    wet_air_out = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions)
-    air_vapour_density = wet_air_out.vapour_density
+    (; surface_vapour_density, air_vapour_density) = _vapour_densities(
+        surface_temperature, air_temperature, water_potential,
+        relative_humidity, atmospheric_pressure; gas_fractions,
+    )
 
     # mass of water lost
     m_eyes = mass.combined * effective_area_eye * (surface_vapour_density - air_vapour_density) # forced + free
@@ -484,12 +490,10 @@ function evaporation(
             (effective_adaxial_mass_transfer + boundary_layer_mass_transfer_coefficient)
 
     # vapour density at leaf surface and in air (same as animal evaporation)
-    molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
-    rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
-    wet_air_out = wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions)
-    surface_vapour_density = wet_air_out.vapour_density
-    wet_air_out = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions)
-    air_vapour_density = wet_air_out.vapour_density
+    (; surface_vapour_density, air_vapour_density) = _vapour_densities(
+        surface_temperature, air_temperature, water_potential,
+        relative_humidity, atmospheric_pressure; gas_fractions,
+    )
 
     # transpiration mass flux and latent heat
     transpiration_water_loss =

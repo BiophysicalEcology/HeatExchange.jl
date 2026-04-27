@@ -78,27 +78,11 @@ function heat_balance(
     area_evaporation = evaporation_area(body)
     area_convection  = total_area * (1 - conduction_fraction)
 
-    # -------------------------------------------------------------------------
     # Recompute temperature-dependent insulation conductivity at current T_skin, T_ins.
-    # This mirrors the per-iteration update in solve_with_insulation! and ensures
-    # the function is differentiable with respect to the temperature decision variables.
-    # -------------------------------------------------------------------------
-    insulation_temp_mean = T_ins * 0.7 + T_skin * 0.3
-    air_k = dry_air_properties(insulation_temp_mean).thermal_conductivity
-    side_depth = getproperty(insulation.fibres, side).depth
-    side_fibres = setproperties(getproperty(insulation_pars, side); depth = side_depth)
-    side_thermal = insulation_thermal_conductivity(side_fibres, air_k)
-    effective_conductivity = side_thermal.effective_conductivity
-
-    absorption_coefficient = getproperty(insulation.absorption_coefficients, side)
-    approx_radiant_temperature = T_skin * (1 - longwave_depth_fraction) + T_ins * longwave_depth_fraction
-    radiative_conductivity = (16 * σ * approx_radiant_temperature^3) / (3 * absorption_coefficient)
-    insulation_conductivity = effective_conductivity + radiative_conductivity
-
-    # ThermalConductivities with k_flesh override (vasodilation decision variable)
+    # Mirrors the per-iteration update in solve_with_insulation! for differentiability.
+    (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
+        insulation, insulation_pars, side, T_ins, T_skin, longwave_depth_fraction, σ)
     conductivities = ThermalConductivities(k_flesh, fat_conductivity, insulation_conductivity)
-
-    # Update insulation struct with recomputed compressed conductivity (used in radiant_temperature)
     insulation_updated = setproperties(insulation; conductivity_compressed = effective_conductivity)
 
     # -------------------------------------------------------------------------
@@ -156,37 +140,20 @@ function heat_balance(
     conductances = radiant_temp_result.conductances
     divisors     = radiant_temp_result.divisors
 
-    # -------------------------------------------------------------------------
-    # Insulation surface evaporation (if insulation is wet — conditional is on
-    # fixed parameters, so not inside the differentiable path)
-    # -------------------------------------------------------------------------
-    insulation_evaporation_heat_flow = if insulation_wetness > 0 && insulation.insulation_test > 0.0u"m"
-        evap_pars_ins = AnimalEvaporationParameters(;
-            skin_wetness = insulation_wetness,
-            eye_fraction = 0.0,
-            bare_skin_fraction = 1.0,
-        )
-        mass_ins = TransferCoefficients(conv.mass.combined, conv.mass.combined, conv.mass.forced)
-        evaporation(
-            evap_pars_ins, mass_ins, atmos_local, area_convection, T_ins, air_temperature;
-            gas_fractions,
-        ).evaporation_heat_flow
-    else
-        0.0u"W"
-    end
+    # Insulation surface evaporation (conditional on fixed params, outside differentiable path)
+    insulation_evaporation_heat_flow = _insulation_evaporation(
+        conv, atmos_local, area_convection, T_ins, air_temperature,
+        insulation_wetness, insulation.insulation_test; gas_fractions)
 
     # -------------------------------------------------------------------------
     # Radiation exchange (coefficients linearised at T_rad, flows use T_rad)
     # -------------------------------------------------------------------------
-    sky_radiation_coeff =
-        area_convection * view_factors.sky * 4 * ϵ_body * σ * ((T_rad + sky_temperature) / 2)^3
-    bush_radiation_coeff =
-        area_convection * view_factors.bush * 4 * ϵ_body * σ * ((T_rad + bush_temperature) / 2)^3
-    vegetation_radiation_coeff =
-        area_convection * view_factors.vegetation * 4 * ϵ_body * σ *
-        ((T_rad + vegetation_temperature) / 2)^3
-    ground_radiation_coeff =
-        area_convection * view_factors.ground * 4 * ϵ_body * σ * ((T_rad + ground_temperature) / 2)^3
+    _rc = _radiation_coefficients(area_convection, view_factors, ϵ_body, σ, T_rad,
+        sky_temperature, bush_temperature, vegetation_temperature, ground_temperature)
+    sky_radiation_coeff        = _rc.sky
+    bush_radiation_coeff       = _rc.bush
+    vegetation_radiation_coeff = _rc.vegetation
+    ground_radiation_coeff     = _rc.ground
 
     sky_radiation_flow        = sky_radiation_coeff        * (T_rad - sky_temperature)
     bush_radiation_flow       = bush_radiation_coeff       * (T_rad - bush_temperature)
