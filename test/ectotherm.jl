@@ -170,8 +170,8 @@ convection_enhancement = ecto_input.conv_enhance
 # organism morphology
 mass = u"kg"((ecto_input.Ww_g)u"g")
 ρ_flesh = (ecto_input.rho_body)u"kg/m^3"
-shape_b = ecto_input.shape_b
-shape_c = ecto_input.shape_c
+aspect_ratio_b = ecto_input.shape_b
+aspect_ratio_c = ecto_input.shape_c
 eye_fraction = ecto_input.pct_eyes / 100
 conduction_fraction = ecto_input.pct_cond / 100
 
@@ -209,7 +209,7 @@ pant = 1.0
 
 # geometry
 shape_pars = DesertIguana(mass, ρ_flesh)
-#shape_pars = Cylinder(mass, ρ_flesh, shape_b)
+#shape_pars = Cylinder(mass, ρ_flesh, aspect_ratio_b)
 geometry = Body(shape_pars, Naked())
 A_total = total_area(geometry)
 A_sil_normal = silhouette_area(shape_pars, NormalToSun())
