@@ -122,12 +122,12 @@ function metabolic_rate(eq::PlantDarkRespiration, mass, temperature)
 end
 
 """
-    metabolic_rate(::Nothing, mass, T_body)
+    metabolic_rate(::Nothing, mass, body_temperature)
 
 Returns zero metabolic heat production. Use `model = nothing` in
 `MetabolismParameters` to disable metabolic heat generation entirely.
 """
-metabolic_rate(::Nothing, mass, T_body) = 0.0u"W"
+metabolic_rate(::Nothing, mass, body_temperature) = 0.0u"W"
 
 # conversion from O2 consumption to Joules
 

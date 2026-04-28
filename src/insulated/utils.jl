@@ -4,7 +4,7 @@ function _unpack_respiration(resp_out)
     isnothing(resp_out) && return (;
         balance               = nothing,
         respiration_heat_flow = 0.0u"W",
-        respiration_mass      = nothing,
+        respiration_mass_flow      = nothing,
         air_flow              = nothing,
         oxygen_flow_standard  = nothing,
         molar_fluxes_in       = nothing,
@@ -13,7 +13,7 @@ function _unpack_respiration(resp_out)
     return (;
         balance               = resp_out.balance,
         respiration_heat_flow = resp_out.respiration_heat_flow,
-        respiration_mass      = resp_out.respiration_mass,
+        respiration_mass_flow      = resp_out.respiration_mass_flow,
         air_flow              = resp_out.air_flow,
         oxygen_flow_standard  = resp_out.oxygen_flow_standard,
         molar_fluxes_in       = resp_out.molar_fluxes_in,
@@ -23,8 +23,8 @@ end
 
 # Stefan-Boltzmann outgoing longwave for one body side.
 # The factor 2 converts a half-hemisphere view factor to a whole-body effective factor.
-_side_lw_out(view_factor, emissivity, area, T_surface, σ) =
-    2 * view_factor * emissivity * area * σ * T_surface^4
+_side_lw_out(view_factor, emissivity, area, surface_temperature, σ) =
+    2 * view_factor * emissivity * area * σ * surface_temperature^4
 
 """
     interpolate(a::FibreProperties, b::FibreProperties, t::Number)
@@ -81,7 +81,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
         )
     end
 
-    fat = Fat(internal_conduction.fat_fraction, internal_conduction.fat_density)
+    fat = FatLayer(internal_conduction.fat_fraction, internal_conduction.fat_density)
 
     vegetation_factor = rad_pars.sky_view_factor * environment_vars.shade
     sky_factor = rad_pars.sky_view_factor - vegetation_factor
@@ -95,7 +95,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
     absorptivities = Absorptivities(rad_pars, environment_pars)
     view_factors_solar = ViewFactors(sky_factor, ground_factor, 0.0, 0.0)
     solar_conditions = SolarConditions(environment_vars)
-    (; solar_flow, direct_flow, solar_sky_flow, solar_substrate_flow) = solar(
+    (; solar_flow, solar_direct_flow, solar_sky_flow, solar_substrate_flow) = solar(
         o.body, absorptivities, view_factors_solar, solar_conditions, area_silhouette, area_conduction,
     )
     ventral_flow = solar_substrate_flow
@@ -116,7 +116,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
     for (side_idx, side) in enumerate((:dorsal, :ventral))
         side_sky_factor, side_ground_factor, side_bush_factor, side_vegetation_factor = if solar_flow > 0.0u"W"
             if side == :dorsal
-                solar_flow = 2.0 * direct_flow + ((solar_sky_flow / sky_factor_ref) * sky_factor_ref * 2.0)
+                solar_flow = 2.0 * solar_direct_flow + ((solar_sky_flow / sky_factor_ref) * sky_factor_ref * 2.0)
                 (sky_factor_ref * 2.0, 0.0, 0.0, vegetation_factor_ref * 2.0)
             else
                 solar_flow =
@@ -136,7 +136,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
         ϵ_body = side == :dorsal ? rad_pars.body_emissivity_dorsal : rad_pars.body_emissivity_ventral
 
         side_fibres = getproperty(fibres, side)
-        insulation_layer = Fur(side_fibres.depth, side_fibres.diameter, side_fibres.density)
+        insulation_layer = FibrousLayer(side_fibres.depth, side_fibres.diameter, side_fibres.density)
         geometry_pars = Body(o.body.shape, CompositeInsulation(insulation_layer, fat))
 
         conductance_coefficient = if side == :ventral
@@ -217,20 +217,19 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
 end
 
 """
-    _assemble_multisided_output(o, e, core_temperature, generated_heat_flow, respiration_out, packed)
+    _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow, respiration_out, packed)
 
 Assemble the rich `(; thermoregulation, morphology, energy_flows, mass_flows)` output tuple
 from `_pack_sides` results. Shared by `solve_metabolic_rate` and `solve_temperature(::MultiSided)`.
 
-`generated_heat_flow` is the metabolic heat rate (solved by zbrent for endotherms, or from the
+`metabolic_heat_flow` is the metabolic heat rate (solved by zbrent for endotherms, or from the
 metabolic model for ectotherms). `respiration_out` is the result of a `respiration(...)` call,
 or `nothing` when respiration is disabled.
 
-`energy_flows` includes both `generated_heat_flow` (legacy name) and `metabolic_heat_flow`
-(harmonised name) with the same value, plus per-side `dorsal`/`ventral` sub-fields.
+`energy_flows` includes `metabolic_heat_flow` and per-side `dorsal`/`ventral` sub-fields.
 `thermoregulation` includes per-side `dorsal`/`ventral` sub-fields alongside existing flat scalars.
 """
-function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow, respiration_out, packed)
+function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow, respiration_out, packed)
     environment_vars = e.environment_vars
     ins_pars = insulation_pars(o)
     external_conduction = conduction_pars_external(o)
@@ -258,27 +257,27 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
     )
     has_insulation = insulation_for_test.insulation_test > 0.0u"m"
 
-    fat = Fat(internal_conduction.fat_fraction, internal_conduction.fat_density)
+    fat = FatLayer(internal_conduction.fat_fraction, internal_conduction.fat_density)
     geometry_avg = Body(o.body.shape, CompositeInsulation(
-        Fur(fibres.average.depth, fibres.average.diameter, fibres.average.density), fat
+        FibrousLayer(fibres.average.depth, fibres.average.diameter, fibres.average.density), fat
     ))
     total_area_final = BiophysicalGeometry.total_area(geometry_avg)
     area_skin_final  = skin_area(geometry_avg)
 
     if has_insulation
-        T_surf_d = temps_out[1].insulation_temperature
-        T_surf_v = temps_out[2].insulation_temperature
+        surface_temperature_dorsal  = temps_out[1].insulation_temperature
+        surface_temperature_ventral = temps_out[2].insulation_temperature
         area_rad_d = total_area_final
         area_rad_v = total_area_final * (1 - external_conduction.conduction_fraction)
     else
-        T_surf_d = temps_out[1].skin_temperature
-        T_surf_v = temps_out[2].skin_temperature
+        surface_temperature_dorsal  = temps_out[1].skin_temperature
+        surface_temperature_ventral = temps_out[2].skin_temperature
         area_rad_d = area_skin_final
         area_rad_v = area_skin_final
     end
 
-    dorsal_radiation_out_flow  = _side_lw_out(sky_factor_ref,    rad_pars.body_emissivity_dorsal,  area_rad_d, T_surf_d, σ)
-    ventral_radiation_out_flow = _side_lw_out(ground_factor_ref, rad_pars.body_emissivity_ventral, area_rad_v, T_surf_v, σ)
+    dorsal_radiation_out_flow  = _side_lw_out(sky_factor_ref,    rad_pars.body_emissivity_dorsal,  area_rad_d, surface_temperature_dorsal, σ)
+    ventral_radiation_out_flow = _side_lw_out(ground_factor_ref, rad_pars.body_emissivity_ventral, area_rad_v, surface_temperature_ventral, σ)
     dorsal_radiation_in_flow   = dorsal_radiation_out_flow  - temps_out[1].flows.longwave
     ventral_radiation_in_flow  = ventral_radiation_out_flow - temps_out[2].flows.longwave
 
@@ -291,7 +290,7 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
         temps_out[1].flows.skin_evaporation * dmult + temps_out[2].flows.skin_evaporation * vmult +
         temps_out[1].flows.insulation_evaporation * dmult + temps_out[2].flows.insulation_evaporation * vmult
 
-    (; balance, respiration_heat_flow, respiration_mass, air_flow, oxygen_flow_standard,
+    (; balance, respiration_heat_flow, respiration_mass_flow, air_flow, oxygen_flow_standard,
        molar_fluxes_in, molar_fluxes_out) = _unpack_respiration(respiration_out)
 
     evaporation_heat_flow += respiration_heat_flow
@@ -301,16 +300,15 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
         (temps_out[1].flows.skin_evaporation + temps_out[2].flows.skin_evaporation) * 0.5 /
         latent_heat_vaporisation
     )
-    m_evap = !isnothing(respiration_mass) ? u"g/hr"(respiration_mass + m_sweat) : u"g/hr"(m_sweat)
+    m_evap = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + m_sweat) : u"g/hr"(m_sweat)
 
     fat_mass     = geometry_avg.shape.mass * fat.fraction
     volume       = geometry_avg.geometry.volume
     volume_flesh = flesh_volume(geometry_avg)
 
-    insulation_conductivity_dorsal  = temps_out[1].insulation_conductivity
-    insulation_conductivity_ventral = temps_out[2].insulation_conductivity
     skin_temperature       = temps_out[1].skin_temperature * dmult + temps_out[2].skin_temperature * vmult
     insulation_temperature = temps_out[1].insulation_temperature * dmult + temps_out[2].insulation_temperature * vmult
+    insulation_depth       = ins_pars.dorsal.depth * dmult + ins_pars.ventral.depth * vmult
     insulation_final = insulation_properties(
         ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, rad_pars.ventral_fraction
     )
@@ -318,9 +316,9 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
     insulation_conductivity_compressed = insulation_final.conductivity_compressed
 
     lung_temperature = (core_temperature + skin_temperature) * 0.5
-    shape_b = o.body.shape isa Sphere ? 1.0 : o.body.shape.aspect_ratio_b
+    shape_b = o.body.shape isa Sphere ? 1.0 : o.body.shape.axis_ratio_b
 
-    heat_balance_val = solar_flow + longwave_flow_in + generated_heat_flow -
+    heat_balance_val = solar_flow + longwave_flow_in + metabolic_heat_flow -
         longwave_flow_out - convection_heat_flow - evaporation_heat_flow - conduction_flow
 
     thermoregulation = (;
@@ -328,30 +326,25 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
         skin_temperature,
         insulation_temperature,
         lung_temperature,
-        skin_temperature_dorsal        = temps_out[1].skin_temperature,
-        skin_temperature_ventral       = temps_out[2].skin_temperature,
-        insulation_temperature_dorsal  = temps_out[1].insulation_temperature,
-        insulation_temperature_ventral = temps_out[2].insulation_temperature,
+        insulation_depth,
         shape_b,
         pant               = resp_pars.pant,
         skin_wetness       = evap_pars.skin_wetness,
         flesh_conductivity = internal_conduction.flesh_conductivity,
         insulation_conductivity_effective,
-        insulation_conductivity_dorsal,
-        insulation_conductivity_ventral,
         insulation_conductivity_compressed,
-        insulation_depth_dorsal  = ins_pars.dorsal.depth,
-        insulation_depth_ventral = ins_pars.ventral.depth,
         q10 = metab_pars.q10,
         dorsal = (;
             skin_temperature        = temps_out[1].skin_temperature,
             insulation_temperature  = temps_out[1].insulation_temperature,
             insulation_conductivity = temps_out[1].insulation_conductivity,
+            insulation_depth        = ins_pars.dorsal.depth,
         ),
         ventral = (;
             skin_temperature        = temps_out[2].skin_temperature,
             insulation_temperature  = temps_out[2].insulation_temperature,
             insulation_conductivity = temps_out[2].insulation_conductivity,
+            insulation_depth        = ins_pars.ventral.depth,
         ),
     )
 
@@ -374,7 +367,7 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
     energy_flows = (;
         solar_flow,
         longwave_flow_in,
-        generated_heat_flow,
+        metabolic_heat_flow,
         evaporation_heat_flow,
         respiration_heat_flow,
         longwave_flow_out,
@@ -388,7 +381,7 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
             solar                  = temps_out[1].flows.solar,
             convection             = temps_out[1].flows.convection,
             conduction             = temps_out[1].flows.conduction,
-            net_generated          = temps_out[1].flows.net_generated,
+            net_metabolic          = temps_out[1].flows.net_metabolic,
             skin_evaporation       = temps_out[1].flows.skin_evaporation,
             insulation_evaporation = temps_out[1].flows.insulation_evaporation,
             longwave               = temps_out[1].flows.longwave,
@@ -401,7 +394,7 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
             solar                  = temps_out[2].flows.solar,
             convection             = temps_out[2].flows.convection,
             conduction             = temps_out[2].flows.conduction,
-            net_generated          = temps_out[2].flows.net_generated,
+            net_metabolic          = temps_out[2].flows.net_metabolic,
             skin_evaporation       = temps_out[2].flows.skin_evaporation,
             insulation_evaporation = temps_out[2].flows.insulation_evaporation,
             longwave               = temps_out[2].flows.longwave,
@@ -416,7 +409,7 @@ function _assemble_multisided_output(o, e, core_temperature, generated_heat_flow
         air_flow,
         oxygen_flow_standard,
         m_evap,
-        respiration_mass,
+        respiration_mass_flow,
         m_sweat,
         molar_fluxes_in,
         molar_fluxes_out,

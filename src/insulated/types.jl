@@ -236,7 +236,7 @@ Heat flow components from the heat balance solution.
 # Fields
 - `convection` — Convective heat loss to air
 - `conduction` — Conductive heat loss to substrate
-- `net_generated` — Net metabolic heat generation
+- `net_metabolic` — Net metabolic heat generation
 - `skin_evaporation` — Evaporative heat loss from skin
 - `insulation_evaporation` — Evaporative heat loss from insulation surface
 - `longwave` — Net longwave radiation exchange
@@ -249,7 +249,7 @@ Heat flow components from the heat balance solution.
 struct HeatFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
     convection::T1
     conduction::T2
-    net_generated::T3
+    net_metabolic::T3
     skin_evaporation::T4
     insulation_evaporation::T5
     longwave::T6

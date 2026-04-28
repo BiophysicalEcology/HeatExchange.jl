@@ -25,7 +25,7 @@ struct MultiSided <: EvaluationStrategy end
 
 evaluation_strategy(o::Organism) = evaluation_strategy(insulation(body(o)))
 evaluation_strategy(::Naked)                          = SingleBody()
-evaluation_strategy(::Union{Fur, CompositeInsulation}) = MultiSided()
+evaluation_strategy(::Union{FibrousLayer, CompositeInsulation}) = MultiSided()
 
 # Characteristic dimension formulas
 
@@ -61,8 +61,8 @@ end
 ScaledDimension(dimension::Symbol) = ScaledDimension(1.0, dimension)
 
 _outer_insulation_thickness(::Naked)   = 0.0u"m"
-_outer_insulation_thickness(::Fat)     = 0.0u"m"
-_outer_insulation_thickness(f::Fur)    = f.thickness
+_outer_insulation_thickness(::FatLayer)     = 0.0u"m"
+_outer_insulation_thickness(f::FibrousLayer)    = f.thickness
 function _outer_insulation_thickness(ci::CompositeInsulation)
     _outer_insulation_thickness(BiophysicalGeometry.outer_insulation(ci))
 end

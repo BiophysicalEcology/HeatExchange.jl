@@ -8,7 +8,7 @@ using Test
 # Parameters from test/data/endoR_input_4_1.csv (Ellipsoid with fur)
 # Shape 4 = Ellipsoid, furmult 1 = with insulation
 shape_pars = Ellipsoid(65.0u"kg", 1000.0u"kg/m^3", 5.0, 5.0)
-fat        = Fat(0.20, 901.0u"kg/m^3")
+fat        = FatLayer(0.20, 901.0u"kg/m^3")
 
 pven = 0.4
 insulation_pars = InsulationParameters(;
@@ -36,7 +36,7 @@ insulation_pars = InsulationParameters(;
 mean_ins_depth    = insulation_pars.dorsal.depth    * (1 - pven) + insulation_pars.ventral.depth    * pven
 mean_fibre_diam   = insulation_pars.dorsal.diameter * (1 - pven) + insulation_pars.ventral.diameter * pven
 mean_fibre_density = insulation_pars.dorsal.density * (1 - pven) + insulation_pars.ventral.density  * pven
-fur      = Fur(mean_ins_depth, mean_fibre_diam, mean_fibre_density)
+fur      = FibrousLayer(mean_ins_depth, mean_fibre_diam, mean_fibre_density)
 geometry = Body(shape_pars, CompositeInsulation(fur, fat))
 
 environment_vars = EnvironmentalVars(;
@@ -126,8 +126,8 @@ organism = Organism(geometry, traits)
 # Solve iterative model
 endo_out   = solve_metabolic_rate(organism, (; environment_pars, environment_vars), u"K"(34.0u"°C"), u"K"(29.0u"°C"))
 thermoreg  = endo_out.thermoregulation
-Q_gen      = endo_out.energy_flows.generated_heat_flow
-T_core     = thermoreg.core_temperature
+metabolic_heat_flow      = endo_out.energy_flows.metabolic_heat_flow
+core_temperature     = thermoreg.core_temperature
 
 # -------------------------------------------------------------------------
 # Replicate the dorsal-side inputs that solve_metabolic_rate packs internally
@@ -139,7 +139,7 @@ sky_factor_ref    = radiation_pars.sky_view_factor - vegetation_factor         #
 ground_factor_ref = 1.0 - sky_factor_ref - vegetation_factor                  # 0.50
 
 # Dorsal body uses the dorsal insulation depth
-ins_layer_d = Fur(insulation_pars.dorsal.depth, insulation_pars.dorsal.diameter, insulation_pars.dorsal.density)
+ins_layer_d = FibrousLayer(insulation_pars.dorsal.depth, insulation_pars.dorsal.diameter, insulation_pars.dorsal.density)
 body_d      = Body(shape_pars, CompositeInsulation(ins_layer_d, fat))
 
 # Solar for dorsal side — mirrors solve_metabolic_rate solar block
@@ -151,15 +151,15 @@ area_sil         = silhouette_area(geometry, radiation_pars.solar_orientation)
 area_cond_ref    = BiophysicalGeometry.total_area(geometry) * external_conduction.conduction_fraction
 solar_out        = solar(geometry, absorptivities, vf_solar, solar_conds, area_sil, area_cond_ref)
 dorsal_solar     = solar_out.solar_flow > 0.0u"W" ?
-    2.0 * solar_out.direct_flow + solar_out.solar_sky_flow * 2.0 :
+    2.0 * solar_out.solar_direct_flow + solar_out.solar_sky_flow * 2.0 :
     0.0u"W"
 
 # Dorsal side temperatures from converged solution
-T_skin_d = thermoreg.skin_temperature_dorsal
-T_ins_d  = thermoreg.insulation_temperature_dorsal
+dorsal_skin_temperature = thermoreg.dorsal.skin_temperature
+dorsal_insulation_temperature  = thermoreg.dorsal.insulation_temperature
 
 # Insulation properties at converged dorsal temperatures
-ins_d = insulation_properties(insulation_pars, T_ins_d * 0.7 + T_skin_d * 0.3, pven)
+ins_d = insulation_properties(insulation_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pven)
 
 geometry_vars_d = GeometryVariables(;
     side                    = :dorsal,
@@ -207,17 +207,17 @@ traits_d = (;
 )
 
 hb_d = heat_balance(
-    T_core, T_skin_d, T_ins_d, Q_gen;
+    core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, metabolic_heat_flow;
     body              = body_d,
     insulation_pars   = insulation_pars,
     insulation        = ins_d,
     geometry_vars     = geometry_vars_d,
-    minimum_metabolic_heat = Q_gen, # what should this be?
+    minimum_metabolic_heat = metabolic_heat_flow, # what should this be?
     environment_vars  = env_d,
     traits            = traits_d,
     resp_pars         = respiration_pars,
 )
-balance = Q_gen + hb_d.solar_heat_flow - 
+balance = metabolic_heat_flow + hb_d.solar_heat_flow - 
     hb_d.radiation_heat_flow - 
     hb_d.convection_heat_flow - 
     hb_d.conduction_heat_flow - 
@@ -227,8 +227,8 @@ balance = Q_gen + hb_d.solar_heat_flow -
     hb_d.net_metabolic_heat_internal
 
 #@test abs(ustrip(u"W", balance)) < 0.01
-# The iterative solver converged T_skin, so residual_skin_temperature must be near zero.
-# residual_energy_balance and residual_internal_conduction use the full-organism Q_gen
+# The iterative solver converged skin_temperature, so residual_skin_temperature must be near zero.
+# residual_energy_balance and residual_internal_conduction use the full-organism metabolic_heat_flow
 # against per-side losses, so they need not be zero for a one-sided call.
 #@test abs(ustrip(u"K", hb_d.residual_skin_temperature)) < 0.01
 

@@ -63,7 +63,7 @@ function _radiative_convective_flows(surface_temperature, o::Organism, environme
         convection_enhancement=environment_pars.convection_enhancement,
         characteristic_dimension_formula=conv_pars.characteristic_dimension_formula,
     )
-    convection_heat_flow = convection_out.heat_flow
+    convection_heat_flow = convection_out.convection_flow
 
     return (;
         solar_flow, longwave_flow_in, longwave_flow_out,
@@ -82,7 +82,7 @@ Dispatches first on `evaluation_strategy(organism)`:
   `evaporation_pars` type and insulation type.
 - `MultiSided` — dorsal/ventral split for insulated animals; uses `_pack_sides` +
   `solve_temperatures` to converge skin/insulation temperatures, then returns the combined
-  residual `Q_gen − Q_resp − net_generated`.
+  residual `metabolic_heat_flow − respiration_heat_flow − net_metabolic`.
 
 # Arguments
 - `core_temperature`: Core temperature to evaluate
@@ -113,7 +113,6 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
     metabolic_heat_flow = metabolic_rate(metab_pars.model, o.body.shape.mass, core_temperature)
 
     # respiration
-    T_lung_resp = clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C"))
     rates = MetabolicRates(; metabolic=metabolic_heat_flow)
     atmos = AtmosphericConditions(environment_vars)
     respiration_out = respiration(
@@ -121,7 +120,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
         resp_pars,
         atmos,
         o.body.shape.mass,
-        T_lung_resp,
+        clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C")),
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions,
     )
@@ -167,7 +166,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
     end
     evaporation_out = evaporation(
         evap_eff,
-        convection_out.mass,
+        convection_out.mass_transfer_coefficient,
         atmos,
         convection_area,
         surface_temperature,
@@ -190,9 +189,9 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
     )
     mass_balance = (;
         oxygen_flow,
-        respiration_mass=respiration_out.respiration_mass,
-        cutaneous_mass=evaporation_out.m_cut,
-        eye_mass=evaporation_out.m_eyes,
+        respiration_mass=respiration_out.respiration_mass_flow,
+        cutaneous_mass=evaporation_out.cutaneous_mass_flow,
+        eye_mass=evaporation_out.eyes_mass_flow,
     )
     return (;
         heat_balance=heat_balance_val,
@@ -261,7 +260,7 @@ function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o:
     atmos = AtmosphericConditions(environment_vars)
     evaporation_out = evaporation(
         evap_pars,
-        convection_out.mass,
+        convection_out.mass_transfer_coefficient,
         atmos,
         convection_area,
         surface_temperature,
@@ -283,7 +282,7 @@ function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o:
         heat_balance=heat_balance_val,
     )
     oxygen_consumption_rate = u"ml/hr"(Joules_to_O2(Kleiber1961(), metabolic_heat_flow, 1.0))
-    mass_balance = (; transpiration_mass=evaporation_out.transpiration_water_loss, oxygen_consumption_rate)
+    mass_balance = (; transpiration_mass=evaporation_out.transpiration_mass_flow, oxygen_consumption_rate)
 
     return (;
         heat_balance=heat_balance_val,
@@ -303,13 +302,12 @@ end
 
 # ---------------------------------------------------------------------------
 # Per-side insulated heat balance (4-arg, non-iterative)
-# Moved from src/insulated/heat_balance.jl.
-# Takes explicit T_core, T_skin, T_ins, Q_gen and pre-packed per-side structures.
+# Takes explicit core/skin/insulation temperatures and metabolic_heat_flow; pre-packed per-side structures.
 # Suitable as an NLP constraint function (differentiable via ForwardDiff).
 # ---------------------------------------------------------------------------
 
 """
-    heat_balance(T_core, T_skin, T_ins, Q_gen; ...)
+    heat_balance(core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow; ...)
 
 Compute endotherm heat budget residuals at explicitly given temperatures and metabolic rate.
 
@@ -317,7 +315,7 @@ Non-iterative: all state variables are explicit inputs. Returns three residuals 
 equal zero at a valid steady-state heat balance, making this function suitable as an
 IPOPT/NLP constraint function differentiable via ForwardDiff.
 
-This extends the existing `heat_balance(T_body, organism, e)` ectotherm dispatch with
+This extends the existing `heat_balance(body_temperature, organism, e)` ectotherm dispatch with
 a multi-argument endotherm method. Decision variables are positional arguments; fixed
 parameters come from keyword arguments.
 
@@ -325,16 +323,16 @@ Designed to work per body side (`:dorsal` or `:ventral`) using the same pre-pack
 `geometry_vars` and `environment_vars` structures that `solve_temperatures` accepts.
 
 # Arguments
-- `T_core`: Core body temperature (K) — setpoint or decision variable
-- `T_skin`: Skin surface temperature (K) — decision variable (replaces iterative solve)
-- `T_ins`: Insulation surface (fur-air interface) temperature (K) — decision variable
-- `Q_gen`: Metabolic heat generation rate (W) — decision variable (replaces zbrent)
+- `core_temperature`: Core body temperature (K) — setpoint or decision variable
+- `skin_temperature`: Skin surface temperature (K) — decision variable (replaces iterative solve)
+- `insulation_temperature`: Insulation surface (fur-air interface) temperature (K) — decision variable
+- `metabolic_heat_flow`: Metabolic heat generation rate (W) — decision variable (replaces zbrent)
 
 # Keywords
 - `body::AbstractBody`: Body geometry (shape + composite insulation)
 - `insulation_pars::InsulationParameters`: Insulation parameters (fibre properties, depths)
 - `insulation::InsulationProperties`: Precomputed insulation properties; temperature-sensitive
-  conductivities are recomputed internally from `T_skin` and `T_ins`
+  conductivities are recomputed internally from `skin_temperature` and `insulation_temperature`
 - `geometry_vars::GeometryVariables`: Geometric variables (side, conductance coefficient, etc.)
 - `environment_vars::NamedTuple`: Packed environment (temperatures, view factors, atmos, solar)
 - `traits::NamedTuple`: Fixed organism traits (fat conductivity, emissivity, evap fractions)
@@ -350,12 +348,12 @@ NamedTuple with heat fluxes and three residuals:
 - `skin_evaporation_heat_flow`, `insulation_evaporation_heat_flow`, `respiration_heat_flow`
 - `net_metabolic_heat_internal`: heat conducted through flesh/fat layer
 - `sky_radiation_flow`, `bush_radiation_flow`, `vegetation_radiation_flow`, `ground_radiation_flow`
-- `residual_energy_balance` (W): Q_gen + Q_solar − Q_resp − Q_evap − Q_conv − Q_rad − Q_cond = 0
-- `residual_internal_conduction` (W): (Q_gen − Q_resp) − net_metabolic_heat_internal = 0
-- `residual_skin_temperature` (K): T_skin − T_skin_from_mean_skin_temperature = 0
+- `residual_energy_balance` (W): metabolic + solar − resp − evap − conv − rad − cond = 0
+- `residual_internal_conduction` (W): (metabolic − resp) − net_metabolic_heat_internal = 0
+- `residual_skin_temperature` (K): skin_temperature − skin_temperature_from_heat_balance = 0
 """
 function heat_balance(
-    T_core, T_skin, T_ins, Q_gen;
+    core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow;
     body::AbstractBody,
     insulation_pars::InsulationParameters,
     insulation::InsulationProperties,
@@ -363,7 +361,7 @@ function heat_balance(
     environment_vars::NamedTuple,
     traits::NamedTuple,
     resp_pars,
-    minimum_metabolic_heat = zero(Q_gen),
+    minimum_metabolic_heat = zero(metabolic_heat_flow),
     k_flesh = traits.flesh_conductivity,
     pant = resp_pars.pant,
     skin_wetness = traits.skin_wetness,
@@ -372,12 +370,11 @@ function heat_balance(
     (;
         temperature, view_factors, atmos, fluid, solar_flow, gas_fractions, convection_enhancement,
     ) = environment_vars
-    air_temperature     = temperature.air
-    sky_temperature     = temperature.sky
-    ground_temperature  = temperature.ground
-    vegetation_temperature = temperature.vegetation
-    bush_temperature    = temperature.bush
-    substrate_temperature  = temperature.substrate
+    env_temps = temperature
+    T = env_temps
+    F = view_factors
+    air_temperature   = T.air
+    substrate_temperature = T.substrate
     (; relative_humidity, wind_speed, atmospheric_pressure) = atmos
     (; fat_conductivity, ϵ_body, insulation_wetness, bare_skin_fraction, eye_fraction) = traits
 
@@ -388,27 +385,27 @@ function heat_balance(
     area_evaporation = evaporation_area(body)
     area_convection  = total_area * (1 - conduction_fraction)
 
-    # Recompute temperature-dependent insulation conductivity at current T_skin, T_ins.
+    # Recompute temperature-dependent insulation conductivity at current temperatures.
     (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
-        insulation, insulation_pars, side, T_ins, T_skin, longwave_depth_fraction, σ)
+        insulation, insulation_pars, side, insulation_temperature, skin_temperature, longwave_depth_fraction, σ)
     conductivities = ThermalConductivities(k_flesh, fat_conductivity, insulation_conductivity)
     insulation_updated = setproperties(insulation; conductivity_compressed = effective_conductivity)
 
     # -------------------------------------------------------------------------
-    # Convection at insulation surface (pure function of T_ins)
+    # Convection at insulation surface
     # -------------------------------------------------------------------------
     conv = convection(;
         body,
         area = area_convection,
         air_temperature,
-        surface_temperature = T_ins,
+        surface_temperature = insulation_temperature,
         wind_speed,
         atmospheric_pressure,
         fluid,
         gas_fractions,
         convection_enhancement,
     )
-    heat_transfer_coefficient = conv.heat.combined
+    heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
 
     # -------------------------------------------------------------------------
     # Skin evaporation (uses mass transfer coefficients from convection call)
@@ -417,10 +414,10 @@ function heat_balance(
     atmos_local = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
     skin_evaporation_heat_flow = evaporation(
         evap_pars_skin,
-        conv.mass,
+        conv.mass_transfer_coefficient,
         atmos_local,
         area_evaporation,
-        T_skin,
+        skin_temperature,
         air_temperature;
         gas_fractions,
     ).evaporation_heat_flow
@@ -428,7 +425,7 @@ function heat_balance(
     # -------------------------------------------------------------------------
     # Radiant temperature at insulation depth (shape-dispatched pure function).
     # -------------------------------------------------------------------------
-    org_temps = OrganismTemperatures(T_core, T_skin, T_ins)
+    org_temps = OrganismTemperatures(core_temperature, skin_temperature, insulation_temperature)
     radiant_temp_result = radiant_temperature(;
         body,
         insulation = insulation_updated,
@@ -442,36 +439,35 @@ function heat_balance(
         evaporation_flow = skin_evaporation_heat_flow,
         substrate_temperature,
     )
-    T_rad = radiant_temp_result.radiant_temperature
+    radiant_temp = radiant_temp_result.radiant_temperature
     compressed_insulation_temperature = radiant_temp_result.compressed_insulation_temperature
     conductances = radiant_temp_result.conductances
 
     # Insulation surface evaporation (conditional on fixed params, outside differentiable path)
     insulation_evaporation_heat_flow = _insulation_evaporation(
-        conv, atmos_local, area_convection, T_ins, air_temperature,
+        conv, atmos_local, area_convection, insulation_temperature, air_temperature,
         insulation_wetness, insulation.insulation_test; gas_fractions)
 
     # -------------------------------------------------------------------------
-    # Radiation exchange (coefficients linearised at T_rad, flows use T_rad)
+    # Radiation exchange (coefficients linearised at radiant_temp, flows use radiant_temp)
     # -------------------------------------------------------------------------
-    _rc = _radiation_coefficients(area_convection, view_factors, ϵ_body, σ, T_rad,
-        sky_temperature, bush_temperature, vegetation_temperature, ground_temperature)
+    _rc = _radiation_coefficients(area_convection, F, ϵ_body, σ, radiant_temp, T)
     sky_radiation_coeff        = _rc.sky
     bush_radiation_coeff       = _rc.bush
     vegetation_radiation_coeff = _rc.vegetation
     ground_radiation_coeff     = _rc.ground
 
-    sky_radiation_flow        = sky_radiation_coeff        * (T_rad - sky_temperature)
-    bush_radiation_flow       = bush_radiation_coeff       * (T_rad - bush_temperature)
-    vegetation_radiation_flow = vegetation_radiation_coeff * (T_rad - vegetation_temperature)
-    ground_radiation_flow     = ground_radiation_coeff     * (T_rad - ground_temperature)
+    sky_radiation_flow        = sky_radiation_coeff        * (radiant_temp - T.sky)
+    bush_radiation_flow       = bush_radiation_coeff       * (radiant_temp - T.bush)
+    vegetation_radiation_flow = vegetation_radiation_coeff * (radiant_temp - T.vegetation)
+    ground_radiation_flow     = ground_radiation_coeff     * (radiant_temp - T.ground)
     radiation_heat_flow =
         sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow
 
     # -------------------------------------------------------------------------
-    # Convection flow (at outer insulation surface T_ins)
+    # Convection flow (at outer insulation surface)
     # -------------------------------------------------------------------------
-    convection_heat_flow = heat_transfer_coefficient * area_convection * (T_ins - air_temperature)
+    convection_heat_flow = heat_transfer_coefficient * area_convection * (insulation_temperature - air_temperature)
 
     # -------------------------------------------------------------------------
     # Conduction flow to substrate (via compressed insulation temperature)
@@ -484,8 +480,8 @@ function heat_balance(
     net_metabolic_heat_internal = net_metabolic_heat(;
         body,
         conductivities,
-        core_temperature = T_core,
-        skin_temperature = T_skin,
+        core_temperature,
+        skin_temperature,
     )
 
     # -------------------------------------------------------------------------
@@ -502,19 +498,19 @@ function heat_balance(
         conduction_fraction,
         environment_flow,
         skin_evaporation_flow = skin_evaporation_heat_flow,
-        core_temperature = T_core,
-        calculated_insulation_temperature = T_ins,
+        core_temperature,
+        calculated_insulation_temperature = insulation_temperature,
         compressed_insulation_temperature,
     )
-    T_skin_from_heat_balance = mean_skin_temp_result.mean_skin_temperature
+    skin_temperature_from_heat_balance = mean_skin_temp_result.mean_skin_temperature
 
     # -------------------------------------------------------------------------
-    # Respiration with pant override (pure function of Q_gen and temperatures)
+    # Respiration with pant override
     # -------------------------------------------------------------------------
-    lung_temperature = (T_core + T_skin) / 2
+    lung_temperature = (core_temperature + skin_temperature) / 2
     resp_pars_effective = setproperties(resp_pars; pant)
     resp_out = respiration(
-        MetabolicRates(; metabolic = Q_gen, sum = Q_gen, minimum = minimum_metabolic_heat),
+        MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = minimum_metabolic_heat),
         resp_pars_effective,
         atmos_local,
         body.shape.mass,
@@ -529,14 +525,14 @@ function heat_balance(
     # Residuals — each equals zero at a valid steady-state heat balance
     # =========================================================================
 
-    residual_energy_balance = Q_gen + solar_flow -
+    residual_energy_balance = metabolic_heat_flow + solar_flow -
         respiration_heat_flow -
         skin_evaporation_heat_flow - insulation_evaporation_heat_flow -
         convection_heat_flow - radiation_heat_flow - conduction_heat_flow
 
-    residual_internal_conduction = (Q_gen - respiration_heat_flow) - net_metabolic_heat_internal
+    residual_internal_conduction = (metabolic_heat_flow - respiration_heat_flow) - net_metabolic_heat_internal
 
-    residual_skin_temperature = T_skin - T_skin_from_heat_balance
+    residual_skin_temperature = skin_temperature - skin_temperature_from_heat_balance
 
     return (;
         solar_heat_flow = solar_flow,

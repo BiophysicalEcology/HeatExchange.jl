@@ -1,5 +1,5 @@
 # Active thermoregulation solver (endotherms, thermogenic plants)
-# Finds the metabolic rate Q_gen that closes the heat budget at a fixed core temperature.
+# Finds the metabolic_heat_flow that closes the heat budget at a fixed core temperature.
 
 """
     SolveMetabolicRateOptions
@@ -22,9 +22,9 @@ end
 
 Solve for the metabolic rate that balances heat production with heat loss for an endotherm.
 
-Finds Q_gen at `metab_pars.core_temperature` by:
+Finds `metabolic_heat_flow` at `metab_pars.core_temperature` by:
 1. Solving skin and insulation surface temperatures iteratively per body side (via `_pack_sides`).
-2. Root-finding (zbrent) on the respiration heat balance to find Q_gen.
+2. Root-finding (zbrent) on the respiration heat balance.
 
 # Arguments
 - `o::Organism`: Organism with body geometry and traits
@@ -51,8 +51,8 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
 
     max_skin_temperature = max(temps_out[1].skin_temperature, temps_out[2].skin_temperature)
 
-    gen_d = temps_out[1].flows.net_generated
-    gen_v = temps_out[2].flows.net_generated
+    gen_d = temps_out[1].flows.net_metabolic
+    gen_v = temps_out[2].flows.net_metabolic
     dmult = sky_factor_ref + vegetation_factor_ref
     vmult = 1 - dmult
     flow_sum = gen_d * dmult + gen_v * vmult
@@ -80,7 +80,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             O2conversion=Kleiber1961(),
         ).balance)
 
-        generated_heat_flow = zbrent(
+        metabolic_heat_flow = zbrent(
             f,
             ustrip(u"W", flux_m1),
             ustrip(u"W", flux_m2),
@@ -88,7 +88,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
         ) * u"W"
 
         respiration_out = respiration(
-            MetabolicRates(; metabolic=generated_heat_flow, sum=flow_sum, minimum=minimum_flow),
+            MetabolicRates(; metabolic=metabolic_heat_flow, sum=flow_sum, minimum=minimum_flow),
             resp_pars,
             resp_atmos,
             side_bodies[2].shape.mass,
@@ -97,12 +97,12 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             gas_fractions=environment_pars.gas_fractions,
             O2conversion=Kleiber1961(),
         )
-        generated_heat_flow = respiration_out.generated_heat_flow
+        metabolic_heat_flow = respiration_out.metabolic_heat_flow
     else
-        generated_heat_flow = flow_sum
+        metabolic_heat_flow = flow_sum
         minimum_flow = metab_pars.metabolic_heat_flow
     end
 
     resp_out_for_assembly = opts.respire ? respiration_out : nothing
-    return _assemble_multisided_output(o, e, metab_pars.core_temperature, generated_heat_flow, resp_out_for_assembly, packed)
+    return _assemble_multisided_output(o, e, metab_pars.core_temperature, metabolic_heat_flow, resp_out_for_assembly, packed)
 end

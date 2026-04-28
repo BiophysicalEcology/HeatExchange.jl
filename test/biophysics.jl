@@ -25,7 +25,7 @@ using UnitfulMoles
 
     # Positive heat loss when leaf is warmer and drier than air
     @test out.evaporation_heat_flow > 0.0u"W"
-    @test out.transpiration_water_loss > 0.0u"g/s"
+    @test out.transpiration_mass_flow > 0.0u"g/s"
 
     # Stomata fully closed → much less transpiration than open stomata
     leaf_pars_closed = LeafEvaporationParameters(;
@@ -34,7 +34,7 @@ using UnitfulMoles
         cuticular_conductance      = 0.01u"mol/m^2/s",
     )
     out_closed = evaporation(leaf_pars_closed, mass_windy, atmos, area, surface_temperature, air_temperature)
-    @test out_closed.transpiration_water_loss < out.transpiration_water_loss
+    @test out_closed.transpiration_mass_flow < out.transpiration_mass_flow
     @test out_closed.evaporation_heat_flow > 0.0u"W"
 
     # Less boundary layer transport (calmer conditions) → less evaporation
