@@ -325,11 +325,19 @@ end
                   metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
 
 Evaluate heat-balance constraint residuals for the two-sided NLP formulation.
-Calls the 4-arg `heat_balance` once for each body side.
+Calls the 4-arg `heat_balance` once for each body side, then assembles five residuals:
+
+- residuals[1,2]: dorsal surface energy balance and skin temperature
+- residuals[3,4]: ventral surface energy balance and skin temperature
+- residuals[5]:   whole-organism balance (metabolic − respiration = weighted net internal heat flow)
+
+The per-side surface residuals are `residual_energy_balance − residual_internal_conduction`,
+which algebraically cancels metabolic and respiration and leaves pure surface physics:
+`solar − surface_losses + net_metabolic_internal = 0`. Respiration is counted once via
+residuals[5], matching the validated `solve_temperature(::MultiSided, ...)` root criterion.
 
 Returns `(; residuals, heat_flows_dorsal, heat_flows_ventral, trial_body_d, trial_body_v, trial_ins_pars)`.
-`residuals` is a 6-tuple: dorsal (energy_balance, internal_conduction, skin_temperature),
-ventral (energy_balance, internal_conduction, skin_temperature).
+`residuals` is a 5-tuple: `(dorsal_surface, dorsal_skin, ventral_surface, ventral_skin, whole_organism)`.
 """
 function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
         metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
@@ -376,10 +384,27 @@ function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_tem
         k_flesh, pant, skin_wetness,
     )
 
+    # Dorsal/ventral weights (sky+vegetation facing = dorsal; remainder = ventral)
+    dmult = pp.sky_factor_ref + pp.vegetation_factor_ref
+    vmult = 1 - dmult
+
+    # Per-side surface balance: residual_energy_balance − residual_internal_conduction
+    # = solar − surface_losses + net_metabolic_internal (no metabolic or respiration terms)
+    dorsal_surface_balance  = balance_d.residual_energy_balance - balance_d.residual_internal_conduction
+    ventral_surface_balance = balance_v.residual_energy_balance - balance_v.residual_internal_conduction
+
+    # Whole-organism: metabolic − respiration = weighted mean of per-side internal heat flow to skin
+    # respiration_heat_flow is identical on both sides (same pant + metabolic_heat_flow inputs)
+    whole_organism_balance = metabolic_heat_flow - balance_d.respiration_heat_flow -
+        (balance_d.net_metabolic_heat_internal * dmult + balance_v.net_metabolic_heat_internal * vmult)
+
     return (;
         residuals = (
-            balance_d.residual_energy_balance, balance_d.residual_internal_conduction, balance_d.residual_skin_temperature,
-            balance_v.residual_energy_balance, balance_v.residual_internal_conduction, balance_v.residual_skin_temperature,
+            dorsal_surface_balance,
+            balance_d.residual_skin_temperature,
+            ventral_surface_balance,
+            balance_v.residual_skin_temperature,
+            whole_organism_balance,
         ),
         heat_flows_dorsal  = balance_d,
         heat_flows_ventral = balance_v,
@@ -532,18 +557,15 @@ end
 """
     nlp_assemble_output(p::MultiSidedNLPPacked, organism, environment,
                         core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
-                        metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio,
-                        respiration_out)
+                        metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
 
 Assemble `(; thermoregulation, morphology, energy_flows, mass_flows)` from a converged
-MultiSidedNLP solution. `respiration_out` is the result of a `respiration(...)` call
-computed by the caller (BiophysicalBehaviour.jl), or `nothing` when respiration is disabled.
+MultiSidedNLP solution. Respiration is computed internally from packed parameters.
 Output field structure matches `solve_metabolic_rate`, including per-side sub-fields.
 """
 function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environment,
         core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
-        metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio,
-        respiration_out)
+        metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
     pp = p.p
     env_vars = environment.environment_vars
 
@@ -567,6 +589,20 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     insulation_temperature = dorsal_insulation_temperature  * dmult + ventral_insulation_temperature  * vmult
     lung_temperature       = (core_temperature + skin_temperature) / 2
 
+    # Respiration mass flows at solution
+    panting_resp_pars  = setproperties(pp.resp_pars; pant)
+    respiration_result = respiration(
+        MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = zero(metabolic_heat_flow)),
+        panting_resp_pars,
+        pp.side_env_vars_d.atmos,
+        sol_body_d.shape.mass,
+        lung_temperature,
+        env_vars.air_temperature;
+        gas_fractions = pp.side_env_vars_d.gas_fractions,
+        O2conversion  = Kleiber1961(),
+    )
+    respiration_heat_flow = hf_d.respiration_heat_flow
+
     # Longwave flows (Stefan-Boltzmann at per-side insulation surface temperatures)
     σ                    = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     sol_total_area       = BiophysicalGeometry.total_area(sol_body_d)
@@ -578,14 +614,10 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     longwave_flow_out    = dorsal_lw_out * dmult + ventral_lw_out * vmult
     longwave_flow_in     = dorsal_lw_in  * dmult + ventral_lw_in  * vmult
 
-    # Respiration
-    (; respiration_heat_flow, respiration_mass_flow, air_flow, oxygen_flow_standard,
-       molar_fluxes_in, molar_fluxes_out) = _unpack_respiration(respiration_out)
-
     latent_heat_vap = enthalpy_of_vaporisation(env_vars.air_temperature)
-    m_sweat = u"g/hr"((hf_d.skin_evaporation_heat_flow + hf_v.skin_evaporation_heat_flow) * 0.5 /
+    m_sweat = u"g/hr"((hf_d.skin_evaporation_heat_flow * dmult + hf_v.skin_evaporation_heat_flow * vmult) /
                        latent_heat_vap)
-    m_evap  = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + m_sweat) : u"g/hr"(m_sweat)
+    m_evap  = u"g/hr"(respiration_result.respiration_mass_flow + m_sweat)
 
     evaporation_heat_flow =
         hf_d.skin_evaporation_heat_flow       * dmult + hf_v.skin_evaporation_heat_flow       * vmult +
@@ -695,13 +727,13 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     )
 
     mass_flows = (;
-        air_flow,
-        oxygen_flow_standard,
+        air_flow             = respiration_result.air_flow,
+        oxygen_flow_standard = respiration_result.oxygen_flow_standard,
         m_evap,
-        respiration_mass_flow,
+        respiration_mass_flow = respiration_result.respiration_mass_flow,
         m_sweat,
-        molar_fluxes_in,
-        molar_fluxes_out,
+        molar_fluxes_in  = respiration_result.molar_fluxes_in,
+        molar_fluxes_out = respiration_result.molar_fluxes_out,
     )
 
     return (; thermoregulation, morphology, energy_flows, mass_flows)
