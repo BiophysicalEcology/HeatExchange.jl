@@ -316,7 +316,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
     insulation_conductivity_compressed = insulation_final.conductivity_compressed
 
     lung_temperature = (core_temperature + skin_temperature) * 0.5
-    shape_b = o.body.shape isa Sphere ? 1.0 : o.body.shape.axis_ratio_b
+    axis_ratio_b = o.body.shape isa Sphere ? 1.0 : o.body.shape.axis_ratio_b
 
     heat_balance_val = solar_flow + longwave_flow_in + metabolic_heat_flow -
         longwave_flow_out - convection_heat_flow - evaporation_heat_flow - conduction_flow
@@ -327,7 +327,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
         insulation_temperature,
         lung_temperature,
         insulation_depth,
-        shape_b,
+        axis_ratio_b,
         pant               = resp_pars.pant,
         skin_wetness       = evap_pars.skin_wetness,
         flesh_conductivity = internal_conduction.flesh_conductivity,
