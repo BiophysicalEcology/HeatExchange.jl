@@ -266,14 +266,14 @@ molar_fluxes_out = resp_out.molar_fluxes_out
 @test u"mol/s"(molar_fluxes_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
 @test u"mol/s"(molar_fluxes_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
 @test resp_out.respiration_heat_flow ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
-@test resp_out.respiration_mass ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
+@test resp_out.respiration_mass_flow ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
 respiration_heat_flow = resp_out.respiration_heat_flow
-net_generated_heat_flow = metabolic_heat_flow - respiration_heat_flow
-specific_generated_heat_flow = net_generated_heat_flow / geometry.geometry.volume
+net_metabolic_heat_flow = metabolic_heat_flow - respiration_heat_flow
+specific_metabolic_heat_flow = net_metabolic_heat_flow / geometry.geometry.volume
 
 # compute skin and lung temperature
-(; surface_temperature, lung_temperature) = surface_and_lung_temperature(; body=geometry, flesh_conductivity, specific_metabolic_heat_production=specific_generated_heat_flow, core_temperature)
+(; surface_temperature, lung_temperature) = surface_and_lung_temperature(; body=geometry, flesh_conductivity, specific_metabolic_heat_production=specific_metabolic_heat_flow, core_temperature)
 skin_temperature = surface_temperature  # alias for later use
 
 # test lung temperature
@@ -322,12 +322,12 @@ conv_out = convection(;
     gas_fractions,
     convection_enhancement,
 )
-convection_heat_flow = conv_out.heat_flow
+convection_heat_flow = conv_out.convection_flow
 
 # evaporation
 evap_pars_test = AnimalEvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction=1.0)
 atmos_test = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
-evap_out = evaporation(evap_pars_test, conv_out.mass, atmos_test, A_convection, skin_temperature, air_temperature; water_potential=ψ_org, gas_fractions)
+evap_out = evaporation(evap_pars_test, conv_out.mass_transfer_coefficient, atmos_test, A_convection, skin_temperature, air_temperature; water_potential=ψ_org, gas_fractions)
 evaporation_heat_flow = evap_out.evaporation_heat_flow
 
 # energy balance test
@@ -449,8 +449,8 @@ molar_fluxes_out = heat_balance_out.respiration_out.molar_fluxes_out
 @test u"mol/s"(molar_fluxes_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
 @test u"mol/s"(molar_fluxes_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
 @test heat_balance_out.respiration_out.respiration_heat_flow ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
-@test heat_balance_out.respiration_out.respiration_mass ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
+@test heat_balance_out.respiration_out.respiration_mass_flow ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
-@test heat_balance_out.evaporation_out.m_cut ≈ (ecto_output.WCUT)u"g/s" rtol=1e-4 # TODO check if this can be better
-@test heat_balance_out.evaporation_out.m_eyes ≈ (ecto_output.WEYES)u"g/s" rtol=1e-4 # TODO check if this can be better
+@test heat_balance_out.evaporation_out.cutaneous_mass_flow ≈ (ecto_output.WCUT)u"g/s" rtol=1e-4 # TODO check if this can be better
+@test heat_balance_out.evaporation_out.eyes_mass_flow ≈ (ecto_output.WEYES)u"g/s" rtol=1e-4 # TODO check if this can be better
 @test heat_balance_out.evaporation_out.evaporation_heat_flow ≈ (ecto_output.QEVAP)u"W" rtol=1e-4 # TODO check if this can be better

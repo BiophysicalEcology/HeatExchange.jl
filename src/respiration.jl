@@ -17,7 +17,7 @@ given gas concentrations, pressure, respiration rate and humidity.
 - `O2conversion::OxygenJoulesConversion`: Model to convert O2 to Watts
 
 # Returns
-NamedTuple with balance, respiration_heat_flow, respiration_mass, generated_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes
+NamedTuple with balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes
 """
 function respiration(
     rates::MetabolicRates,
@@ -81,7 +81,7 @@ function respiration(
     # moles/s lost by breathing:
     water_evaporated = water_out - water_in
     # grams/s lost by breathing = moles lost * gram molecular weight of water:
-    respiration_mass = water_evaporated * 18u"g/mol"
+    respiration_mass_flow = water_evaporated * 18u"g/mol"
 
     # putting a cap on water loss for small animals in very cold conditions
     # by assuming they will seek more moderate conditions if they exceed
@@ -95,7 +95,7 @@ function respiration(
     # 2.22e-03*
     # (edwards & haines 1978. j. comp. physiol. 128: 177-184 in welch 1980)
     # for a 0.01 kg animal, the max. rate would be 1.67 x 10^-6 g/s
-    respiration_mass = min(respiration_mass, (2.22E-03 * ustrip(u"kg", mass) * 15)u"g/s")
+    respiration_mass_flow = min(respiration_mass_flow, (2.22E-03 * ustrip(u"kg", mass) * 15)u"g/s")
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
     latent_heat_vaporisation = enthalpy_of_vaporisation(lung_temperature)
@@ -104,10 +104,10 @@ function respiration(
     (; specific_heat) = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions)
     specific_heat_capacity = specific_heat
     sensible_heat_flow = specific_heat_capacity * air_in * molar_mass_air * (air_temperature - lung_temperature)
-    respiration_heat_flow = uconvert(u"W", latent_heat_vaporisation * respiration_mass) - sensible_heat_flow
+    respiration_heat_flow = uconvert(u"W", latent_heat_vaporisation * respiration_mass_flow) - sensible_heat_flow
     net_heat_flow_check = metabolic_heat_flow - respiration_heat_flow
     balance = net_heat_flow_check - heat_flow_sum
     molar_fluxes_in = MolarFluxes(air_in, water_in, oxygen_in, carbon_dioxide_in, nitrogen_in)
     molar_fluxes_out = MolarFluxes(air_out, water_out, oxygen_out, carbon_dioxide_out, nitrogen_out)
-    return (; balance, respiration_heat_flow, respiration_mass, generated_heat_flow=metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes_in, molar_fluxes_out)
+    return (; balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes_in, molar_fluxes_out)
 end

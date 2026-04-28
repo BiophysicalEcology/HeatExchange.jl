@@ -114,7 +114,7 @@ for shape_number in 1:4
             )
         end
 
-        fat = Fat(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
+        fat = FatLayer(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
         mean_insulation_depth =
             (endo_input.ZFURD * (1 - endo_input.PVEN) + endo_input.ZFURV * endo_input.PVEN)u"m"
         mean_fibre_diameter = (
@@ -122,7 +122,7 @@ for shape_number in 1:4
         )u"m"
         mean_fibre_density =
             (endo_input.RHOD * (1 - endo_input.PVEN) + endo_input.RHOV * endo_input.PVEN)u"1/m^2"
-        fur = Fur(mean_insulation_depth, mean_fibre_diameter, mean_fibre_density)
+        fur = FibrousLayer(mean_insulation_depth, mean_fibre_diameter, mean_fibre_density)
         geometry = Body(shape_pars, CompositeInsulation(fur, fat))
 
         environment_vars = EnvironmentalVars(;
@@ -279,19 +279,19 @@ for shape_number in 1:4
         @testset "endotherm thermoregulation comparisons" begin
             @test treg_output_vec.TC ≈ ustrip(u"°C", thermoregulation.core_temperature) rtol = rtol
             @test treg_output_vec.TLUNG ≈ ustrip(u"°C", thermoregulation.lung_temperature) rtol = rtol
-            @test treg_output_vec.TSKIN_D ≈ ustrip(u"°C", thermoregulation.skin_temperature_dorsal) rtol =
+            @test treg_output_vec.TSKIN_D ≈ ustrip(u"°C", thermoregulation.dorsal.skin_temperature) rtol =
                 rtol
-            @test treg_output_vec.TSKIN_V ≈ ustrip(u"°C", thermoregulation.skin_temperature_ventral) rtol =
+            @test treg_output_vec.TSKIN_V ≈ ustrip(u"°C", thermoregulation.ventral.skin_temperature) rtol =
                 rtol
             @test treg_output_vec.TFA_D ≈
-                ustrip(u"°C", thermoregulation.insulation_temperature_dorsal) rtol = rtol
+                ustrip(u"°C", thermoregulation.dorsal.insulation_temperature) rtol = rtol
             @test treg_output_vec.TFA_V ≈
-                ustrip(u"°C", thermoregulation.insulation_temperature_ventral) rtol = rtol
+                ustrip(u"°C", thermoregulation.ventral.insulation_temperature) rtol = rtol
             if insulation_test > 0.0u"m"
                 @test treg_output_vec.K_FUR_D ≈
-                    ustrip(u"W/m/K", thermoregulation.insulation_conductivity_dorsal) rtol = rtol
+                    ustrip(u"W/m/K", thermoregulation.dorsal.insulation_conductivity) rtol = rtol
                 @test treg_output_vec.K_FUR_V ≈
-                    ustrip(u"W/m/K", thermoregulation.insulation_conductivity_ventral) rtol = rtol
+                    ustrip(u"W/m/K", thermoregulation.ventral.insulation_conductivity) rtol = rtol
             end
             @test treg_output_vec.K_FUR_EFF ≈
                 ustrip(u"W/m/K", thermoregulation.insulation_conductivity_effective) rtol = rtol
@@ -358,7 +358,7 @@ for shape_number in 1:4
             @test enbal_output_vec.QSOL ≈ ustrip(u"W", energy_flows.solar_flow) rtol = rtol
             @test enbal_output_vec.QIRIN ≈ ustrip(u"W", energy_flows.longwave_flow_in) rtol =
                 rtol
-            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_flows.generated_heat_flow) rtol = rtol * 10
+            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_flows.metabolic_heat_flow) rtol = rtol * 10
             @test QEVAP ≈ ustrip(u"W", energy_flows.evaporation_heat_flow) rtol = rtol
             @test enbal_output_vec.QIROUT ≈ ustrip(u"W", energy_flows.longwave_flow_out) rtol =
                 rtol
@@ -380,7 +380,7 @@ for shape_number in 1:4
                     rtol
                 @test masbal_output_vec.O2_L ≈ ustrip(u"L/hr", mass_flows.oxygen_flow_standard) rtol =
                     rtol
-                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_flows.respiration_mass) rtol =
+                @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_flows.respiration_mass_flow) rtol =
                     rtol
                 @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_flows.m_sweat) rtol =
                     rtol

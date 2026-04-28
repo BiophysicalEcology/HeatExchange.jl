@@ -27,10 +27,10 @@ end
 # Private helpers
 # ---------------------------------------------------------------------------
 
-# Rebuild a trial body from piloerection (insulation_depth) and postural (shape_b) effectors.
-function _nlp_rebuild_side_body(base_shape, body_is_sphere, fat, fibre_props, insulation_depth, shape_b)
-    trial_shape = body_is_sphere ? base_shape : setproperties(base_shape; b = shape_b)
-    trial_fur   = Fur(insulation_depth, fibre_props.diameter, fibre_props.density)
+# Rebuild a trial body from piloerection (insulation_depth) and postural (aspect_ratio) effectors.
+function _nlp_rebuild_side_body(base_shape, body_is_sphere, fat, fibre_props, insulation_depth, aspect_ratio)
+    trial_shape = body_is_sphere ? base_shape : setproperties(base_shape; axis_ratio_b = aspect_ratio)
+    trial_fur   = FibrousLayer(insulation_depth, fibre_props.diameter, fibre_props.density)
     return Body(trial_shape, CompositeInsulation(trial_fur, fat))
 end
 
@@ -39,7 +39,7 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    nlp_pack(::WeightedMeanNLP, organism, environment, T_skin_init, T_ins_init)
+    nlp_pack(::WeightedMeanNLP, organism, environment, initial_skin_temperature, initial_insulation_temperature)
 
 Pack all fixed physics parameters for the weighted-mean single-body NLP formulation.
 Mirrors the pre-IPOPT setup in `thermoregulate` (lines 64–175 of the legacy
@@ -47,7 +47,8 @@ BiophysicalBehaviour.jl code) using only HeatExchange functions.
 
 Returns a `WeightedMeanNLPPacked` whose `p` field carries the packed parameters.
 """
-function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, T_skin_init, T_ins_init)
+function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, initial_skin_temperature, 
+        initial_insulation_temperature)
     env_pars = stripparams(environment.environment_pars)
     env_vars = environment.environment_vars
 
@@ -58,8 +59,8 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, T_skin_ini
     evap_pars  = evaporation_pars(organism)
     resp_pars  = respiration_pars(organism)
 
-    T_air        = env_vars.air_temperature
-    T_vegetation = env_vars.reference_air_temperature
+    air_temperature        = env_vars.air_temperature
+    vegetation_temperature = env_vars.reference_air_temperature
 
     # View-factor geometry (mirrors _pack_sides and solve_metabolic_rate)
     vegetation_view_factor = rad_pars.sky_view_factor * env_vars.shade
@@ -71,7 +72,7 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, T_skin_ini
     ventral_fraction       = rad_pars.ventral_fraction
 
     # Mean-weighted insulation geometry
-    fat = Fat(int_cond.fat_fraction, int_cond.fat_density)
+    fat = FatLayer(int_cond.fat_fraction, int_cond.fat_density)
 
     mean_depth       = ins_pars.dorsal.depth       * dorsal_weight + ins_pars.ventral.depth       * ventral_weight
     mean_diameter    = ins_pars.dorsal.diameter    * dorsal_weight + ins_pars.ventral.diameter    * ventral_weight
@@ -94,7 +95,7 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, T_skin_ini
         depth_compressed        = ins_pars.depth_compressed,
         longwave_depth_fraction = ins_pars.longwave_depth_fraction,
     )
-    mean_fur  = Fur(mean_depth, mean_diameter, mean_density)
+    mean_fur  = FibrousLayer(mean_depth, mean_diameter, mean_density)
     mean_body = Body(organism.body.shape, CompositeInsulation(mean_fur, fat))
 
     # Solar heat flows
@@ -108,7 +109,7 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, T_skin_ini
                                      solar_conds, reference_silhouette_area, reference_conduction_area)
 
     if solar_result.solar_flow > 0.0u"W"
-        dorsal_solar_flow  = 2.0 * solar_result.direct_flow + solar_result.solar_sky_flow * 2.0
+        dorsal_solar_flow  = 2.0 * solar_result.solar_direct_flow + solar_result.solar_sky_flow * 2.0
         ventral_solar_flow = (solar_result.solar_substrate_flow /
                               (1.0 - sky_view_factor - vegetation_view_factor)) *
                              (1.0 - 2.0 * ext_cond.conduction_fraction)
@@ -133,12 +134,12 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, T_skin_ini
                                env_pars.conduction_depth * ventral_weight
 
     # Pack environment and traits for heat_balance
-    mean_ins_temperature_init = T_ins_init * 0.7 + T_skin_init * 0.3
+    mean_ins_temperature_init = initial_insulation_temperature * 0.7 + initial_skin_temperature * 0.3
     insulation_props_init     = insulation_properties(mean_ins_pars, mean_ins_temperature_init, ventral_fraction)
 
     env_temperatures = EnvironmentTemperatures(
-        T_air, env_vars.sky_temperature, env_vars.ground_temperature,
-        T_vegetation, env_vars.bush_temperature, env_vars.substrate_temperature,
+        air_temperature, env_vars.sky_temperature, env_vars.ground_temperature,
+        vegetation_temperature, env_vars.bush_temperature, env_vars.substrate_temperature,
     )
     atmos = AtmosphericConditions(env_vars)
     heat_balance_env = (;
@@ -199,7 +200,7 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    nlp_pack(::MultiSidedNLP, organism, environment, T_skin_init, T_ins_init)
+    nlp_pack(::MultiSidedNLP, organism, environment, initial_skin_temperature, initial_insulation_temperature)
 
 Pack per-side physics parameters for the two-sided NLP formulation.
 Calls `_pack_sides` at the organism setpoint temperature to get initial temperature
@@ -207,7 +208,7 @@ guesses and per-side packed structures. No physics is duplicated.
 
 Returns a `MultiSidedNLPPacked` whose `p` field carries the packed parameters.
 """
-function nlp_pack(::MultiSidedNLP, organism::Organism, environment, T_skin_init, T_ins_init)
+function nlp_pack(::MultiSidedNLP, organism::Organism, environment, initial_skin_temperature, initial_insulation_temperature)
     env_pars = stripparams(environment.environment_pars)
     env_vars = environment.environment_vars
 
@@ -218,11 +219,11 @@ function nlp_pack(::MultiSidedNLP, organism::Organism, environment, T_skin_init,
     resp_pars = respiration_pars(organism)
     metab_pars = metabolism_pars(organism)
 
-    fat = Fat(int_cond.fat_fraction, int_cond.fat_density)
+    fat = FatLayer(int_cond.fat_fraction, int_cond.fat_density)
 
     # Call _pack_sides at the setpoint temperature to get initial guesses and
     # per-side packed structures (environment, traits, geometry_vars, bodies)
-    packed = _pack_sides(organism, environment, metab_pars.core_temperature, T_skin_init, T_ins_init)
+    packed = _pack_sides(organism, environment, metab_pars.core_temperature, initial_skin_temperature, initial_insulation_temperature)
 
     p = (;
         ins_pars,
@@ -250,10 +251,10 @@ function nlp_pack(::MultiSidedNLP, organism::Organism, environment, T_skin_init,
         side_geometry_vars_d   = packed.side_geometry_vars[1],
         side_geometry_vars_v   = packed.side_geometry_vars[2],
         # Initial temperature guesses from _pack_sides
-        initial_T_skin_d = packed.temps_out[1].skin_temperature,
-        initial_T_ins_d  = packed.temps_out[1].insulation_temperature,
-        initial_T_skin_v = packed.temps_out[2].skin_temperature,
-        initial_T_ins_v  = packed.temps_out[2].insulation_temperature,
+        initial_dorsal_skin_temperature = packed.temps_out[1].skin_temperature,
+        initial_dorsal_insulation_temperature  = packed.temps_out[1].insulation_temperature,
+        initial_ventral_skin_temperature = packed.temps_out[2].skin_temperature,
+        initial_ventral_insulation_temperature  = packed.temps_out[2].insulation_temperature,
     )
     return MultiSidedNLPPacked(p)
 end
@@ -263,27 +264,28 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    nlp_residuals(p::WeightedMeanNLPPacked, T_core, T_skin, T_ins, Q_gen,
-                  k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+    nlp_residuals(p::WeightedMeanNLPPacked, core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow,
+                  k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
 
 Evaluate heat-balance constraint residuals for the weighted-mean formulation.
-Rebuilds the trial body from `insulation_depth` and `shape_b`, then calls the
+Rebuilds the trial body from `insulation_depth` and `aspect_ratio`, then calls the
 existing 4-arg `heat_balance`. No physics is duplicated.
 
 Returns `(; residuals, heat_flows, trial_body, trial_ins_pars)`.
 `residuals` is a 3-tuple: `(energy_balance [W], internal_conduction [W], skin_temperature [K])`.
 """
-function nlp_residuals(p::WeightedMeanNLPPacked, T_core, T_skin, T_ins, Q_gen,
-        k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+function nlp_residuals(p::WeightedMeanNLPPacked, core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow,
+        k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
     pp = p.p
 
-    # Rebuild insulation and body from piloerection and shape_b effectors
+    # Rebuild insulation and body from piloerection and aspect_ratio effectors
     trial_fibre_props = setproperties(pp.mean_fibre_props; depth = insulation_depth)
     trial_ins_pars    = setproperties(pp.mean_ins_pars; dorsal = trial_fibre_props, ventral = trial_fibre_props)
-    trial_body        = _nlp_rebuild_side_body(pp.body_shape, pp.body_is_sphere, pp.fat, pp.mean_fibre_props, insulation_depth, shape_b)
+    trial_body        = _nlp_rebuild_side_body(pp.body_shape, pp.body_is_sphere, pp.fat, pp.mean_fibre_props, 
+                            insulation_depth, aspect_ratio)
 
     # Recompute temperature-dependent insulation properties
-    mean_ins_temperature  = T_ins * 0.7 + T_skin * 0.3
+    mean_ins_temperature  = insulation_temperature * 0.7 + skin_temperature * 0.3
     trial_insulation_props = insulation_properties(trial_ins_pars, mean_ins_temperature, pp.ventral_fraction)
 
     # Update conductance coefficient for new body size
@@ -292,7 +294,7 @@ function nlp_residuals(p::WeightedMeanNLPPacked, T_core, T_skin, T_ins, Q_gen,
     trial_geometry_vars    = setproperties(pp.geometry_vars; conductance_coefficient = trial_conduction_coeff)
 
     balance = heat_balance(
-        T_core, T_skin, T_ins, Q_gen;
+        core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow;
         body             = trial_body,
         insulation_pars  = trial_ins_pars,
         insulation       = trial_insulation_props,
@@ -319,8 +321,8 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    nlp_residuals(p::MultiSidedNLPPacked, T_core, T_skin_d, T_ins_d, T_skin_v, T_ins_v,
-                  Q_gen, k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+    nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
+                  metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
 
 Evaluate heat-balance constraint residuals for the two-sided NLP formulation.
 Calls the 4-arg `heat_balance` once for each body side.
@@ -329,8 +331,8 @@ Returns `(; residuals, heat_flows_dorsal, heat_flows_ventral, trial_body_d, tria
 `residuals` is a 6-tuple: dorsal (energy_balance, internal_conduction, skin_temperature),
 ventral (energy_balance, internal_conduction, skin_temperature).
 """
-function nlp_residuals(p::MultiSidedNLPPacked, T_core, T_skin_d, T_ins_d, T_skin_v, T_ins_v,
-        Q_gen, k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
+        metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
     pp = p.p
 
     # Update insulation depth for both sides (shared depth effector)
@@ -339,12 +341,12 @@ function nlp_residuals(p::MultiSidedNLPPacked, T_core, T_skin_d, T_ins_d, T_skin
     trial_ins_pars      = setproperties(pp.ins_pars; dorsal = trial_dorsal_fibre, ventral = trial_ventral_fibre)
 
     # Per-side bodies (use side-specific fibre diameter and density)
-    trial_body_d = _nlp_rebuild_side_body(pp.body_shape, pp.body_is_sphere, pp.fat, pp.ins_pars.dorsal,  insulation_depth, shape_b)
-    trial_body_v = _nlp_rebuild_side_body(pp.body_shape, pp.body_is_sphere, pp.fat, pp.ins_pars.ventral, insulation_depth, shape_b)
+    trial_body_d = _nlp_rebuild_side_body(pp.body_shape, pp.body_is_sphere, pp.fat, pp.ins_pars.dorsal,  insulation_depth, aspect_ratio)
+    trial_body_v = _nlp_rebuild_side_body(pp.body_shape, pp.body_is_sphere, pp.fat, pp.ins_pars.ventral, insulation_depth, aspect_ratio)
 
     # Per-side insulation properties at current temperatures
-    trial_ins_props_d = insulation_properties(trial_ins_pars, T_ins_d * 0.7 + T_skin_d * 0.3, pp.ventral_fraction)
-    trial_ins_props_v = insulation_properties(trial_ins_pars, T_ins_v * 0.7 + T_skin_v * 0.3, pp.ventral_fraction)
+    trial_ins_props_d = insulation_properties(trial_ins_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pp.ventral_fraction)
+    trial_ins_props_v = insulation_properties(trial_ins_pars, ventral_insulation_temperature * 0.7 + ventral_skin_temperature * 0.3, pp.ventral_fraction)
 
     # Update ventral conductance coefficient for new body size (dorsal is always 0)
     trial_cond_area_v   = BiophysicalGeometry.total_area(trial_body_v) * pp.ext_cond.conduction_fraction * 2
@@ -352,7 +354,7 @@ function nlp_residuals(p::MultiSidedNLPPacked, T_core, T_skin_d, T_ins_d, T_skin
     trial_geom_vars_v   = setproperties(pp.side_geometry_vars_v; conductance_coefficient = trial_cond_coeff_v)
 
     balance_d = heat_balance(
-        T_core, T_skin_d, T_ins_d, Q_gen;
+        core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, metabolic_heat_flow;
         body             = trial_body_d,
         insulation_pars  = trial_ins_pars,
         insulation       = trial_ins_props_d,
@@ -363,7 +365,7 @@ function nlp_residuals(p::MultiSidedNLPPacked, T_core, T_skin_d, T_ins_d, T_skin
         k_flesh, pant, skin_wetness,
     )
     balance_v = heat_balance(
-        T_core, T_skin_v, T_ins_v, Q_gen;
+        core_temperature, ventral_skin_temperature, ventral_insulation_temperature, metabolic_heat_flow;
         body             = trial_body_v,
         insulation_pars  = trial_ins_pars,
         insulation       = trial_ins_props_v,
@@ -393,8 +395,8 @@ end
 
 """
     nlp_assemble_output(p::WeightedMeanNLPPacked, organism, environment,
-                        T_core, T_skin, T_ins, Q_gen,
-                        k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+                        core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow,
+                        k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
 
 Assemble `(; thermoregulation, morphology, energy_flows, mass_flows)` from a converged
 WeightedMeanNLP solution. Calls `nlp_residuals` once at the solution for final heat flows,
@@ -402,21 +404,21 @@ then delegates mass flows to `respiration` and geometry to BiophysicalGeometry f
 Output field structure matches `solve_metabolic_rate`.
 """
 function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, environment,
-        T_core, T_skin, T_ins, Q_gen, k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+        core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
     pp = p.p
     air_temperature = environment.environment_vars.air_temperature
 
-    r = nlp_residuals(p, T_core, T_skin, T_ins, Q_gen, k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+    r = nlp_residuals(p, core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
     hf          = r.heat_flows
     sol_body    = r.trial_body
     sol_ins_pars = r.trial_ins_pars
 
-    lung_temperature = (T_core + T_skin) / 2
+    lung_temperature = (core_temperature + skin_temperature) / 2
 
     # Respiration mass flows at solution
     panting_resp_pars  = setproperties(pp.resp_pars; pant)
     respiration_result = respiration(
-        MetabolicRates(; metabolic = Q_gen, sum = Q_gen, minimum = zero(Q_gen)),
+        MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = zero(metabolic_heat_flow)),
         panting_resp_pars,
         pp.heat_balance_env.atmos,
         sol_body.shape.mass,
@@ -427,50 +429,47 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
     )
     latent_heat_vap = enthalpy_of_vaporisation(air_temperature)
     m_sweat = u"g/hr"(hf.skin_evaporation_heat_flow / latent_heat_vap)
-    m_evap  = u"g/hr"(respiration_result.respiration_mass + m_sweat)
+    m_evap  = u"g/hr"(respiration_result.respiration_mass_flow + m_sweat)
 
     # Longwave flows (Stefan-Boltzmann at insulation surface)
     σ                    = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     sol_total_area       = BiophysicalGeometry.total_area(sol_body)
     sol_ventral_rad_area = sol_total_area * (1 - pp.ext_cond.conduction_fraction)
-    dorsal_lw_out        = _side_lw_out(pp.sky_view_factor,    pp.rad_pars.body_emissivity_dorsal,  sol_total_area,       T_ins, σ)
-    ventral_lw_out       = _side_lw_out(pp.ground_view_factor, pp.rad_pars.body_emissivity_ventral, sol_ventral_rad_area, T_ins, σ)
+    dorsal_lw_out        = _side_lw_out(pp.sky_view_factor,    pp.rad_pars.body_emissivity_dorsal,  sol_total_area,       insulation_temperature, σ)
+    ventral_lw_out       = _side_lw_out(pp.ground_view_factor, pp.rad_pars.body_emissivity_ventral, sol_ventral_rad_area, insulation_temperature, σ)
     longwave_flow_out    = dorsal_lw_out * pp.dorsal_weight + ventral_lw_out * pp.ventral_weight
     longwave_flow_in     = longwave_flow_out - hf.radiation_heat_flow
 
     # Insulation properties at solution temperatures
-    sol_ins_props = insulation_properties(sol_ins_pars, T_ins * 0.7 + T_skin * 0.3, pp.ventral_fraction)
-    sol_shape_b   = pp.body_is_sphere ? 1.0 : sol_body.shape.aspect_ratio_b
+    sol_ins_props = insulation_properties(sol_ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, pp.ventral_fraction)
+    sol_aspect_ratio   = pp.body_is_sphere ? 1.0 : sol_body.shape.axis_ratio_b
+
+    insulation_depth = sol_ins_pars.dorsal.depth * pp.dorsal_weight + sol_ins_pars.ventral.depth * pp.ventral_weight
 
     thermoregulation = (;
-        core_temperature               = T_core,
-        skin_temperature               = T_skin,
-        insulation_temperature         = T_ins,
+        core_temperature                   = core_temperature,
+        skin_temperature                   = skin_temperature,
+        insulation_temperature             = insulation_temperature,
         lung_temperature,
-        skin_temperature_dorsal        = T_skin,
-        skin_temperature_ventral       = T_skin,
-        insulation_temperature_dorsal  = T_ins,
-        insulation_temperature_ventral = T_ins,
-        shape_b                        = sol_shape_b,
+        insulation_depth,
+        aspect_ratio                       = sol_aspect_ratio,
         pant,
         skin_wetness,
-        flesh_conductivity             = k_flesh,
+        flesh_conductivity                 = k_flesh,
         insulation_conductivity_effective  = sol_ins_props.conductivities.average,
-        insulation_conductivity_dorsal     = sol_ins_props.conductivities.dorsal,
-        insulation_conductivity_ventral    = sol_ins_props.conductivities.ventral,
         insulation_conductivity_compressed = sol_ins_props.conductivity_compressed,
-        insulation_depth_dorsal  = sol_ins_pars.dorsal.depth,
-        insulation_depth_ventral = sol_ins_pars.ventral.depth,
         q10 = metabolism_pars(organism).q10,
         dorsal = (;
-            skin_temperature        = T_skin,
-            insulation_temperature  = T_ins,
+            skin_temperature        = skin_temperature,
+            insulation_temperature  = insulation_temperature,
             insulation_conductivity = sol_ins_props.conductivities.dorsal,
+            insulation_depth        = sol_ins_pars.dorsal.depth,
         ),
         ventral = (;
-            skin_temperature        = T_skin,
-            insulation_temperature  = T_ins,
+            skin_temperature        = skin_temperature,
+            insulation_temperature  = insulation_temperature,
             insulation_conductivity = sol_ins_props.conductivities.ventral,
+            insulation_depth        = sol_ins_pars.ventral.depth,
         ),
     )
 
@@ -502,7 +501,7 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
         solar_flow            = hf.solar_heat_flow,
         longwave_flow_in,
         longwave_flow_out,
-        generated_heat_flow   = Q_gen,
+        metabolic_heat_flow,
         respiration_heat_flow = hf.respiration_heat_flow,
         evaporation_heat_flow,
         convection_heat_flow  = hf.convection_heat_flow,
@@ -517,7 +516,7 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
         air_flow             = respiration_result.air_flow,
         oxygen_flow_standard = respiration_result.oxygen_flow_standard,
         m_evap,
-        respiration_mass     = respiration_result.respiration_mass,
+        respiration_mass_flow     = respiration_result.respiration_mass_flow,
         m_sweat,
         molar_fluxes_in  = respiration_result.molar_fluxes_in,
         molar_fluxes_out = respiration_result.molar_fluxes_out,
@@ -532,8 +531,8 @@ end
 
 """
     nlp_assemble_output(p::MultiSidedNLPPacked, organism, environment,
-                        T_core, T_skin_d, T_ins_d, T_skin_v, T_ins_v,
-                        Q_gen, k_flesh, pant, skin_wetness, insulation_depth, shape_b,
+                        core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
+                        metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio,
                         respiration_out)
 
 Assemble `(; thermoregulation, morphology, energy_flows, mass_flows)` from a converged
@@ -542,14 +541,14 @@ computed by the caller (BiophysicalBehaviour.jl), or `nothing` when respiration 
 Output field structure matches `solve_metabolic_rate`, including per-side sub-fields.
 """
 function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environment,
-        T_core, T_skin_d, T_ins_d, T_skin_v, T_ins_v,
-        Q_gen, k_flesh, pant, skin_wetness, insulation_depth, shape_b,
+        core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
+        metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio,
         respiration_out)
     pp = p.p
     env_vars = environment.environment_vars
 
-    r    = nlp_residuals(p, T_core, T_skin_d, T_ins_d, T_skin_v, T_ins_v,
-                          Q_gen, k_flesh, pant, skin_wetness, insulation_depth, shape_b)
+    r    = nlp_residuals(p, core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, ventral_skin_temperature, ventral_insulation_temperature,
+                          metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
     hf_d = r.heat_flows_dorsal
     hf_v = r.heat_flows_ventral
     sol_body_d   = r.trial_body_d
@@ -560,33 +559,33 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     vmult = 1 - dmult
 
     # Insulation properties at solution temperatures
-    sol_ins_props_d = insulation_properties(sol_ins_pars, T_ins_d * 0.7 + T_skin_d * 0.3, pp.ventral_fraction)
-    sol_ins_props_v = insulation_properties(sol_ins_pars, T_ins_v * 0.7 + T_skin_v * 0.3, pp.ventral_fraction)
+    sol_ins_props_d = insulation_properties(sol_ins_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pp.ventral_fraction)
+    sol_ins_props_v = insulation_properties(sol_ins_pars, ventral_insulation_temperature * 0.7 + ventral_skin_temperature * 0.3, pp.ventral_fraction)
 
     # Whole-organism weighted means
-    skin_temperature       = T_skin_d * dmult + T_skin_v * vmult
-    insulation_temperature = T_ins_d  * dmult + T_ins_v  * vmult
-    lung_temperature       = (T_core + skin_temperature) / 2
+    skin_temperature       = dorsal_skin_temperature * dmult + ventral_skin_temperature * vmult
+    insulation_temperature = dorsal_insulation_temperature  * dmult + ventral_insulation_temperature  * vmult
+    lung_temperature       = (core_temperature + skin_temperature) / 2
 
     # Longwave flows (Stefan-Boltzmann at per-side insulation surface temperatures)
     σ                    = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     sol_total_area       = BiophysicalGeometry.total_area(sol_body_d)
     sol_ventral_rad_area = sol_total_area * (1 - pp.ext_cond.conduction_fraction)
-    dorsal_lw_out        = _side_lw_out(pp.sky_factor_ref,    pp.rad_pars.body_emissivity_dorsal,  sol_total_area,       T_ins_d, σ)
-    ventral_lw_out       = _side_lw_out(pp.ground_factor_ref, pp.rad_pars.body_emissivity_ventral, sol_ventral_rad_area, T_ins_v, σ)
+    dorsal_lw_out        = _side_lw_out(pp.sky_factor_ref,    pp.rad_pars.body_emissivity_dorsal,  sol_total_area,       dorsal_insulation_temperature, σ)
+    ventral_lw_out       = _side_lw_out(pp.ground_factor_ref, pp.rad_pars.body_emissivity_ventral, sol_ventral_rad_area, ventral_insulation_temperature, σ)
     dorsal_lw_in         = dorsal_lw_out  - hf_d.radiation_heat_flow
     ventral_lw_in        = ventral_lw_out - hf_v.radiation_heat_flow
     longwave_flow_out    = dorsal_lw_out * dmult + ventral_lw_out * vmult
     longwave_flow_in     = dorsal_lw_in  * dmult + ventral_lw_in  * vmult
 
     # Respiration
-    (; respiration_heat_flow, respiration_mass, air_flow, oxygen_flow_standard,
+    (; respiration_heat_flow, respiration_mass_flow, air_flow, oxygen_flow_standard,
        molar_fluxes_in, molar_fluxes_out) = _unpack_respiration(respiration_out)
 
     latent_heat_vap = enthalpy_of_vaporisation(env_vars.air_temperature)
     m_sweat = u"g/hr"((hf_d.skin_evaporation_heat_flow + hf_v.skin_evaporation_heat_flow) * 0.5 /
                        latent_heat_vap)
-    m_evap  = !isnothing(respiration_mass) ? u"g/hr"(respiration_mass + m_sweat) : u"g/hr"(m_sweat)
+    m_evap  = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + m_sweat) : u"g/hr"(m_sweat)
 
     evaporation_heat_flow =
         hf_d.skin_evaporation_heat_flow       * dmult + hf_v.skin_evaporation_heat_flow       * vmult +
@@ -596,37 +595,34 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     # Whole-organism insulation properties
     insulation_final = insulation_properties(sol_ins_pars,
         insulation_temperature * 0.7 + skin_temperature * 0.3, pp.ventral_fraction)
-    sol_shape_b = pp.body_is_sphere ? 1.0 : sol_body_d.shape.aspect_ratio_b
+    sol_aspect_ratio = pp.body_is_sphere ? 1.0 : sol_body_d.shape.axis_ratio_b
+
+    insulation_depth = sol_ins_pars.dorsal.depth * dmult + sol_ins_pars.ventral.depth * vmult
 
     thermoregulation = (;
-        core_temperature               = T_core,
+        core_temperature                   = core_temperature,
         skin_temperature,
         insulation_temperature,
         lung_temperature,
-        skin_temperature_dorsal        = T_skin_d,
-        skin_temperature_ventral       = T_skin_v,
-        insulation_temperature_dorsal  = T_ins_d,
-        insulation_temperature_ventral = T_ins_v,
-        shape_b                        = sol_shape_b,
+        insulation_depth,
+        aspect_ratio                       = sol_aspect_ratio,
         pant,
         skin_wetness,
-        flesh_conductivity             = k_flesh,
+        flesh_conductivity                 = k_flesh,
         insulation_conductivity_effective  = insulation_final.conductivities.average,
-        insulation_conductivity_dorsal     = sol_ins_props_d.conductivities.average,
-        insulation_conductivity_ventral    = sol_ins_props_v.conductivities.average,
         insulation_conductivity_compressed = insulation_final.conductivity_compressed,
-        insulation_depth_dorsal  = sol_ins_pars.dorsal.depth,
-        insulation_depth_ventral = sol_ins_pars.ventral.depth,
         q10 = metabolism_pars(organism).q10,
         dorsal = (;
-            skin_temperature        = T_skin_d,
-            insulation_temperature  = T_ins_d,
+            skin_temperature        = dorsal_skin_temperature,
+            insulation_temperature  = dorsal_insulation_temperature,
             insulation_conductivity = sol_ins_props_d.conductivities.average,
+            insulation_depth        = sol_ins_pars.dorsal.depth,
         ),
         ventral = (;
-            skin_temperature        = T_skin_v,
-            insulation_temperature  = T_ins_v,
+            skin_temperature        = ventral_skin_temperature,
+            insulation_temperature  = ventral_insulation_temperature,
             insulation_conductivity = sol_ins_props_v.conductivities.average,
+            insulation_depth        = sol_ins_pars.ventral.depth,
         ),
     )
 
@@ -654,14 +650,14 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     solar_flow           = hf_d.solar_heat_flow * dmult + hf_v.solar_heat_flow * vmult
     convection_heat_flow = hf_d.convection_heat_flow * dmult + hf_v.convection_heat_flow * vmult
     conduction_flow      = hf_d.conduction_heat_flow * dmult + hf_v.conduction_heat_flow * vmult
-    heat_balance_val     = solar_flow + longwave_flow_in + Q_gen -
+    heat_balance_val     = solar_flow + longwave_flow_in + metabolic_heat_flow -
                            longwave_flow_out - convection_heat_flow - evaporation_heat_flow - conduction_flow
 
     energy_flows = (;
         solar_flow,
         longwave_flow_in,
         longwave_flow_out,
-        generated_heat_flow   = Q_gen,
+        metabolic_heat_flow,
         respiration_heat_flow,
         evaporation_heat_flow,
         convection_heat_flow,
@@ -674,7 +670,7 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
             solar                  = hf_d.solar_heat_flow,
             convection             = hf_d.convection_heat_flow,
             conduction             = hf_d.conduction_heat_flow,
-            net_generated          = hf_d.net_metabolic_heat_internal,
+            net_metabolic          = hf_d.net_metabolic_heat_internal,
             skin_evaporation       = hf_d.skin_evaporation_heat_flow,
             insulation_evaporation = hf_d.insulation_evaporation_heat_flow,
             longwave               = hf_d.radiation_heat_flow,
@@ -687,7 +683,7 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
             solar                  = hf_v.solar_heat_flow,
             convection             = hf_v.convection_heat_flow,
             conduction             = hf_v.conduction_heat_flow,
-            net_generated          = hf_v.net_metabolic_heat_internal,
+            net_metabolic          = hf_v.net_metabolic_heat_internal,
             skin_evaporation       = hf_v.skin_evaporation_heat_flow,
             insulation_evaporation = hf_v.insulation_evaporation_heat_flow,
             longwave               = hf_v.radiation_heat_flow,
@@ -702,7 +698,7 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
         air_flow,
         oxygen_flow_standard,
         m_evap,
-        respiration_mass,
+        respiration_mass_flow,
         m_sweat,
         molar_fluxes_in,
         molar_fluxes_out,

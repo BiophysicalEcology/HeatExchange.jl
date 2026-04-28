@@ -49,7 +49,7 @@ Calculate solar energy balance.
 - `conduction_fraction`: Fraction of body in contact with ground (default 0.0)
 
 # Returns
-NamedTuple with solar_flow, direct_flow, solar_sky_flow, solar_substrate_flow
+NamedTuple with solar_flow, solar_direct_flow, solar_sky_flow, solar_substrate_flow
 """
 function solar(
     body::AbstractBody,
@@ -82,7 +82,7 @@ function solar(
     diffuse_radiation = global_radiation * diffuse_fraction
     beam_radiation =
         zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
-    direct_flow = α_d * silhouette_area * beam_radiation * (1 - shade)
+    solar_direct_flow = α_d * silhouette_area * beam_radiation * (1 - shade)
     solar_sky_flow = α_d * F.sky * total_area * diffuse_radiation * (1 - shade)
     solar_substrate_flow =
         α_v *
@@ -91,9 +91,9 @@ function solar(
         (1 - α_g) *
         global_radiation *
         (1 - shade)
-    solar_flow = (direct_flow + solar_substrate_flow + solar_sky_flow)
+    solar_flow = (solar_direct_flow + solar_substrate_flow + solar_sky_flow)
 
-    return (; solar_flow, direct_flow, solar_sky_flow, solar_substrate_flow)
+    return (; solar_flow, solar_direct_flow, solar_sky_flow, solar_substrate_flow)
 end
 
 """
@@ -188,9 +188,9 @@ Calculate combined free and forced convective heat transfer for an organism.
 
 # Returns
 NamedTuple with:
-- `heat_flow`: Total convective heat loss
-- `heat::TransferCoefficients`: Heat transfer coefficients (combined, free, forced)
-- `mass::TransferCoefficients`: Mass transfer coefficients (combined, free, forced)
+- `convection_flow`: Total convective heat loss
+- `heat_transfer_coefficient::TransferCoefficients`: Heat transfer coefficients (combined, free, forced)
+- `mass_transfer_coefficient::TransferCoefficients`: Mass transfer coefficients (combined, free, forced)
 """
 function convection(;
     body,
@@ -259,11 +259,10 @@ function convection(;
     combined_sherwood_number = combined_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, combined
     combined_mass_transfer_coefficient = combined_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, combined
 
-    heat = TransferCoefficients(combined_heat_transfer_coefficient, free_heat_transfer_coefficient, forced_heat_transfer_coefficient)
-    mass = TransferCoefficients(combined_mass_transfer_coefficient, free_mass_transfer_coefficient, forced_mass_transfer_coefficient)
-    heat_flow = convection_flow
+    heat_transfer_coefficient = TransferCoefficients(combined_heat_transfer_coefficient, free_heat_transfer_coefficient, forced_heat_transfer_coefficient)
+    mass_transfer_coefficient = TransferCoefficients(combined_mass_transfer_coefficient, free_mass_transfer_coefficient, forced_mass_transfer_coefficient)
 
-    return (; heat_flow, heat, mass)
+    return (; convection_flow, heat_transfer_coefficient, mass_transfer_coefficient)
 end
 
 """
@@ -394,7 +393,7 @@ and vapor density gradient between surface and air.
 - `gas_fractions::GasFractions`: Gas fractions for air properties
 
 # Returns
-NamedTuple with evaporation_heat_flow, m_cut, m_eyes
+NamedTuple with evaporation_heat_flow, cutaneous_mass_flow, eyes_mass_flow
 """
 function evaporation(
     evap_pars::AnimalEvaporationParameters,
@@ -420,18 +419,18 @@ function evaporation(
     )
 
     # mass of water lost
-    m_eyes = mass.combined * effective_area_eye * (surface_vapour_density - air_vapour_density) # forced + free
+    eyes_mass_flow = mass.combined * effective_area_eye * (surface_vapour_density - air_vapour_density) # forced + free
     m_cut_bare = mass.combined * effective_area_bare * (surface_vapour_density - air_vapour_density) # forced + free
     m_cut_insulated = mass.free * effective_area_insulated * (surface_vapour_density - air_vapour_density) # free
-    m_cut = m_cut_bare + m_cut_insulated
+    cutaneous_mass_flow = m_cut_bare + m_cut_insulated
 
     # get latent heat of vapourisation and compute heat exchange due to evaporation
     latent_heat_vaporisation = enthalpy_of_vaporisation(air_temperature)
-    evaporation_heat_flow = Unitful.uconvert(u"W", (m_eyes + m_cut) * latent_heat_vaporisation)
+    evaporation_heat_flow = Unitful.uconvert(u"W", (eyes_mass_flow + cutaneous_mass_flow) * latent_heat_vaporisation)
     # convert from kg/s to g/s
-    m_eyes = uconvert(u"g/s", m_eyes)
-    m_cut = uconvert(u"g/s", m_cut)
-    return (; evaporation_heat_flow, m_cut, m_eyes)
+    eyes_mass_flow = uconvert(u"g/s", eyes_mass_flow)
+    cutaneous_mass_flow = uconvert(u"g/s", cutaneous_mass_flow)
+    return (; evaporation_heat_flow, cutaneous_mass_flow, eyes_mass_flow)
 end
 
 """
@@ -458,7 +457,7 @@ Stomatal conductances (mol/m²/s) are converted to m/s via the ideal gas relatio
 - `gas_fractions::GasFractions`: Gas fractions for air properties
 
 # Returns
-NamedTuple with evaporation_heat_flow, transpiration_water_loss
+NamedTuple with evaporation_heat_flow, transpiration_mass_flow
 """
 function evaporation(
     evap_pars::LeafEvaporationParameters,
@@ -496,10 +495,10 @@ function evaporation(
     )
 
     # transpiration mass flux and latent heat
-    transpiration_water_loss =
+    transpiration_mass_flow =
         effective_mass_transfer_coefficient * area * (surface_vapour_density - air_vapour_density)
     latent_heat_vaporisation = enthalpy_of_vaporisation(air_temperature)
-    evaporation_heat_flow = uconvert(u"W", transpiration_water_loss * latent_heat_vaporisation)
-    transpiration_water_loss = uconvert(u"g/s", transpiration_water_loss)
-    return (; evaporation_heat_flow, transpiration_water_loss)
+    evaporation_heat_flow = uconvert(u"W", transpiration_mass_flow * latent_heat_vaporisation)
+    transpiration_mass_flow = uconvert(u"g/s", transpiration_mass_flow)
+    return (; evaporation_heat_flow, transpiration_mass_flow)
 end

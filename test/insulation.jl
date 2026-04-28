@@ -31,8 +31,8 @@ shapeb = 2
 shape = Cylinder(mass, density, shapeb) # define shape as a Cylinder struct of type 'Shape' and give it required values
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
-fat = Fat(fat_fraction, fat_density)
-fur = Fur(
+fat = FatLayer(fat_fraction, fat_density)
+fur = FibrousLayer(
     insulation_out.fibres.average.depth,
     insulation_out.fibres.average.diameter,
     insulation_out.fibres.average.density,
@@ -52,8 +52,8 @@ silhouette = silhouette_area(body, θ)
 shape = Sphere(mass, density) # define shape as a Cylinder struct of type 'Shape' and give it required values
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
-fat = Fat(fat_fraction, fat_density)
-fur = Fur(
+fat = FatLayer(fat_fraction, fat_density)
+fur = FibrousLayer(
     insulation_out.fibres.average.depth,
     insulation_out.fibres.average.diameter,
     insulation_out.fibres.average.density,
@@ -67,8 +67,8 @@ body = Body(shape, CompositeInsulation(fur, fat))
 shape = Plate(mass, density, shapeb, shapeb) # define shape as a Cylinder struct of type 'Shape' and give it required values
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
-fat = Fat(fat_fraction, fat_density)
-fur = Fur(
+fat = FatLayer(fat_fraction, fat_density)
+fur = FibrousLayer(
     insulation_out.fibres.average.depth,
     insulation_out.fibres.average.diameter,
     insulation_out.fibres.average.density,
@@ -83,8 +83,8 @@ body = Body(shape, CompositeInsulation(fur, fat))
 shape = Ellipsoid(mass, density, shapeb, shapeb) # define shape as a Cylinder struct of type 'Shape' and give it required values
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
-fat = Fat(fat_fraction, fat_density)
-fur = Fur(
+fat = FatLayer(fat_fraction, fat_density)
+fur = FibrousLayer(
     insulation_out.fibres.average.depth,
     insulation_out.fibres.average.diameter,
     insulation_out.fibres.average.density,

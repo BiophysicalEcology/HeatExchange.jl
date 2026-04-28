@@ -53,8 +53,6 @@ export body,
     metabolism_pars,
     options
 
-export get_Tb
-
 export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 

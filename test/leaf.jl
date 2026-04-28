@@ -84,8 +84,8 @@ leaf = Organism(leaf_body, leaf_traits)
 
 # --- Tests ---
 
-T_leaf = (273.15 + 25.0)u"K"
-out = heat_balance(T_leaf, leaf, environment)
+leaf_temperature = (273.15 + 25.0)u"K"
+out = heat_balance(leaf_temperature, leaf, environment)
 
 @test isfinite(ustrip(out.heat_balance))        # heat_balance is finite
 @test isfinite(ustrip(out.surface_temperature)) # surface temperature computed
@@ -125,21 +125,21 @@ closed_traits = HeatExchangeTraits(
     SolveMetabolicRateOptions(),
 )
 leaf_closed = Organism(leaf_body, closed_traits)
-out_closed = heat_balance(T_leaf, leaf_closed, environment)
+out_closed = heat_balance(leaf_temperature, leaf_closed, environment)
 
 @test out_closed.mass_balance.transpiration_mass < out.mass_balance.transpiration_mass
 
 # solve_temperature should converge to a steady state
 eq_out = solve_temperature(leaf, environment)
-T_eq = eq_out.core_temperature
-@test isfinite(ustrip(T_eq))
-@test 273.0u"K" < T_eq < 370.0u"K"
+equilibrium_temperature = eq_out.core_temperature
+@test isfinite(ustrip(equilibrium_temperature))
+@test 273.0u"K" < equilibrium_temperature < 370.0u"K"
 
 # At steady state, heat_balance should be near zero
 @test abs(ustrip(u"W", eq_out.heat_balance)) < 1e-2   # within 0.01 W of zero
 
 # PlantDarkRespiration: metabolic rate at 25°C should be positive and small
 dark_resp = PlantDarkRespiration()
-resp_rate = metabolic_rate(dark_resp, leaf_mass, T_leaf)
+resp_rate = metabolic_rate(dark_resp, leaf_mass, leaf_temperature)
 @test resp_rate > 0.0u"W"
 @test resp_rate < 1.0u"W"   # a tiny leaf
