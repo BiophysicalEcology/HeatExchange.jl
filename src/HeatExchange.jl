@@ -107,6 +107,10 @@ export NLPStrategy, WeightedMeanNLP, MultiSidedNLP
 export WeightedMeanNLPPacked, MultiSidedNLPPacked
 export nlp_pack, nlp_residuals, nlp_assemble_output
 
+export SmoothingStrategy, HardBound, SmoothBound
+export safe_abs, safe_relu, safe_step, safe_max, safe_min, safe_clamp
+
+include("smoothing.jl")
 include("rootfinding.jl")
 include("organism.jl")
 include("traits.jl")

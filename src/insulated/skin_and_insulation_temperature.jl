@@ -1,14 +1,26 @@
 function _insulation_evaporation(conv, atmos, area_convection, insulation_temperature, air_temperature,
-                                  insulation_wetness, insulation_test; gas_fractions)
-    insulation_wetness > 0 && insulation_test > 0.0u"m" || return 0.0u"W"
+                                  insulation_wetness, insulation_test;
+                                  gas_fractions, smoothing::SmoothingStrategy=HardBound())
+    # Always evaluate the evaporation expression and gate by a numeric mask. With
+    # an early `|| return 0.0u"W"` the function's return type becomes a Union of
+    # {computed Quantity, literal 0.0u"W"}, which Enzyme's reverse-mode flags as
+    # EnzymeRuntimeActivityError. `safe_step` collapses to the exact ternary mask
+    # under HardBound and to a smooth Heaviside under SmoothBound.
     evap_pars_ins = AnimalEvaporationParameters(;
         skin_wetness = insulation_wetness,
         eye_fraction = 0.0,
         bare_skin_fraction = 1.0,
     )
     mass_ins = TransferCoefficients(conv.mass_transfer_coefficient.combined, conv.mass_transfer_coefficient.combined, conv.mass_transfer_coefficient.forced)
-    evaporation(evap_pars_ins, mass_ins, atmos, area_convection, insulation_temperature, air_temperature;
-                gas_fractions).evaporation_heat_flow
+    flow = evaporation(evap_pars_ins, mass_ins, atmos, area_convection, insulation_temperature, air_temperature;
+                       gas_fractions).evaporation_heat_flow
+    # scale=0.01 for wetness (typical 1e-3–5e-2 fraction);
+    # scale=1e-6u"m" for insulation_test — well below any nonzero physical value
+    # (≥3e-6 m for the thinnest realistic fur), so the Heaviside is essentially
+    # a step except in the structurally-zero "naked" case.
+    mask = safe_step(smoothing, insulation_wetness; scale=0.01) *
+           safe_step(smoothing, insulation_test;    scale=1.0e-6u"m")
+    return mask * flow
 end
 
 function _insulation_conductivity(insulation, insulation_pars, side, insulation_temperature, skin_temperature, longwave_depth_fraction, σ)

@@ -203,6 +203,7 @@ function convection(;
     gas_fractions::GasFractions=GasFractions(),
     convection_enhancement=1.0,
     characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
+    smoothing::SmoothingStrategy=HardBound(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
     characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
@@ -230,11 +231,14 @@ function convection(;
     else
         schmidt_number = dynamic_viscosity / (fluid_density * vapour_diffusivity)
     end
-    temperature_difference = surface_temperature - air_temperature
-    if temperature_difference <= 0.0u"K" # stability check - avoiding zero
-        temperature_difference = temperature_difference + 0.00001u"K"
-    end
-    grashof_number = abs(((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2))
+    # |ΔT| in the Grashof number. HardBound uses exact `abs`; SmoothBound replaces
+    # it with sqrt(ΔT² + (ε·scale)²) so Enzyme reverse-mode does not see a kink at
+    # ΔT = 0 (which produced NaN gradients when the optimiser landed there).
+    # scale = 1 K — typical ΔT during simulation is 1–50 K, so ε·1K stays below
+    # the meaningful signal at any sensible ε.
+    ΔT = surface_temperature - air_temperature
+    temperature_difference = safe_abs(smoothing, ΔT; scale=1.0u"K")
+    grashof_number = ((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2)
     reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
     free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)
     free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
