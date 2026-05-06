@@ -68,7 +68,7 @@ function _outer_insulation_thickness(ci::CompositeInsulation)
 end
 
 characteristic_dimension(::VolumeCubeRoot, body) =
-    body.geometry.volume^(1/3) + _outer_insulation_thickness(body.insulation)
+    cbrt(body.geometry.volume) + _outer_insulation_thickness(body.insulation)
 
 characteristic_dimension(sd::ScaledDimension, body) =
     sd.factor * getproperty(body.geometry.length, sd.dimension)

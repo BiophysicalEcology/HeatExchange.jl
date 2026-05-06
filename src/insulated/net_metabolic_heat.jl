@@ -67,7 +67,7 @@ function net_metabolic_heat(
 
     net_metabolic_heat_production = (core_temperature - skin_temperature) / (
             (ssqg / (2 * conductivities.flesh * volume)) +
-            (((((3 * ssqg)^0.5)^3) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bg * bs)))
+            (((sqrt(3 * ssqg)^3) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bg * bs)))
         )
     return net_metabolic_heat_production
 end

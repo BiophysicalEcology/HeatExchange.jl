@@ -83,7 +83,7 @@ function compressed_radiant_temperature(
     compression_fraction = (4 * π * insulation.conductivity_compressed * r_compressed) / (r_compressed - r_skin)
     geometric_divisor =
         1 +
-        ((compression_fraction * r_flesh^2.0) / (6 * conductivities.flesh * volume)) +
+        ((compression_fraction * r_flesh^2) / (6 * conductivities.flesh * volume)) +
         ((compression_fraction * r_flesh^3) / (3 * conductivities.fat * volume)) *
         ((r_skin - r_flesh) / (r_flesh * r_skin))
     compressed_insulation_temperature_calc1 = (compression_fraction / geometric_divisor) * core_temperature + conductance_coefficient * substrate_temperature
@@ -134,11 +134,11 @@ function compressed_radiant_temperature(
 
     compression_fraction =
         (3 * insulation.conductivity_compressed * volume * bl_compressed * bs) /
-        ((((3 * ssqg)^0.5)^3) * (bl - bs))
+        ((sqrt(3 * ssqg)^3) * (bl - bs))
     geometric_divisor =
         1 +
         ((compression_fraction * ssqg) / (2 * conductivities.flesh * volume)) +
-        ((compression_fraction * (((3 * ssqg)^0.5)^3)) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bs * bg))
+        ((compression_fraction * (sqrt(3 * ssqg)^3)) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bs * bg))
     compressed_insulation_temperature_calc1 = (compression_fraction / geometric_divisor) * core_temperature + conductance_coefficient * substrate_temperature
     compressed_insulation_temperature_calc2 = conductance_coefficient + compression_fraction / geometric_divisor
     compressed_insulation_temperature = compressed_insulation_temperature_calc1 / compressed_insulation_temperature_calc2

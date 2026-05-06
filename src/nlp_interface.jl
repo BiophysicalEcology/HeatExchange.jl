@@ -477,7 +477,7 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
         insulation_temperature             = insulation_temperature,
         lung_temperature,
         insulation_depth,
-        aspect_ratio                       = sol_aspect_ratio,
+        axis_ratio_b                       = sol_aspect_ratio,
         pant,
         skin_wetness,
         flesh_conductivity                 = k_flesh,
@@ -547,7 +547,7 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
         molar_fluxes_out = respiration_result.molar_fluxes_out,
     )
 
-    return (; thermoregulation, morphology, energy_flows, mass_flows)
+    return ThermoregulationOutput(thermoregulation, morphology, energy_flows, mass_flows)
 end
 
 # ---------------------------------------------------------------------------
@@ -637,7 +637,7 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
         insulation_temperature,
         lung_temperature,
         insulation_depth,
-        aspect_ratio                       = sol_aspect_ratio,
+        axis_ratio_b                       = sol_aspect_ratio,
         pant,
         skin_wetness,
         flesh_conductivity                 = k_flesh,
@@ -736,5 +736,5 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
         molar_fluxes_out = respiration_result.molar_fluxes_out,
     )
 
-    return (; thermoregulation, morphology, energy_flows, mass_flows)
+    return ThermoregulationOutput(thermoregulation, morphology, energy_flows, mass_flows)
 end

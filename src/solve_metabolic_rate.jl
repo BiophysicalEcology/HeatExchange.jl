@@ -2,6 +2,24 @@
 # Finds the metabolic_heat_flow that closes the heat budget at a fixed core temperature.
 
 """
+    ThermoregulationOutput(thermoregulation, morphology, energy_flows, mass_flows)
+
+Canonical return type for `solve_metabolic_rate` and the IPOPT/NLP path.
+Each field is a NamedTuple:
+
+- `thermoregulation`: temperature states and effector values at the solution.
+- `morphology`: body surface areas and geometric measures.
+- `energy_flows`: heat fluxes (solar, longwave, generated, evaporation, etc.).
+- `mass_flows`: respiration and sweat mass flows.
+"""
+struct ThermoregulationOutput{T, M, E, F}
+    thermoregulation::T
+    morphology::M
+    energy_flows::E
+    mass_flows::F
+end
+
+"""
     SolveMetabolicRateOptions
 
 Options controlling the endotherm metabolic rate solver.
