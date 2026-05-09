@@ -311,10 +311,6 @@ function nusselt_free(shape::Union{Sphere,Ellipsoid}, grashof_number, prandtl_nu
     #  from p.413 Bird et all (1960) Transport Phenomena
     rayleigh_number = (grashof_number ^ (1 / 4)) * (prandtl_number ^ (1 / 3))
     nusselt_number = 2.0 + 0.60 * rayleigh_number
-    if rayleigh_number ≥ 200.0
-        value = (grashof_number^(1/4)) * (prandtl_number^(1/3))
-        println("rayleigh_number = $rayleigh_number, (grashof_number^(1/4)) * (prandtl_number^(1/3)) = $value")
-    end
     return nusselt_number
 end
 

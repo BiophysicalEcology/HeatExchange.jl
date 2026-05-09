@@ -242,13 +242,13 @@ e = (; environment_pars, environment_vars)
 # heat_balance on a MultiSided organism raises MethodError — use solve_temperature instead
 @test_throws MethodError heat_balance(u"K"(30.0u"°C"), organism, e)
 
-# solve_temperature returns a rich NamedTuple with whole-organism and per-side results
+# solve_temperature returns a rich ThermoregulationOutput with whole-organism and per-side results
 result = solve_temperature(organism, e)
-@test result isa NamedTuple
-@test haskey(result, :thermoregulation)
-@test haskey(result, :energy_flows)
-@test haskey(result.energy_flows, :dorsal)
-@test haskey(result.energy_flows, :ventral)
-@test haskey(result.thermoregulation, :dorsal)
-@test haskey(result.thermoregulation, :ventral)
+@test result isa ThermoregulationOutput
+@test :thermoregulation in propertynames(result)
+@test :energy_flows in propertynames(result)
+@test :dorsal in propertynames(result.energy_flows)
+@test :ventral in propertynames(result.energy_flows)
+@test :dorsal in propertynames(result.thermoregulation)
+@test :ventral in propertynames(result.thermoregulation)
 @test u"K"(0.0u"°C") < result.thermoregulation.core_temperature < u"K"(80.0u"°C")

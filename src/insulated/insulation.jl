@@ -26,70 +26,75 @@ NamedTuple with:
   University of Wisconsin.
 """
 function insulation_thermal_conductivity(fibre::FibreProperties, air_conductivity; depth=nothing)
-    # Allow depth overrides when compressed
-    insulation_depth = isnothing(depth) ? fibre.depth : depth
-    density = fibre.density
+    # Canonicalise inputs to SI before any arithmetic. Otherwise
+    # `density * (fibre.length / insulation_depth)` carries the literal
+    # unit ratio of whichever inputs were used (e.g. mm/m gives a non-
+    # canonical FreeUnits) and every downstream type becomes call-site-
+    # dependent. Caller-side unit choices then make the whole function
+    # type-unstable from a downstream view.
+    insulation_depth = uconvert(u"m", isnothing(depth) ? fibre.depth : depth)
+    fibre_length     = uconvert(u"m", fibre.length)
+    fibre_diameter   = uconvert(u"m", fibre.diameter)
+    density          = uconvert(u"m^-2", fibre.density)
 
     w = 1.0  # weighting factor placeholder
 
     # Effective density (Conley & Porter 1986, p.254)
-    effective_density = density * (fibre.length / insulation_depth)
+    effective_density = density * (fibre_length / insulation_depth)
 
     # Distance between fibre centers (assuming uniform spacing)
     l_unit = 1.0 / sqrt(effective_density)
-    fibre_spacing = l_unit - fibre.diameter
+    fibre_spacing = l_unit - fibre_diameter
 
-    # Initialize variables
-    a_air = r_air = r_fibre = a_fibre = kx = ky = 0.0
+    # Resolve crowded-fibre case (no space between fibres) by re-deriving
+    # density from a hard-packed lattice. After this block both branches
+    # below produce the same unit types — the explicit uconvert casts
+    # restore the canonical FreeUnits ordering after the arithmetic, so
+    # the locals don't end up Union-typed across the join (dimension
+    # matches but FreeUnits ordering can differ, which is invisible to
+    # JET but trips Enzyme's reverse pass).
+    if fibre_spacing < 0.0u"m"
+        l_unit = fibre_diameter
+        effective_density = uconvert(u"m^-2", 1.0 / l_unit^2)
+        density = uconvert(u"m^-2", (effective_density * insulation_depth) / fibre_length)
+        fibre_spacing = l_unit - fibre_diameter
+    end
 
-    # Check for feasible fibre density/diameter
-    if fibre_spacing > 0.0u"m"
-        a_air = (w / 2.0) * (l_unit - fibre.diameter)
-        r_air = u"K*m*W^-1"(l_unit / (air_conductivity * a_air))
-        r_fibre = u"K*m*W^-1"(
-            (
-                (fibre.diameter * air_conductivity) +
-                (l_unit - fibre.diameter) * fibre.conductivity
-            ) / (w * fibre.diameter * fibre.conductivity * air_conductivity),
-        )
-        a_fibre = density * ((u"cm"(fibre.diameter) / 2.0)^2 * π)
-        kx = a_fibre * fibre.conductivity + (1.0 - a_fibre) * air_conductivity
-        ky = (2.0 / r_air) + (1.0 / r_fibre)
+    a_air = (w / 2.0) * (l_unit - fibre_diameter)
+    # Cast r_air, r_fibre to a fixed unit (K·m/W) in both branches —
+    # without the cast the two arms have different FreeUnits orderings,
+    # which makes ky / effective_conductivity / the whole return Union-typed.
+    r_air = if fibre_spacing > 0.0u"m"
+        u"K*m*W^-1"(l_unit / (air_conductivity * a_air))
     else
-        # No space between fibres — recalculate geometry
-        if fibre_spacing < 0.0u"m"
-            l_unit = fibre.diameter
-            effective_density = 1.0 / l_unit^2
-            density = (effective_density * insulation_depth) / fibre.length
-            fibre_spacing = l_unit - fibre.diameter
-        end
-
-        a_air = (w / 2.0) * (l_unit - fibre.diameter)
-        r_air =
-            2.0 /
-            (sqrt(effective_density) * air_conductivity * (l_unit - fibre.diameter) * w)
-        r_fibre =
-            (
-                fibre.diameter * air_conductivity +
-                (l_unit - fibre.diameter) * fibre.conductivity
-            ) / (w * fibre.diameter * fibre.conductivity * air_conductivity)
-        a_fibre = effective_density * ((fibre.diameter / 2.0)^2 * π)
-        kx = a_fibre * fibre.conductivity + (1.0 - a_fibre) * air_conductivity
-        ky = (2.0 / r_air) + (1.0 / r_fibre)
+        u"K*m*W^-1"(2.0 / (sqrt(effective_density) * air_conductivity * (l_unit - fibre_diameter) * w))
     end
-
-    # Effective thermal conductivity (eq. 3-28, Kowalski 1983)
-    effective_conductivity = (ky + kx) / 2.0
-
-    # Ensure air_conductivity < effective_conductivity < fibre.conductivity
-    if effective_conductivity > fibre.conductivity
-        effective_conductivity = fibre.conductivity
-    elseif effective_conductivity < air_conductivity
-        effective_conductivity = air_conductivity
+    r_fibre = u"K*m*W^-1"(
+        ((fibre_diameter * air_conductivity) + (l_unit - fibre_diameter) * fibre.conductivity) /
+        (w * fibre_diameter * fibre.conductivity * air_conductivity)
+    )
+    # `a_fibre` is the dimensionless fibre-cross-section fraction.
+    # NoUnits forces the result to plain Float64; without it the two
+    # branches return Quantity{NoDims, ...} with different FreeUnits
+    # orderings (cm-derived vs m-derived), making the local Union-typed.
+    a_fibre = if fibre_spacing > 0.0u"m"
+        NoUnits(density * (u"cm"(fibre_diameter) / 2.0)^2 * π)
+    else
+        NoUnits(effective_density * (fibre_diameter / 2.0)^2 * π)
     end
+    kx = a_fibre * fibre.conductivity + (1.0 - a_fibre) * air_conductivity
+    ky = (2.0 / r_air) + (1.0 / r_fibre)
+
+    # Effective thermal conductivity (eq. 3-28, Kowalski 1983).
+    # Cast to canonical W/m/K. The clamp below would otherwise mix three
+    # different FreeUnits orderings (computed `(ky+kx)/2`, fibre.conductivity,
+    # air_conductivity) and produce a Union return type.
+    effective_conductivity = u"W/m/K"((ky + kx) / 2.0)
+    effective_conductivity = clamp(effective_conductivity,
+        u"W/m/K"(air_conductivity), u"W/m/K"(fibre.conductivity))
 
     # Absorption and optical parameters
-    absorption_coefficient = (0.67 / π) * u"m^-2"(effective_density) * u"m"(fibre.diameter)
+    absorption_coefficient = (0.67 / π) * u"m^-2"(effective_density) * u"m"(fibre_diameter)
     optical_thickness_factor = absorption_coefficient * u"m"(insulation_depth)
 
     return (; effective_conductivity, absorption_coefficient, optical_thickness_factor)

@@ -67,6 +67,8 @@ export solve_metabolic_rate,
     solve_with_insulation!,
     solve_without_insulation!
 
+export ThermoregulationOutput
+
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
 export solve_temperatures, mean_skin_temperature, respiration

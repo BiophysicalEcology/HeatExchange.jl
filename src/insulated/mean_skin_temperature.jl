@@ -82,7 +82,7 @@ function mean_skin_temperature(
     else
         skin_temperature_calc1 =
             core_temperature - ((environment_flow * r_flesh^2) / (4 * conductivities.flesh * volume)) -
-            ((environment_flow * r_flesh^2.0) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
+            ((environment_flow * r_flesh^2) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
         skin_temperature_calc2 =
             (
                 ((environment_flow * r_flesh^2) / (2 * insulation.conductivity_compressed * volume)) *
@@ -113,7 +113,7 @@ function mean_skin_temperature(
     if conduction_fraction < 1
         skin_temperature_calc1 =
             core_temperature - (((environment_flow + skin_evaporation_flow) * r_flesh^2) / (6 * conductivities.flesh * volume)) -
-            (((environment_flow + skin_evaporation_flow) * r_flesh^3.0) / (3 * conductivities.fat * volume)) *
+            (((environment_flow + skin_evaporation_flow) * r_flesh^3) / (3 * conductivities.fat * volume)) *
             ((r_skin - r_flesh) / (r_skin * r_flesh))
         skin_temperature_calc2 =
             ((environment_flow * r_flesh^3) / (3 * conductances.total * volume * r_skin)) +
@@ -171,20 +171,20 @@ function mean_skin_temperature(
     if conduction_fraction < 1
         skin_temperature_calc1 =
             core_temperature - (((environment_flow + skin_evaporation_flow) * ssqg) / (2 * conductivities.flesh * volume)) -
-            (((environment_flow + skin_evaporation_flow) * (((3 * ssqg)^0.5)^3)) / (3 * conductivities.fat * volume)) *
+            (((environment_flow + skin_evaporation_flow) * (sqrt(3 * ssqg)^3)) / (3 * conductivities.fat * volume)) *
             ((bs - bg) / (bs * bg))
         skin_temperature_calc2 =
-            ((environment_flow * (((3 * ssqg)^0.5)^3)) / (3 * conductances.total * volume * bs)) +
+            ((environment_flow * (sqrt(3 * ssqg)^3)) / (3 * conductances.total * volume * bs)) +
             ((compressed_insulation_temperature * conductances.compressed) / conductances.total) +
             ((calculated_insulation_temperature * conductances.uncompressed) / conductances.total)
     else
         skin_temperature_calc1 =
             core_temperature - ((environment_flow * ssqg) / (2 * conductivities.flesh * volume)) -
-            ((environment_flow * (((3 * ssqg)^0.5)^3)) / (3 * conductivities.fat * volume)) *
+            ((environment_flow * (sqrt(3 * ssqg)^3)) / (3 * conductivities.fat * volume)) *
             ((bs - bg) / (bs * bg))
         skin_temperature_calc2 =
             (
-                ((environment_flow * (((3 * ssqg)^0.5)^3)) / (3 * insulation.conductivity_compressed * volume)) *
+                ((environment_flow * (sqrt(3 * ssqg)^3)) / (3 * insulation.conductivity_compressed * volume)) *
                 ((bl_compressed - bs) / (bl_compressed * bs))
             ) + compressed_insulation_temperature
     end

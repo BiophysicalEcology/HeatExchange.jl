@@ -286,18 +286,21 @@ function radiant_temperature(
     numerator_divisor =
         (bs / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) / br
 
+    # The two branches must return the same Quantity type. Without the
+    # uconvert and the matching unit on the `else` divisor, the if/else
+    # joined to a Union and Enzyme lost the ability to differentiate through.
     radiative_divisor = if longwave_depth_fraction < 1
         compressed_conductance + ((conductivities.insulation * bl) / (bl - br)) * (1 - conduction_fraction)
     else
-        1.0
+        oneunit(compressed_conductance)
     end
 
     radiant_temperature = if longwave_depth_fraction < 1
-        numerator_divisor / radiative_divisor +
-        (compressed_insulation_temperature * compressed_conductance) / radiative_divisor +
-        (insulation_temperature * ((conductivities.insulation * bl) / (bl - br) * (1 - conduction_fraction))) / radiative_divisor
+        u"K"(numerator_divisor / radiative_divisor +
+             (compressed_insulation_temperature * compressed_conductance) / radiative_divisor +
+             (insulation_temperature * ((conductivities.insulation * bl) / (bl - br) * (1 - conduction_fraction))) / radiative_divisor)
     else
-        insulation_temperature
+        u"K"(insulation_temperature)
     end
     conductances = ConductanceCoeffs(total_conductance, compressed_conductance, uncompressed_conductance)
     divisors = DivisorCoeffs(geometric_divisor, evaporative_divisor, numerator_divisor, radiative_divisor)
