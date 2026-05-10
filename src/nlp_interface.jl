@@ -47,8 +47,8 @@ BiophysicalBehaviour.jl code) using only HeatExchange functions.
 
 Returns a `WeightedMeanNLPPacked` whose `p` field carries the packed parameters.
 """
-function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, initial_skin_temperature, 
-        initial_insulation_temperature)
+function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, initial_skin_temperature,
+        initial_insulation_temperature; smoothing::SmoothingStrategy=HardBound())
     env_pars = stripparams(environment.environment_pars)
     env_vars = environment.environment_vars
 
@@ -191,6 +191,7 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, initial_sk
         substrate_conductivity = env_vars.substrate_conductivity,
         conduction_depth       = env_pars.conduction_depth,
         insulation_props_init,
+        smoothing,
     )
     return WeightedMeanNLPPacked(p)
 end
@@ -208,7 +209,8 @@ guesses and per-side packed structures. No physics is duplicated.
 
 Returns a `MultiSidedNLPPacked` whose `p` field carries the packed parameters.
 """
-function nlp_pack(::MultiSidedNLP, organism::Organism, environment, initial_skin_temperature, initial_insulation_temperature)
+function nlp_pack(::MultiSidedNLP, organism::Organism, environment, initial_skin_temperature, initial_insulation_temperature;
+                  smoothing::SmoothingStrategy=HardBound())
     env_pars = stripparams(environment.environment_pars)
     env_vars = environment.environment_vars
 
@@ -255,6 +257,7 @@ function nlp_pack(::MultiSidedNLP, organism::Organism, environment, initial_skin
         initial_dorsal_insulation_temperature  = packed.temps_out[1].insulation_temperature,
         initial_ventral_skin_temperature = packed.temps_out[2].skin_temperature,
         initial_ventral_insulation_temperature  = packed.temps_out[2].insulation_temperature,
+        smoothing,
     )
     return MultiSidedNLPPacked(p)
 end
@@ -286,7 +289,8 @@ function nlp_residuals(p::WeightedMeanNLPPacked, core_temperature, skin_temperat
 
     # Recompute temperature-dependent insulation properties
     mean_ins_temperature  = insulation_temperature * 0.7 + skin_temperature * 0.3
-    trial_insulation_props = insulation_properties(trial_ins_pars, mean_ins_temperature, pp.ventral_fraction)
+    trial_insulation_props = insulation_properties(trial_ins_pars, mean_ins_temperature, pp.ventral_fraction;
+                                                   smoothing = pp.smoothing)
 
     # Update conductance coefficient for new body size
     trial_conduction_area  = BiophysicalGeometry.total_area(trial_body) * pp.ext_cond.conduction_fraction * 2
@@ -305,6 +309,7 @@ function nlp_residuals(p::WeightedMeanNLPPacked, core_temperature, skin_temperat
         k_flesh,
         pant,
         skin_wetness,
+        smoothing        = pp.smoothing,
     )
 
     return (;
@@ -353,8 +358,8 @@ function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_tem
     trial_body_v = _nlp_rebuild_side_body(pp.body_shape, pp.body_is_sphere, pp.fat, pp.ins_pars.ventral, insulation_depth, aspect_ratio)
 
     # Per-side insulation properties at current temperatures
-    trial_ins_props_d = insulation_properties(trial_ins_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pp.ventral_fraction)
-    trial_ins_props_v = insulation_properties(trial_ins_pars, ventral_insulation_temperature * 0.7 + ventral_skin_temperature * 0.3, pp.ventral_fraction)
+    trial_ins_props_d = insulation_properties(trial_ins_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pp.ventral_fraction; smoothing = pp.smoothing)
+    trial_ins_props_v = insulation_properties(trial_ins_pars, ventral_insulation_temperature * 0.7 + ventral_skin_temperature * 0.3, pp.ventral_fraction; smoothing = pp.smoothing)
 
     # Update ventral conductance coefficient for new body size (dorsal is always 0)
     trial_cond_area_v   = BiophysicalGeometry.total_area(trial_body_v) * pp.ext_cond.conduction_fraction * 2
@@ -371,6 +376,7 @@ function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_tem
         traits           = pp.side_traits_d,
         resp_pars        = pp.resp_pars,
         k_flesh, pant, skin_wetness,
+        smoothing        = pp.smoothing,
     )
     balance_v = heat_balance(
         core_temperature, ventral_skin_temperature, ventral_insulation_temperature, metabolic_heat_flow;
@@ -382,6 +388,7 @@ function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_tem
         traits           = pp.side_traits_v,
         resp_pars        = pp.resp_pars,
         k_flesh, pant, skin_wetness,
+        smoothing        = pp.smoothing,
     )
 
     # Dorsal/ventral weights (sky+vegetation facing = dorsal; remainder = ventral)

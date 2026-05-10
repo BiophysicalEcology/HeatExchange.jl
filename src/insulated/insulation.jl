@@ -119,8 +119,9 @@ Compute parameters for heat conduction and longwave radiation through insulation
 - `insulation_test`: Bare-skin test parameter (zero if no insulation).
 - `conductivity_compressed`: Conductivity of compressed ventral insulation (W/m/K).
 """
-function insulation_properties(insulation::InsulationParameters, insulation_temperature, ventral_fraction)
-    (; dorsal, ventral, depth_compressed) = stripparams(insulation)
+function insulation_properties(insulation::InsulationParameters, insulation_temperature, ventral_fraction;
+                               smoothing::SmoothingStrategy=HardBound())
+    (; dorsal, ventral, depth_compressed) = insulation
 
     # Physical constants
     air_conductivity = dry_air_properties(insulation_temperature).thermal_conductivity
@@ -136,27 +137,31 @@ function insulation_properties(insulation::InsulationParameters, insulation_temp
 
     fibres = BodyRegionValues(avg_fibres, dorsal, ventral_adj)
 
-    # Compute insulation thermal parameters for each region
+    # Bare-skin (zero density / depth / length) makes `insulation_thermal_conductivity`
+    # divide by zero, so we cannot use a `mask * value` blend — IEEE keeps NaN
+    # through `0 * NaN`. The inner function is now canonical-typed across both
+    # arms (W/m/K, m^-1, NoUnits), so the if/else does not Union-typed-return
+    # and remains AD-friendly. `smoothing` stays in the signature for API
+    # consistency with other call sites.
     conductivity_compressed = 0.0u"W/m/K"
     if insulation_test <= 0.0u"m"
         conductivities = BodyRegionValues(0.0u"W/m/K", 0.0u"W/m/K", 0.0u"W/m/K")
         absorption_coefficients = BodyRegionValues(0.0u"m^-1", 0.0u"m^-1", 0.0u"m^-1")
         optical_thickness = BodyRegionValues(0.0, 0.0, 0.0)
     else
-        avg = insulation_thermal_conductivity(fibres.average, air_conductivity)
-        dors = insulation_thermal_conductivity(fibres.dorsal, air_conductivity)
+        avg  = insulation_thermal_conductivity(fibres.average, air_conductivity)
+        dors = insulation_thermal_conductivity(fibres.dorsal,  air_conductivity)
         vent = insulation_thermal_conductivity(fibres.ventral, air_conductivity)
+        vent_compressed = insulation_thermal_conductivity(fibres.ventral, air_conductivity; depth=depth_compressed)
         conductivities = BodyRegionValues(
-            avg.effective_conductivity, dors.effective_conductivity, vent.effective_conductivity
+            avg.effective_conductivity, dors.effective_conductivity, vent.effective_conductivity,
         )
         absorption_coefficients = BodyRegionValues(
-            avg.absorption_coefficient, dors.absorption_coefficient, vent.absorption_coefficient
+            avg.absorption_coefficient, dors.absorption_coefficient, vent.absorption_coefficient,
         )
         optical_thickness = BodyRegionValues(
-            avg.optical_thickness_factor, dors.optical_thickness_factor, vent.optical_thickness_factor
+            avg.optical_thickness_factor, dors.optical_thickness_factor, vent.optical_thickness_factor,
         )
-        # Compressed ventral insulation conductivity
-        vent_compressed = insulation_thermal_conductivity(fibres.ventral, air_conductivity; depth=depth_compressed)
         conductivity_compressed = vent_compressed.effective_conductivity
     end
 

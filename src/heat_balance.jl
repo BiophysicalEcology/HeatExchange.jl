@@ -365,6 +365,7 @@ function heat_balance(
     k_flesh = traits.flesh_conductivity,
     pant = resp_pars.pant,
     skin_wetness = traits.skin_wetness,
+    smoothing::SmoothingStrategy = HardBound(),
 )
     (; side, conductance_coefficient, conduction_fraction, longwave_depth_fraction) = geometry_vars
     (;
@@ -404,6 +405,7 @@ function heat_balance(
         fluid,
         gas_fractions,
         convection_enhancement,
+        smoothing,
     )
     heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
 
@@ -446,7 +448,7 @@ function heat_balance(
     # Insulation surface evaporation (conditional on fixed params, outside differentiable path)
     insulation_evaporation_heat_flow = _insulation_evaporation(
         conv, atmos_local, area_convection, insulation_temperature, air_temperature,
-        insulation_wetness, insulation.insulation_test; gas_fractions)
+        insulation_wetness, insulation.insulation_test; gas_fractions, smoothing)
 
     # -------------------------------------------------------------------------
     # Radiation exchange (coefficients linearised at radiant_temp, flows use radiant_temp)
