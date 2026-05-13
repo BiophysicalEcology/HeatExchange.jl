@@ -23,7 +23,7 @@ environment_pars = EnvironmentalPars(;
     ground_emissivity=0.95,
     sky_emissivity=1.0,
     elevation=0.0u"m",
-    fluid=0,
+    fluid=Air(),
     gas_fractions,
 )
 

@@ -93,7 +93,13 @@ export ConductanceCoeffs,
     Emissivities,
     Absorptivities,
     InsulationProperties,
-    GeometryVariables
+    GeometryVariables,
+    BodySide,
+    Dorsal,
+    Ventral,
+    Fluid,
+    Air,
+    Water
 
 export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
 

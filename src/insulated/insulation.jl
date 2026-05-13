@@ -25,14 +25,18 @@ NamedTuple with:
 - Kowalski, K. A. (1983). *A model of heat transfer through mammalian fur*. PhD Thesis,
   University of Wisconsin.
 """
-function insulation_thermal_conductivity(fibre::FibreProperties, air_conductivity; depth=nothing)
+insulation_thermal_conductivity(fibre::FibreProperties, air_conductivity; smoothing::SmoothingStrategy=HardBound()) =
+    insulation_thermal_conductivity(fibre, air_conductivity, fibre.depth; smoothing)
+
+function insulation_thermal_conductivity(fibre::FibreProperties, air_conductivity, depth;
+                                         smoothing::SmoothingStrategy=HardBound())
     # Canonicalise inputs to SI before any arithmetic. Otherwise
     # `density * (fibre.length / insulation_depth)` carries the literal
     # unit ratio of whichever inputs were used (e.g. mm/m gives a non-
     # canonical FreeUnits) and every downstream type becomes call-site-
     # dependent. Caller-side unit choices then make the whole function
     # type-unstable from a downstream view.
-    insulation_depth = uconvert(u"m", isnothing(depth) ? fibre.depth : depth)
+    insulation_depth = uconvert(u"m", depth)
     fibre_length     = uconvert(u"m", fibre.length)
     fibre_diameter   = uconvert(u"m", fibre.diameter)
     density          = uconvert(u"m^-2", fibre.density)
@@ -47,14 +51,15 @@ function insulation_thermal_conductivity(fibre::FibreProperties, air_conductivit
     fibre_spacing = l_unit - fibre_diameter
 
     # Resolve crowded-fibre case (no space between fibres) by re-deriving
-    # density from a hard-packed lattice. After this block both branches
-    # below produce the same unit types — the explicit uconvert casts
-    # restore the canonical FreeUnits ordering after the arithmetic, so
-    # the locals don't end up Union-typed across the join (dimension
-    # matches but FreeUnits ordering can differ, which is invisible to
-    # JET but trips Enzyme's reverse pass).
+    # density from a hard-packed lattice. The reassignment must preserve
+    # the element type (e.g. `Dual` under AD) — naively setting
+    # `l_unit = fibre_diameter` would collapse the branch back to
+    # `Float64` even when the open case carried a `Dual`, producing a
+    # `Union` join in inference and ~kB / call of boxed allocations.
+    # `+ zero(l_unit)` is a no-op value-wise but promotes to the wider
+    # type.
     if fibre_spacing < 0.0u"m"
-        l_unit = fibre_diameter
+        l_unit = fibre_diameter + zero(l_unit)
         effective_density = uconvert(u"m^-2", 1.0 / l_unit^2)
         density = uconvert(u"m^-2", (effective_density * insulation_depth) / fibre_length)
         fibre_spacing = l_unit - fibre_diameter
@@ -90,8 +95,8 @@ function insulation_thermal_conductivity(fibre::FibreProperties, air_conductivit
     # different FreeUnits orderings (computed `(ky+kx)/2`, fibre.conductivity,
     # air_conductivity) and produce a Union return type.
     effective_conductivity = u"W/m/K"((ky + kx) / 2.0)
-    effective_conductivity = clamp(effective_conductivity,
-        u"W/m/K"(air_conductivity), u"W/m/K"(fibre.conductivity))
+    effective_conductivity = safe_clamp(smoothing, effective_conductivity,
+        u"W/m/K"(air_conductivity), u"W/m/K"(fibre.conductivity); scale=u"W/m/K"(air_conductivity))
 
     # Absorption and optical parameters
     absorption_coefficient = (0.67 / π) * u"m^-2"(effective_density) * u"m"(fibre_diameter)
@@ -132,27 +137,30 @@ function insulation_properties(insulation::InsulationParameters, insulation_temp
     # Weighted average fibre properties
     avg_fibres = interpolate(dorsal, ventral, ventral_fraction)
 
-    # Adjusted ventral values (accounting for partial insulation coverage)
-    ventral_adj = interpolate(dorsal, ventral, min(ventral_fraction * 2.0, 1.0))
+    # Adjusted ventral values (accounting for partial insulation coverage).
+    # `ventral_fraction` is dimensionless in [0, 1]; the kink is at `2v = 1`.
+    # `scale = 0.01` (vs the default `oneunit(...) = 1.0`) tightens the
+    # SmoothBound transition to a fractional width of 0.01·ε around the kink —
+    # well inside the [0, 1] range without overlapping the physical extremes.
+    ventral_adj = interpolate(dorsal, ventral, safe_min(smoothing, ventral_fraction * 2.0, 1.0; scale=0.01))
 
     fibres = BodyRegionValues(avg_fibres, dorsal, ventral_adj)
 
     # Bare-skin (zero density / depth / length) makes `insulation_thermal_conductivity`
-    # divide by zero, so we cannot use a `mask * value` blend — IEEE keeps NaN
-    # through `0 * NaN`. The inner function is now canonical-typed across both
-    # arms (W/m/K, m^-1, NoUnits), so the if/else does not Union-typed-return
-    # and remains AD-friendly. `smoothing` stays in the signature for API
-    # consistency with other call sites.
-    conductivity_compressed = 0.0u"W/m/K"
-    if insulation_test <= 0.0u"m"
-        conductivities = BodyRegionValues(0.0u"W/m/K", 0.0u"W/m/K", 0.0u"W/m/K")
-        absorption_coefficients = BodyRegionValues(0.0u"m^-1", 0.0u"m^-1", 0.0u"m^-1")
-        optical_thickness = BodyRegionValues(0.0, 0.0, 0.0)
-    else
-        avg  = insulation_thermal_conductivity(fibres.average, air_conductivity)
-        dors = insulation_thermal_conductivity(fibres.dorsal,  air_conductivity)
-        vent = insulation_thermal_conductivity(fibres.ventral, air_conductivity)
-        vent_compressed = insulation_thermal_conductivity(fibres.ventral, air_conductivity; depth=depth_compressed)
+    # divide by zero, so we can't use a `mask * value` blend — IEEE keeps NaN through
+    # `0 * NaN`. We need a Union-free return type under AD (Dual through
+    # `air_conductivity` and `fibres`), so both branches must produce the same
+    # concrete component types. The bare-skin branch can't use literal `0.0u"..."`
+    # because the canonical-W/m/K branch's Unitful FreeUnits ordering differs from
+    # a literal's. We anchor the types by calling `insulation_thermal_conductivity`
+    # once on `fibres.average` (always defined), then `zero(...)` of its component
+    # fields gives the bare-skin values. `zero(NaN) == 0.0`, so the NaN-producing
+    # call on truly-bare-skin inputs is harmless: we consume the type, not the value.
+    if insulation_test > zero(insulation_test)
+        avg  = insulation_thermal_conductivity(fibres.average, air_conductivity; smoothing)
+        dors = insulation_thermal_conductivity(fibres.dorsal,  air_conductivity; smoothing)
+        vent = insulation_thermal_conductivity(fibres.ventral, air_conductivity; smoothing)
+        vent_compressed = insulation_thermal_conductivity(fibres.ventral, air_conductivity, depth_compressed; smoothing)
         conductivities = BodyRegionValues(
             avg.effective_conductivity, dors.effective_conductivity, vent.effective_conductivity,
         )
@@ -163,6 +171,16 @@ function insulation_properties(insulation::InsulationParameters, insulation_temp
             avg.optical_thickness_factor, dors.optical_thickness_factor, vent.optical_thickness_factor,
         )
         conductivity_compressed = vent_compressed.effective_conductivity
+    else
+        # Single anchor call for type-only consumption.
+        anchor = insulation_thermal_conductivity(fibres.average, air_conductivity; smoothing)
+        zk = zero(anchor.effective_conductivity)
+        za = zero(anchor.absorption_coefficient)
+        zo = zero(anchor.optical_thickness_factor)
+        conductivities          = BodyRegionValues(zk, zk, zk)
+        absorption_coefficients = BodyRegionValues(za, za, za)
+        optical_thickness       = BodyRegionValues(zo, zo, zo)
+        conductivity_compressed = zk
     end
 
     return InsulationProperties(

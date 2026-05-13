@@ -106,17 +106,10 @@ function insulation_radiant_temperature(
     r_insulation = insulation_radius(body)
     length = body.geometry.length.length_skin
 
-    if side == :dorsal
-        r_radiation =
-            r_skin +
-            insulation_pars.longwave_depth_fraction *
-            insulation_pars.dorsal.depth
-    else
-        r_radiation =
-            r_skin +
-            insulation_pars.longwave_depth_fraction *
-            insulation_pars.ventral.depth
-    end
+    r_radiation =
+        r_skin +
+        insulation_pars.longwave_depth_fraction *
+        _side_value(insulation_pars, side).depth
 
     if longwave_depth_fraction < 1
         ins_calc1 =
@@ -197,17 +190,10 @@ function insulation_radiant_temperature(
     r_skin = skin_radius(body)
     r_insulation = insulation_radius(body)
 
-    if side == :dorsal
-        r_radiation =
-            r_skin +
-            insulation_pars.longwave_depth_fraction *
-            insulation_pars.dorsal.depth
-    else
-        r_radiation =
-            r_skin +
-            insulation_pars.longwave_depth_fraction *
-            insulation_pars.ventral.depth
-    end
+    r_radiation =
+        r_skin +
+        insulation_pars.longwave_depth_fraction *
+        _side_value(insulation_pars, side).depth
 
     if longwave_depth_fraction < 1
         ins_calc1 = ((4 * π * r_skin) / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
@@ -296,11 +282,7 @@ function insulation_radiant_temperature(
     b_semi_minor_flesh = b_semi_minor - fat
     c_semi_minor_flesh = c_semi_minor - fat
 
-    if side == :dorsal
-        insulation_depth = insulation_pars.dorsal.depth
-    else
-        insulation_depth = insulation_pars.ventral.depth
-    end
+    insulation_depth = _side_value(insulation_pars, side).depth
 
     a_square = min(a_semi_major_flesh^2, a_semi_major^2)
     b_square = min(b_semi_minor_flesh^2, b_semi_minor^2)

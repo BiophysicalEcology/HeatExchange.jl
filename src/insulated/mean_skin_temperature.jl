@@ -36,6 +36,7 @@ function mean_skin_temperature(;
     core_temperature,
     calculated_insulation_temperature,
     compressed_insulation_temperature,
+    smoothing::SmoothingStrategy=HardBound(),
 )
     mean_skin_temperature(
         shape(body),
@@ -49,7 +50,8 @@ function mean_skin_temperature(;
         skin_evaporation_flow,
         core_temperature,
         calculated_insulation_temperature,
-        compressed_insulation_temperature,
+        compressed_insulation_temperature;
+        smoothing,
     )
 end
 function mean_skin_temperature(
@@ -64,7 +66,8 @@ function mean_skin_temperature(
     skin_evaporation_flow,
     core_temperature,
     calculated_insulation_temperature,
-    compressed_insulation_temperature,
+    compressed_insulation_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -104,7 +107,8 @@ function mean_skin_temperature(
     skin_evaporation_flow,
     core_temperature,
     calculated_insulation_temperature,
-    compressed_insulation_temperature,
+    compressed_insulation_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -145,7 +149,8 @@ function mean_skin_temperature(
     skin_evaporation_flow,
     core_temperature,
     calculated_insulation_temperature,
-    compressed_insulation_temperature,
+    compressed_insulation_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
     a_semi_major = body.geometry.length.a_semi_major_skin
@@ -156,9 +161,9 @@ function mean_skin_temperature(
     b_semi_minor_flesh = b_semi_minor - fat
     c_semi_minor_flesh = c_semi_minor - fat
 
-    a_square = min(a_semi_major_flesh^2, a_semi_major^2)
-    b_square = min(b_semi_minor_flesh^2, b_semi_minor^2)
-    c_square = min(c_semi_minor_flesh^2, c_semi_minor^2)
+    a_square = safe_min(smoothing, a_semi_major_flesh^2, a_semi_major^2; scale=oneunit(a_semi_major^2))
+    b_square = safe_min(smoothing, b_semi_minor_flesh^2, b_semi_minor^2; scale=oneunit(b_semi_minor^2))
+    c_square = safe_min(smoothing, c_semi_minor_flesh^2, c_semi_minor^2; scale=oneunit(c_semi_minor^2))
 
     ssqg =
         (a_square * b_square * c_square) /
@@ -166,7 +171,7 @@ function mean_skin_temperature(
 
     bs = b_semi_minor
     bl_compressed = b_semi_minor + insulation_pars.depth_compressed
-    bg = min(b_semi_minor, b_semi_minor_flesh)
+    bg = safe_min(smoothing, b_semi_minor, b_semi_minor_flesh; scale=oneunit(b_semi_minor))
 
     if conduction_fraction < 1
         skin_temperature_calc1 =

@@ -13,7 +13,7 @@ Base.@kwdef struct EnvironmentalPars{AG,EG,ES,EL,FL,G,CE,CD} <: AbstractEnvironm
     ground_emissivity::EG = Param(1.0, bounds=(0.0, 1.0))
     sky_emissivity::ES = Param(1.0, bounds=(0.0, 1.0))
     elevation::EL = Param(0.0, units=u"m")
-    fluid::FL = Param(0)
+    fluid::FL = Air()
     gas_fractions::G = GasFractions()
     convection_enhancement::CE = Param(1.0)
     conduction_depth::CD = Param(2.5u"cm", bounds=(0.0, 200.0))

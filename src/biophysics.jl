@@ -170,6 +170,26 @@ function radiation_out(
     return (; longwave_flow_out, longwave_to_sky_flow, longwave_to_substrate_flow)
 end
 
+# --- Fluid-property dispatch ---------------------------------------------
+# Pick (cp_fluid, density, conductivity, dynamic_viscosity) for the ambient
+# fluid. Splitting these into methods on `Air()` / `Water()` lets the compiler
+# erase the unused branch entirely.
+@inline _fluid_properties(::Air, ::Any, dry_air_out) = (
+    1.0057E+3u"J/K/kg",
+    dry_air_out.density,
+    dry_air_out.thermal_conductivity,
+    dry_air_out.dynamic_viscosity,
+)
+@inline function _fluid_properties(::Water, air_temperature, ::Any)
+    w = water_properties(air_temperature)
+    return (w.specific_heat, w.density, w.thermal_conductivity, w.dynamic_viscosity)
+end
+
+# Schmidt number is meaningful for air but not for water; in water we return
+# 1 to keep the downstream Sherwood/Nusselt expressions well-typed.
+@inline _schmidt_number(::Air,   μ, ρ, D)  = μ / (ρ * D)
+@inline _schmidt_number(::Water, ::Any, ::Any, ::Any) = 1.0
+
 """
     convection(; body, area, air_temperature, surface_temperature, wind_speed, atmospheric_pressure, fluid, gas_fractions, convection_enhancement)
 
@@ -182,7 +202,7 @@ Calculate combined free and forced convective heat transfer for an organism.
 - `surface_temperature`: Surface temperature
 - `wind_speed`: Wind speed
 - `atmospheric_pressure`: Atmospheric pressure
-- `fluid`: Fluid type (0 = air, 1 = water)
+- `fluid::Fluid`: Fluid singleton (`Air()` or `Water()`)
 - `gas_fractions::GasFractions`: Gas fractions for air properties (default: `GasFractions()`)
 - `convection_enhancement`: Enhancement factor for forced convection (default: 1.0)
 
@@ -209,28 +229,14 @@ function convection(;
     characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
     dry_air_out = dry_air_properties(air_temperature, atmospheric_pressure; gas_fractions)
     vapour_diffusivity = dry_air_out.vapour_diffusivity
-    # checking to see if the fluid is water, not air
-    if fluid == 1
-        water_prop_out = water_properties(air_temperature)
-        cp_fluid = water_prop_out.specific_heat
-        fluid_density = water_prop_out.density
-        fluid_conductivity = water_prop_out.thermal_conductivity
-        dynamic_viscosity = water_prop_out.dynamic_viscosity
-    else
-        cp_fluid = 1.0057E+3u"J/K/kg"
-        fluid_density = dry_air_out.density
-        fluid_conductivity = dry_air_out.thermal_conductivity
-        dynamic_viscosity = dry_air_out.dynamic_viscosity
-    end
+    # Dispatch on the fluid singleton — both branches are concrete-typed and
+    # the unused one is dead-code-eliminated.
+    cp_fluid, fluid_density, fluid_conductivity, dynamic_viscosity =
+        _fluid_properties(fluid, air_temperature, dry_air_out)
 
     # free convection
     prandtl_number = cp_fluid * dynamic_viscosity / u"J/s/K/m"(fluid_conductivity)
-    if fluid == 1
-        #  water; no meaning
-        schmidt_number = 1
-    else
-        schmidt_number = dynamic_viscosity / (fluid_density * vapour_diffusivity)
-    end
+    schmidt_number = _schmidt_number(fluid, dynamic_viscosity, fluid_density, vapour_diffusivity)
     # |ΔT| in the Grashof number. HardBound uses exact `abs`; SmoothBound replaces
     # it with sqrt(ΔT² + (ε·scale)²) so Enzyme reverse-mode does not see a kink at
     # ΔT = 0 (which produced NaN gradients when the optimiser landed there).
@@ -238,6 +244,28 @@ function convection(;
     # the meaningful signal at any sensible ε.
     ΔT = surface_temperature - air_temperature
     temperature_difference = safe_abs(smoothing, ΔT; scale=1.0u"K")
+    # AD-safety floor on temperature_difference. The Grashof number is linear
+    # in `temperature_difference`, and `nusselt_free` then raises it to a
+    # fractional power (`grashof^(1/4)` for Sphere/Ellipsoid; a piecewise
+    # `rayleigh^p` with non-integer `p` for Cylinder). At grashof = 0 the
+    # derivative of `^p` (0 < p < 1) is `+Inf`, and `Inf · 0` — the zero seed
+    # from any AD input that does NOT actually affect ΔT — evaluates to NaN,
+    # poisoning the entire Jacobian (both forward and reverse).
+    #
+    # This bites in practice because IPOPT's initial guess sets
+    # `insulation_temperature_init = air_temperature` exactly, so the first
+    # Jacobian evaluation lands at ΔT = 0. Under HardBound, `safe_abs(ΔT)`
+    # is the bare `abs` and returns 0; under SmoothBound it already returns
+    # `ε·scale`, but we floor uniformly so both smoothing strategies are
+    # equally safe and the floor is independent of `ε`.
+    #
+    # The 1e-6 K floor is well below the smallest meaningful temperature
+    # difference (millikelvin level even in tight thermoregulation work),
+    # so the primal stays bit-identical away from ΔT = 0.
+    # TODO: if a third call site needs this pattern (`^p` of a quantity that
+    # can hit zero) consider hoisting into a `safe_pow_floor` helper alongside
+    # `safe_abs` in `smoothing.jl`.
+    temperature_difference = max(temperature_difference, 1.0e-6u"K")
     grashof_number = ((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2)
     reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
     free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)

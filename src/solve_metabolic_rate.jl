@@ -57,14 +57,15 @@ NamedTuple with:
 - `energy_flows`: Heat flux components (solar, longwave, convection, etc.)
 - `mass_flows`: Water and gas exchange rates
 """
-function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_temperature)
+function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_temperature;
+                                smoothing::SmoothingStrategy=HardBound())
     environment_pars = stripparams(e.environment_pars)
     environment_vars = e.environment_vars
     opts = options(o)
     resp_pars = respiration_pars(o)
     metab_pars = metabolism_pars(o)
 
-    packed = _pack_sides(o, e, metab_pars.core_temperature, skin_temperature, insulation_temperature)
+    packed = _pack_sides(o, e, metab_pars.core_temperature, skin_temperature, insulation_temperature; smoothing)
     (; temps_out, side_bodies, sky_factor_ref, vegetation_factor_ref) = packed
 
     max_skin_temperature = max(temps_out[1].skin_temperature, temps_out[2].skin_temperature)
@@ -96,6 +97,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             environment_vars.air_temperature;
             gas_fractions=environment_pars.gas_fractions,
             O2conversion=Kleiber1961(),
+            smoothing,
         ).balance)
 
         metabolic_heat_flow = zbrent(
@@ -114,6 +116,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             environment_vars.air_temperature;
             gas_fractions=environment_pars.gas_fractions,
             O2conversion=Kleiber1961(),
+            smoothing,
         )
         metabolic_heat_flow = respiration_out.metabolic_heat_flow
     else
@@ -122,5 +125,5 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
     end
 
     resp_out_for_assembly = opts.respire ? respiration_out : nothing
-    return _assemble_multisided_output(o, e, metab_pars.core_temperature, metabolic_heat_flow, resp_out_for_assembly, packed)
+    return _assemble_multisided_output(o, e, metab_pars.core_temperature, metabolic_heat_flow, resp_out_for_assembly, packed; smoothing)
 end

@@ -23,17 +23,30 @@ function _insulation_evaporation(conv, atmos, area_convection, insulation_temper
     return mask * flow
 end
 
-function _insulation_conductivity(insulation, insulation_pars, side, insulation_temperature, skin_temperature, longwave_depth_fraction, σ)
+function _insulation_conductivity(insulation, insulation_pars, side, insulation_temperature, skin_temperature, longwave_depth_fraction, σ;
+                                  smoothing::SmoothingStrategy=HardBound())
     insulation_temp_mean = insulation_temperature * 0.7 + skin_temperature * 0.3
     air_k = dry_air_properties(insulation_temp_mean).thermal_conductivity
-    side_depth = getproperty(insulation.fibres, side).depth
-    side_fibres = setproperties(getproperty(insulation_pars, side); depth = side_depth)
-    effective_conductivity = insulation_thermal_conductivity(side_fibres, air_k).effective_conductivity
-    absorption_coefficient = getproperty(insulation.absorption_coefficients, side)
+    side_depth  = _side_value(insulation.fibres, side).depth
+    side_fibres = _side_value(insulation_pars, side)
+    effective_conductivity = insulation_thermal_conductivity(side_fibres, air_k, side_depth; smoothing).effective_conductivity
+    absorption_coefficient = _side_value(insulation.absorption_coefficients, side)
     approx_radiant_temperature = skin_temperature * (1 - longwave_depth_fraction) + insulation_temperature * longwave_depth_fraction
     radiative_conductivity = (16 * σ * approx_radiant_temperature^3) / (3 * absorption_coefficient)
     return (; insulation_conductivity = effective_conductivity + radiative_conductivity, effective_conductivity)
 end
+
+# Type-stable selector for the dorsal/ventral field of a `BodyRegionValues`
+# / `DorsalVentral` / `InsulationParameters` etc. Dispatching on the
+# `BodySide` singleton lets the compiler pick the right field at compile
+# time and erase the wrong branch entirely.
+@inline _side_value(x, ::Dorsal)  = x.dorsal
+@inline _side_value(x, ::Ventral) = x.ventral
+
+# Update only the matching side's conductivity field — dispatch picks the
+# right setproperties call at compile time.
+@inline _set_side_conductivity(c, ::Dorsal,  v) = setproperties(c, (; dorsal  = v))
+@inline _set_side_conductivity(c, ::Ventral, v) = setproperties(c, (; ventral = v))
 
 function _radiation_coefficients(area, view_factors, ϵ, σ, radiant_temperature, env_temps)
     T = env_temps
@@ -82,6 +95,7 @@ function solve_temperatures(;
     temperature_tolerance,
     skin_temperature,
     insulation_temperature,
+    smoothing::SmoothingStrategy=HardBound(),
 )
     insulation_test = u"m"(insulation.insulation_test)
     success = true
@@ -96,7 +110,8 @@ function solve_temperatures(;
             traits,
             temperature_tolerance,
             skin_temperature,
-            insulation_temperature,
+            insulation_temperature;
+            smoothing,
         )
     else
         return solve_without_insulation!(
@@ -106,13 +121,15 @@ function solve_temperatures(;
             traits,
             temperature_tolerance,
             skin_temperature,
-            insulation_temperature,
+            insulation_temperature;
+            smoothing,
         )
     end
 end
 
 function solve_without_insulation!(
-    body::AbstractBody, geometry_vars::GeometryVariables, environment_vars::NamedTuple, traits::NamedTuple, temperature_tolerance, skin_temperature, insulation_temperature
+    body::AbstractBody, geometry_vars::GeometryVariables, environment_vars::NamedTuple, traits::NamedTuple, temperature_tolerance, skin_temperature, insulation_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     (;
         temperature,
@@ -155,6 +172,7 @@ function solve_without_insulation!(
                 fluid,
                 gas_fractions,
                 convection_enhancement,
+                smoothing,
             )
             heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
             evap_pars_local = AnimalEvaporationParameters(;
@@ -267,7 +285,8 @@ function solve_with_insulation!(
     traits::NamedTuple,
     temperature_tolerance,
     skin_temperature,
-    insulation_temperature,
+    insulation_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     (; side, conductance_coefficient, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geometry_vars
     (;
@@ -326,6 +345,7 @@ function solve_with_insulation!(
                 fluid,
                 gas_fractions,
                 convection_enhancement,
+                smoothing,
             )
             heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
             evap_pars_skin = AnimalEvaporationParameters(;
@@ -346,16 +366,12 @@ function solve_with_insulation!(
             # second from insulation
             insulation_evaporation_heat_flow = _insulation_evaporation(
                 conv, atmos_skin, area_convection, insulation_temperature, air_temperature,
-                insulation_wetness, insulation_test; gas_fractions)
+                insulation_wetness, insulation_test; gas_fractions, smoothing)
             # Recompute insulation thermal properties for current temperatures
             (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
                 insulation, insulation_pars, side, insulation_temperature, skin_temperature,
-                longwave_depth_fraction, σ)
-            side_conductivities = if side == :dorsal
-                setproperties(insulation.conductivities; dorsal=effective_conductivity)
-            else
-                setproperties(insulation.conductivities; ventral=effective_conductivity)
-            end
+                longwave_depth_fraction, σ; smoothing)
+            side_conductivities = _set_side_conductivity(insulation.conductivities, side, effective_conductivity)
             insulation = setproperties(insulation;
                 conductivity_compressed=effective_conductivity,
                 conductivities=side_conductivities,
@@ -374,6 +390,7 @@ function solve_with_insulation!(
                 conduction_fraction,
                 evaporation_flow=skin_evaporation_flow,
                 substrate_temperature,
+                smoothing,
             )
             calculated_radiant_temperature = radiant_temp_result.radiant_temperature
             compressed_insulation_temperature = radiant_temp_result.compressed_insulation_temperature
@@ -455,6 +472,7 @@ function solve_with_insulation!(
                 core_temperature,
                 calculated_insulation_temperature=insulation_temperature_calc,
                 compressed_insulation_temperature,
+                smoothing,
             )
 
             # Build flows (net_metabolic updated on success)
@@ -479,7 +497,7 @@ function solve_with_insulation!(
             if Δinsulation_temperature < tolerance
                 # Next check skin_temperature convergence
                 if Δskin_temperature < tolerance
-                    net_metabolic = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature)
+                    net_metabolic = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature, smoothing)
                     flows = setproperties(flows; net_metabolic)
                     return (;
                         insulation_temperature,
@@ -496,7 +514,7 @@ function solve_with_insulation!(
                         skin_temperature = skin_temperature_calc1
                         continue
                     else
-                        net_metabolic = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature)
+                        net_metabolic = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature, smoothing)
                         flows = setproperties(flows; net_metabolic)
                         return (;
                             insulation_temperature,

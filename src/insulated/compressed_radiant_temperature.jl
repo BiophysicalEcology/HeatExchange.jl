@@ -104,11 +104,7 @@ function compressed_radiant_temperature(
     substrate_temperature,
 )
     volume = flesh_volume(body)
-    insulation_depth = if side == :dorsal
-        insulation_pars.dorsal.depth
-    else
-        insulation_pars.ventral.depth
-    end
+    insulation_depth = _side_value(insulation_pars, side).depth
 
     a_semi_major = body.geometry.length.a_semi_major
     b_semi_minor = body.geometry.length.b_semi_minor

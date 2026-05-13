@@ -1,4 +1,50 @@
 """
+    BodySide
+
+Abstract supertype for body-side selectors. `Dorsal()` and `Ventral()` are
+singleton subtypes — they parameterise `GeometryVariables{S,...}` so the
+compiler can specialise on side and eliminate the wrong-branch code.
+"""
+abstract type BodySide end
+
+"""
+    Dorsal() <: BodySide
+
+Singleton indicating the dorsal (upper / back) body side.
+"""
+struct Dorsal <: BodySide end
+
+"""
+    Ventral() <: BodySide
+
+Singleton indicating the ventral (lower / belly) body side.
+"""
+struct Ventral <: BodySide end
+
+"""
+    Fluid
+
+Abstract supertype for the ambient fluid. `Air()` and `Water()` are singleton
+subtypes — dispatching on them lets the convection code specialise on the
+fluid kind at compile time so the wrong branch is eliminated entirely.
+"""
+abstract type Fluid end
+
+"""
+    Air() <: Fluid
+
+Singleton indicating air as the ambient fluid (dry-air properties path).
+"""
+struct Air <: Fluid end
+
+"""
+    Water() <: Fluid
+
+Singleton indicating water as the ambient fluid (water-properties path).
+"""
+struct Water <: Fluid end
+
+"""
     ConductanceCoeffs{T1,T2,T3}
 
 Thermal conductance coefficients through insulation layers.
@@ -389,13 +435,13 @@ end
 Geometric and thermal parameters for heat exchange calculations on a body side.
 
 # Fields
-- `side` — Body side (`:dorsal` or `:ventral`)
+- `side::BodySide` — Body side (`Dorsal()` or `Ventral()`)
 - `conductance_coefficient` — Thermal conductance to substrate (W/K), conduction_flow = conductance_coefficient × ΔT
 - `ventral_fraction` — Fraction of body surface that is ventral (0-1)
 - `conduction_fraction` — Fraction of surface area in contact with substrate (0-1)
 - `longwave_depth_fraction` — Fraction of insulation depth for longwave radiation exchange (0-1)
 """
-Base.@kwdef struct GeometryVariables{S,SC,VF,CF,LDF}
+Base.@kwdef struct GeometryVariables{S<:BodySide,SC,VF,CF,LDF}
     side::S
     conductance_coefficient::SC
     ventral_fraction::VF

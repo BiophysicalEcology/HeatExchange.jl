@@ -28,6 +28,7 @@ function respiration(
     air_temperature;
     gas_fractions::GasFractions=GasFractions(),
     O2conversion::OxygenJoulesConversion=Typical(),
+    smoothing::SmoothingStrategy=HardBound(),
 )
     (; metabolic, sum, minimum) = rates
     metabolic_heat_flow, heat_flow_sum, minimum_heat_flow = metabolic, sum, minimum
@@ -43,7 +44,7 @@ function respiration(
         fO2 = 1 - (fN2 + fCO2)
     end
 
-    resp_gen = max(metabolic_heat_flow, minimum_heat_flow)
+    resp_gen = safe_max(smoothing, metabolic_heat_flow, minimum_heat_flow; scale=oneunit(metabolic_heat_flow))
 
     # joules of energy dissipated per m3 O2 consumed at standard temperature and pressure (enthalpy of combustion)
     oxygen_flow_standard = u"m^3/s"(Joules_to_O2(O2conversion, resp_gen, respiratory_quotient))
@@ -64,8 +65,8 @@ function respiration(
     # computing the vapor pressure at saturation for the subsequent calculation of
     # actual moles of water based on actual relative humidity
     saturation_vapour_pressure = vapour_pressure(air_temperature)
-    water_in = air_in * (saturation_vapour_pressure * relative_humidity) / 
-        max(atmospheric_pressure - saturation_vapour_pressure * relative_humidity, 1e-6u"Pa")
+    water_in = air_in * (saturation_vapour_pressure * relative_humidity) /
+        safe_max(smoothing, atmospheric_pressure - saturation_vapour_pressure * relative_humidity, 1e-6u"Pa"; scale=1.0u"Pa")
     # moles at exit
     oxygen_out = oxygen_in - oxygen_consumed # remove consumed oxygen from the total
     nitrogen_out = nitrogen_in
@@ -95,7 +96,7 @@ function respiration(
     # 2.22e-03*
     # (edwards & haines 1978. j. comp. physiol. 128: 177-184 in welch 1980)
     # for a 0.01 kg animal, the max. rate would be 1.67 x 10^-6 g/s
-    respiration_mass_flow = min(respiration_mass_flow, (2.22E-03 * ustrip(u"kg", mass) * 15)u"g/s")
+    respiration_mass_flow = safe_min(smoothing, respiration_mass_flow, (2.22E-03 * ustrip(u"kg", mass) * 15)u"g/s"; scale=1.0u"g/s")
 
     # get latent heat of vapourisation and compute heat exchange due to respiration
     latent_heat_vaporisation = enthalpy_of_vaporisation(lung_temperature)
