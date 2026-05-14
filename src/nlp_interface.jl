@@ -293,7 +293,7 @@ function nlp_residuals(p::WeightedMeanNLPPacked, core_temperature, skin_temperat
                                                    smoothing = pp.smoothing)
 
     # Update conductance coefficient for new body size
-    trial_conduction_area  = BiophysicalGeometry.total_area(trial_body) * pp.ext_cond.conduction_fraction * 2
+    trial_conduction_area  = BiophysicalGeometry.total_area(trial_body) * pp.ext_cond.conduction_fraction * 2 # TODO why *2?
     trial_conduction_coeff = trial_conduction_area * pp.substrate_conductivity / pp.conduction_depth * pp.ventral_weight
     trial_geometry_vars    = setproperties(pp.geometry_vars; conductance_coefficient = trial_conduction_coeff)
 
@@ -348,7 +348,7 @@ function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_tem
         metabolic_heat_flow, k_flesh, pant, skin_wetness, insulation_depth, aspect_ratio)
     pp = p.p
 
-    # Update insulation depth for both sides (shared depth effector)
+    # Update insulation depth for both sides (shared depth effector) # TODO what if insulation fibre length mismatches depth on one side?
     trial_dorsal_fibre  = setproperties(pp.ins_pars.dorsal;  depth = insulation_depth)
     trial_ventral_fibre = setproperties(pp.ins_pars.ventral; depth = insulation_depth)
     trial_ins_pars      = setproperties(pp.ins_pars; dorsal = trial_dorsal_fibre, ventral = trial_ventral_fibre)

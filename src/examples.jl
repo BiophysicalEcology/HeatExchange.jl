@@ -200,6 +200,28 @@ function example_insulation_pars(;
     )
 end
 
+function example_convection_pars(;
+    convection_area=0.0u"m^2",
+    characteristic_dimension_formula=VolumeCubeRoot(),
+)
+    ConvectionParameters(;
+        convection_area,
+        characteristic_dimension_formula,
+    )
+end
+
+function example_leaf_evaporation_pars(;
+    abaxial_vapour_conductance=0.3u"mol/m^2/s",
+    adaxial_vapour_conductance=0.0u"mol/m^2/s",
+    cuticular_conductance=0.01u"mol/m^2/s",
+)
+    LeafEvaporationParameters(;
+        abaxial_vapour_conductance,
+        adaxial_vapour_conductance,
+        cuticular_conductance,
+    )
+end
+
 function example_metabolic_rate_options(;
     respire=true,
     temperature_error_tolerance=1e-3u"K",
@@ -222,7 +244,7 @@ function example_heat_exchange_traits(;
     insulation_pars=example_insulation_pars(),
     conduction_pars_external=example_conduction_pars_external(),
     conduction_pars_internal=example_conduction_pars_internal(),
-    convection_pars=ConvectionParameters(),
+    convection_pars=example_convection_pars(),
     radiation_pars=example_radiation_pars(),
     evaporation_pars=example_evaporation_pars(),
     hydraulic_pars=example_hydraulic_pars(),
