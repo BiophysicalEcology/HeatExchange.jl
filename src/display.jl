@@ -97,3 +97,71 @@ function Base.show(io::IO, mime::MIME"text/plain", t::HeatExchangeTraits)
         println(io)
     end
 end
+
+# ── ThermoregulationOutput and section wrappers ───────────────────────────────
+
+const _WT = 40  # wider column for long output field names
+
+# Convert to canonical derived units so e.g. kg⋅m²⋅s⁻³ displays as W
+# and m³⋅mol⋅Pa⋅J⁻¹⋅s⁻¹ displays as mol/s.
+_canonical(v) = v
+function _canonical(v::Unitful.AbstractQuantity)
+    d = Unitful.dimension(v)
+    d == Unitful.dimension(1u"W")     && return Unitful.uconvert(u"W",     v)
+    d == Unitful.dimension(1u"mol/s") && return Unitful.uconvert(u"mol/s", v)
+    return v
+end
+
+function _show_nt_section(io, nt; indent=2)
+    spaces = " " ^ indent
+    for (k, v) in pairs(nt)
+        isnothing(v) && continue
+        label = "$(spaces)$(k):"
+        if v isa NamedTuple
+            println(io, label)
+            _show_nt_section(io, v; indent=indent+2)
+        elseif v isa Number
+            println(io, rpad(label, _WT), _canonical(v))
+        else
+            println(io, label)
+            inner = " " ^ (indent + 2)
+            for fname in fieldnames(typeof(v))
+                println(io, rpad("$(inner)$(fname):", _WT), _canonical(getfield(v, fname)))
+            end
+        end
+    end
+end
+
+function Base.show(io::IO, ::MIME"text/plain", s::ThermoregulationState)
+    println(io, "ThermoregulationState")
+    _show_nt_section(io, getfield(s, :data))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", s::MorphologyState)
+    println(io, "MorphologyState")
+    _show_nt_section(io, getfield(s, :data))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", s::EnergyFlowState)
+    println(io, "EnergyFlowState")
+    _show_nt_section(io, getfield(s, :data))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", s::MassFlowState)
+    println(io, "MassFlowState")
+    _show_nt_section(io, getfield(s, :data))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", o::ThermoregulationOutput)
+    header = "ThermoregulationOutput"
+    println(io, header)
+    println(io, "═" ^ length(header))
+    println(io, "\nThermoregulation")
+    _show_nt_section(io, getfield(o.thermoregulation, :data))
+    println(io, "\nMorphology")
+    _show_nt_section(io, getfield(o.morphology, :data))
+    println(io, "\nEnergy flows")
+    _show_nt_section(io, getfield(o.energy_flows, :data))
+    println(io, "\nMass flows")
+    _show_nt_section(io, getfield(o.mass_flows, :data))
+end

@@ -414,5 +414,10 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
         molar_fluxes_in,
         molar_fluxes_out,
     )
-    return ThermoregulationOutput(thermoregulation, morphology, energy_flows, mass_flows)
+    return ThermoregulationOutput(
+        ThermoregulationState(thermoregulation),
+        MorphologyState(morphology),
+        EnergyFlowState(energy_flows),
+        MassFlowState(mass_flows),
+    )
 end

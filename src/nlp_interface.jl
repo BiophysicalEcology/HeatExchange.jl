@@ -554,7 +554,12 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
         molar_fluxes_out = respiration_result.molar_fluxes_out,
     )
 
-    return ThermoregulationOutput(thermoregulation, morphology, energy_flows, mass_flows)
+    return ThermoregulationOutput(
+        ThermoregulationState(thermoregulation),
+        MorphologyState(morphology),
+        EnergyFlowState(energy_flows),
+        MassFlowState(mass_flows),
+    )
 end
 
 # ---------------------------------------------------------------------------
@@ -743,5 +748,10 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
         molar_fluxes_out = respiration_result.molar_fluxes_out,
     )
 
-    return ThermoregulationOutput(thermoregulation, morphology, energy_flows, mass_flows)
+    return ThermoregulationOutput(
+        ThermoregulationState(thermoregulation),
+        MorphologyState(morphology),
+        EnergyFlowState(energy_flows),
+        MassFlowState(mass_flows),
+    )
 end

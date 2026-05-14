@@ -58,7 +58,7 @@ function respiration(
     nitrogen_in = oxygen_in * (fN2 / fO2) #  actual nitrogen flow in (moles/s), accounting for efficiency of extraction
     air_flow_raw = oxygen_flow / fO2 # air flow
     co2_flow = fCO2 * air_flow_raw # CO2 flow
-    carbon_dioxide_in = atmospheric_pressure * co2_flow / (Unitful.R * lung_temperature)
+    carbon_dioxide_in = uconvert(u"mol/s", atmospheric_pressure * co2_flow / (Unitful.R * lung_temperature))
     air_in = (oxygen_in + nitrogen_in + carbon_dioxide_in) * pant
     air_flow = uconvert(u"m^3/s", (air_in * Unitful.R * 273.15u"K" / 101325u"Pa")) # air volume at standard temperature and pressure (m3/s)
     # computing the vapor pressure at saturation for the subsequent calculation of
@@ -104,10 +104,11 @@ function respiration(
     (; specific_heat) = wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions)
     specific_heat_capacity = specific_heat
     sensible_heat_flow = specific_heat_capacity * air_in * molar_mass_air * (air_temperature - lung_temperature)
-    respiration_heat_flow = uconvert(u"W", latent_heat_vaporisation * respiration_mass_flow) - sensible_heat_flow
+    respiration_heat_flow = uconvert(u"W", latent_heat_vaporisation * respiration_mass_flow - sensible_heat_flow)
     net_heat_flow_check = metabolic_heat_flow - respiration_heat_flow
-    balance = net_heat_flow_check - heat_flow_sum
+    balance = uconvert(u"W", net_heat_flow_check - heat_flow_sum)
     molar_fluxes_in = MolarFluxes(air_in, water_in, oxygen_in, carbon_dioxide_in, nitrogen_in)
     molar_fluxes_out = MolarFluxes(air_out, water_out, oxygen_out, carbon_dioxide_out, nitrogen_out)
+    respiration_mass_flow = uconvert(u"g/hr", respiration_mass_flow)
     return (; balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes_in, molar_fluxes_out)
 end
