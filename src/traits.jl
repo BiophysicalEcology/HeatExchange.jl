@@ -140,7 +140,7 @@ Morphological parameters relating to radiation exchange.
 - `conduction_area` — Area in contact with substrate (m²).
 
 """
-Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,VF} <:
+Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,VF,SO} <:
                    AbstractMorphologyParameters
     body_absorptivity_dorsal::AD = Param(0.85, bounds=(0.0, 1.0))
     body_absorptivity_ventral::AV = Param(0.85, bounds=(0.0, 1.0))
@@ -154,7 +154,7 @@ Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,VF} <:
     vegetation_view_factor::FV = Param(0.0, bounds=(0.0, 1.0))
     bush_view_factor::FB = Param(0.0, bounds=(0.0, 1.0))
     ventral_fraction::VF = Param(0.5, bounds=(0.0, 1.0))
-    solar_orientation = Intermediate()
+    solar_orientation::SO = Intermediate()
 end
 
 """

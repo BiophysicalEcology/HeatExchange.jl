@@ -109,10 +109,12 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, initial_sk
                                      solar_conds, reference_silhouette_area, reference_conduction_area)
 
     if solar_result.solar_flow > 0.0u"W"
-        dorsal_solar_flow  = 2.0 * solar_result.solar_direct_flow + solar_result.solar_sky_flow * 2.0
-        ventral_solar_flow = (solar_result.solar_substrate_flow /
-                              (1.0 - sky_view_factor - vegetation_view_factor)) *
-                             (1.0 - 2.0 * ext_cond.conduction_fraction)
+        dorsal_solar_flow  = uconvert(u"W",
+            2.0 * solar_result.solar_direct_flow + solar_result.solar_sky_flow * 2.0)
+        ventral_solar_flow = uconvert(u"W",
+            (solar_result.solar_substrate_flow /
+             (1.0 - sky_view_factor - vegetation_view_factor)) *
+            (1.0 - 2.0 * ext_cond.conduction_fraction))
     else
         dorsal_solar_flow  = 0.0u"W"
         ventral_solar_flow = 0.0u"W"
@@ -163,7 +165,7 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, initial_sk
         eye_fraction       = evap_pars.eye_fraction,
     )
     geometry_vars = GeometryVariables(;
-        side                    = :dorsal,
+        side                    = Dorsal(),
         conductance_coefficient = mean_conduction_coeff,
         ventral_fraction,
         conduction_fraction     = ext_cond.conduction_fraction,
@@ -182,7 +184,9 @@ function nlp_pack(::WeightedMeanNLP, organism::Organism, environment, initial_sk
         sky_view_factor,
         ground_view_factor,
         ext_cond,
-        rad_pars,
+        body_emissivity_dorsal  = rad_pars.body_emissivity_dorsal,
+        body_emissivity_ventral = rad_pars.body_emissivity_ventral,
+        solar_orientation       = rad_pars.solar_orientation,
         int_cond,
         resp_pars,
         heat_balance_env,
@@ -225,7 +229,7 @@ function nlp_pack(::MultiSidedNLP, organism::Organism, environment, initial_skin
 
     # Call _pack_sides at the setpoint temperature to get initial guesses and
     # per-side packed structures (environment, traits, geometry_vars, bodies)
-    packed = _pack_sides(organism, environment, metab_pars.core_temperature, initial_skin_temperature, initial_insulation_temperature)
+    packed = _pack_sides(organism, environment, metab_pars.core_temperature, initial_skin_temperature, initial_insulation_temperature; smoothing)
 
     p = (;
         ins_pars,
@@ -234,7 +238,9 @@ function nlp_pack(::MultiSidedNLP, organism::Organism, environment, initial_skin
         fat,
         ext_cond,
         int_cond,
-        rad_pars,
+        body_emissivity_dorsal  = rad_pars.body_emissivity_dorsal,
+        body_emissivity_ventral = rad_pars.body_emissivity_ventral,
+        solar_orientation       = rad_pars.solar_orientation,
         resp_pars,
         ventral_fraction       = rad_pars.ventral_fraction,
         substrate_conductivity = env_vars.substrate_conductivity,
@@ -467,8 +473,8 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
     σ                    = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     sol_total_area       = BiophysicalGeometry.total_area(sol_body)
     sol_ventral_rad_area = sol_total_area * (1 - pp.ext_cond.conduction_fraction)
-    dorsal_lw_out        = _side_lw_out(pp.sky_view_factor,    pp.rad_pars.body_emissivity_dorsal,  sol_total_area,       insulation_temperature, σ)
-    ventral_lw_out       = _side_lw_out(pp.ground_view_factor, pp.rad_pars.body_emissivity_ventral, sol_ventral_rad_area, insulation_temperature, σ)
+    dorsal_lw_out        = _side_lw_out(pp.sky_view_factor,    pp.body_emissivity_dorsal,  sol_total_area,       insulation_temperature, σ)
+    ventral_lw_out       = _side_lw_out(pp.ground_view_factor, pp.body_emissivity_ventral, sol_ventral_rad_area, insulation_temperature, σ)
     longwave_flow_out    = dorsal_lw_out * pp.dorsal_weight + ventral_lw_out * pp.ventral_weight
     longwave_flow_in     = longwave_flow_out - hf.radiation_heat_flow
 
@@ -508,7 +514,7 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
     area_skin        = skin_area(sol_body)
     area_evaporation = evaporation_area(sol_body)
     area_convection  = sol_total_area * (1 - pp.ext_cond.conduction_fraction)
-    area_silhouette  = silhouette_area(sol_body, pp.rad_pars.solar_orientation)
+    area_silhouette  = silhouette_area(sol_body, pp.solar_orientation)
 
     morphology = (;
         total_area         = sol_total_area,
@@ -614,8 +620,8 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     σ                    = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
     sol_total_area       = BiophysicalGeometry.total_area(sol_body_d)
     sol_ventral_rad_area = sol_total_area * (1 - pp.ext_cond.conduction_fraction)
-    dorsal_lw_out        = _side_lw_out(pp.sky_factor_ref,    pp.rad_pars.body_emissivity_dorsal,  sol_total_area,       dorsal_insulation_temperature, σ)
-    ventral_lw_out       = _side_lw_out(pp.ground_factor_ref, pp.rad_pars.body_emissivity_ventral, sol_ventral_rad_area, ventral_insulation_temperature, σ)
+    dorsal_lw_out        = _side_lw_out(pp.sky_factor_ref,    pp.body_emissivity_dorsal,  sol_total_area,       dorsal_insulation_temperature, σ)
+    ventral_lw_out       = _side_lw_out(pp.ground_factor_ref, pp.body_emissivity_ventral, sol_ventral_rad_area, ventral_insulation_temperature, σ)
     dorsal_lw_in         = dorsal_lw_out  - hf_d.radiation_heat_flow
     ventral_lw_in        = ventral_lw_out - hf_v.radiation_heat_flow
     longwave_flow_out    = dorsal_lw_out * dmult + ventral_lw_out * vmult
@@ -668,7 +674,7 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     area_evaporation = evaporation_area(sol_body_d)
     area_convection  = sol_total_area * (1 - pp.ext_cond.conduction_fraction)
     area_skin        = skin_area(sol_body_d)
-    area_silhouette  = silhouette_area(sol_body_d, pp.rad_pars.solar_orientation)
+    area_silhouette  = silhouette_area(sol_body_d, pp.solar_orientation)
 
     morphology = (;
         total_area         = sol_total_area,

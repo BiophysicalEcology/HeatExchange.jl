@@ -38,6 +38,7 @@ function radiant_temperature(;
     conduction_fraction,
     evaporation_flow,
     substrate_temperature,
+    smoothing::SmoothingStrategy=HardBound(),
 )
     radiant_temperature(
         shape(body),
@@ -51,7 +52,8 @@ function radiant_temperature(;
         longwave_depth_fraction,
         conduction_fraction,
         evaporation_flow,
-        substrate_temperature,
+        substrate_temperature;
+        smoothing,
     )
 end
 function radiant_temperature(
@@ -66,7 +68,8 @@ function radiant_temperature(
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
-    substrate_temperature,
+    substrate_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
 
@@ -74,7 +77,7 @@ function radiant_temperature(
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
-    insulation_depth = getproperty(insulation.fibres, side).depth
+    insulation_depth = _side_value(insulation.fibres, side).depth
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
     compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
@@ -82,11 +85,12 @@ function radiant_temperature(
 
     compression_fraction =
         (conduction_fraction * 2 * π * compressed_conductivity * length) / log(r_compressed / r_skin)
-    compressed_insulation_temperature = if conduction_fraction > 0
-        (compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature) / (conductance_coefficient + compression_fraction)
-    else
-        0.0u"K"
-    end
+    compressed_insulation_temperature = safe_gated_ratio(
+        conduction_fraction,
+        compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature,
+        conductance_coefficient + compression_fraction,
+        zero(skin_temperature),
+    )
 
     total_conductance =
         (compressed_conductivity / log(r_compressed / r_skin)) * conduction_fraction +
@@ -142,7 +146,8 @@ function radiant_temperature(
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
-    substrate_temperature,
+    substrate_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
 
@@ -150,7 +155,7 @@ function radiant_temperature(
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
-    insulation_depth = getproperty(insulation.fibres, side).depth
+    insulation_depth = _side_value(insulation.fibres, side).depth
     r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
     compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
@@ -159,11 +164,12 @@ function radiant_temperature(
         (conduction_fraction * 4 * π * compressed_conductivity * r_compressed * r_skin) /
         (r_compressed - r_skin)
 
-    compressed_insulation_temperature = if conduction_fraction > 0
-        (compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature) / (conductance_coefficient + compression_fraction)
-    else
-        0.0u"K"
-    end
+    compressed_insulation_temperature = safe_gated_ratio(
+        conduction_fraction,
+        compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature,
+        conductance_coefficient + compression_fraction,
+        zero(skin_temperature),
+    )
 
     total_conductance =
         ((compressed_conductivity * r_compressed) / (r_compressed - r_skin)) * conduction_fraction +
@@ -228,7 +234,8 @@ function radiant_temperature(
     longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
-    substrate_temperature,
+    substrate_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
 
@@ -242,19 +249,23 @@ function radiant_temperature(
     b_semi_minor_flesh = b_semi_minor - fat
     c_semi_minor_flesh = c_semi_minor - fat
 
-    insulation_depth = getproperty(insulation.fibres, side).depth
+    insulation_depth = _side_value(insulation.fibres, side).depth
     compressed_conductivity = insulation.conductivity_compressed
     bl_compressed = b_semi_minor + insulation_pars.depth_compressed
 
-    a_square = min(a_semi_major_flesh^2, a_semi_major^2)
-    b_square = min(b_semi_minor_flesh^2, b_semi_minor^2)
-    c_square = min(c_semi_minor_flesh^2, c_semi_minor^2)
+    # `min(flesh², skin²)` is a guard for the unphysical fat<0 case. The kink
+    # at the crossover is what makes reverse-mode AD bail. Smooth the min so
+    # the derivative is continuous through the boundary; in the physical case
+    # (flesh ≤ skin) `safe_min` returns the flesh value to numerical precision.
+    a_square = safe_min(smoothing, a_semi_major_flesh^2, a_semi_major^2; scale=oneunit(a_semi_major^2))
+    b_square = safe_min(smoothing, b_semi_minor_flesh^2, b_semi_minor^2; scale=oneunit(b_semi_minor^2))
+    c_square = safe_min(smoothing, c_semi_minor_flesh^2, c_semi_minor^2; scale=oneunit(c_semi_minor^2))
 
     ssqg =
         (a_square * b_square * c_square) /
         (a_square * b_square + a_square * c_square + b_square * c_square)
 
-    bg = min(b_semi_minor, b_semi_minor_flesh)
+    bg = safe_min(smoothing, b_semi_minor, b_semi_minor_flesh; scale=oneunit(b_semi_minor))
     bs = b_semi_minor
     bl = b_semi_minor + insulation_depth
     br = bs + longwave_depth_fraction * insulation_depth
@@ -263,11 +274,12 @@ function radiant_temperature(
         (conduction_fraction * 3 * compressed_conductivity * volume * bl_compressed * bs) /
         ((sqrt(3 * ssqg))^3 * (bl_compressed - bs))
 
-    compressed_insulation_temperature = if conduction_fraction > 0.0
-        (compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature) / (conductance_coefficient + compression_fraction)
-    else
-        0.0u"K"
-    end
+    compressed_insulation_temperature = safe_gated_ratio(
+        conduction_fraction,
+        compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature,
+        conductance_coefficient + compression_fraction,
+        zero(skin_temperature),
+    )
 
     total_conductance =
         ((compressed_conductivity * bl_compressed) / (bl_compressed - bs)) * conduction_fraction +
@@ -286,22 +298,20 @@ function radiant_temperature(
     numerator_divisor =
         (bs / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) / br
 
-    # The two branches must return the same Quantity type. Without the
-    # uconvert and the matching unit on the `else` divisor, the if/else
-    # joined to a Union and Enzyme lost the ability to differentiate through.
-    radiative_divisor = if longwave_depth_fraction < 1
-        compressed_conductance + ((conductivities.insulation * bl) / (bl - br)) * (1 - conduction_fraction)
-    else
+    # `longwave_depth_fraction == 1` makes `bl - br = 0` (singular). The
+    # `lwdf` is a fixed parameter (default ≈ 0.4), not an IPOPT effector, so
+    # the branch is data-stable across a solve. Keep the conditional but make
+    # both arms return the same Quantity types to keep inference Union-free —
+    # the wrong arm is dead-code-eliminated for a given parameter setting.
+    radiative_divisor = longwave_depth_fraction < 1 ?
+        compressed_conductance + ((conductivities.insulation * bl) / (bl - br)) * (1 - conduction_fraction) :
         oneunit(compressed_conductance)
-    end
 
-    radiant_temperature = if longwave_depth_fraction < 1
+    radiant_temperature = longwave_depth_fraction < 1 ?
         u"K"(numerator_divisor / radiative_divisor +
              (compressed_insulation_temperature * compressed_conductance) / radiative_divisor +
-             (insulation_temperature * ((conductivities.insulation * bl) / (bl - br) * (1 - conduction_fraction))) / radiative_divisor)
-    else
+             (insulation_temperature * ((conductivities.insulation * bl) / (bl - br) * (1 - conduction_fraction))) / radiative_divisor) :
         u"K"(insulation_temperature)
-    end
     conductances = ConductanceCoeffs(total_conductance, compressed_conductance, uncompressed_conductance)
     divisors = DivisorCoeffs(geometric_divisor, evaporative_divisor, numerator_divisor, radiative_divisor)
     return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)

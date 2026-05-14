@@ -102,3 +102,21 @@ safe_min(s::SmoothBound, a, b; scale=oneunit(a-b)) = (a + b - safe_abs(s, a - b;
 """
 safe_clamp(s::SmoothingStrategy, x, lo, hi; scale=oneunit(x)) =
     safe_max(s, lo, safe_min(s, hi, x; scale); scale)
+
+"""
+    safe_gated_ratio(gate, num, den, fallback)
+
+`num / den` when `gate > 0`, else `fallback`. Keeps a `0/0` division out of the
+AD tape when both numerator and denominator vanish on the gate — Enzyme
+reverse-mode evaluates a discarded ratio's pullback under a ternary mask, so
+the kink at `gate = 0` poisons gradients of every input flowing into the
+operands. The `if/else` ensures the division never executes when the gate is
+closed. Both branches must return the same type for inference to stay Union-
+free; pass `fallback = zero(num/den)` (or any same-typed value) at the call
+site.
+
+Strategy-independent: this gate is always hard. Soft-blending the two arms
+would put the (NaN-producing) division back on the tape, defeating the point.
+"""
+@inline safe_gated_ratio(gate, num, den, fallback) =
+    gate > zero(gate) ? num / den : fallback

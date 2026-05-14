@@ -7,7 +7,7 @@ environment_pars = EnvironmentalPars(;
     ground_emissivity=1.0,
     sky_emissivity=1.0,
     elevation=0.0u"m",
-    fluid=0,
+    fluid=Air(),
     gas_fractions=GasFractions(0.2095, 0.0003, 0.79),
 )
 env_params = Model(environment_pars)

@@ -19,7 +19,8 @@ Returns a NamedTuple:
 - `longwave_gain_out` — full longwave-in output
 - `longwave_loss_out` — full longwave-out output
 """
-function _radiative_convective_flows(surface_temperature, o::Organism, environment_pars, environment_vars)
+function _radiative_convective_flows(surface_temperature, o::Organism, environment_pars, environment_vars;
+                                      smoothing::SmoothingStrategy=HardBound())
     external_conduction = conduction_pars_external(o)
     rad_pars = radiation_pars(o)
     conv_pars = convection_pars(o)
@@ -62,6 +63,7 @@ function _radiative_convective_flows(surface_temperature, o::Organism, environme
         gas_fractions=environment_pars.gas_fractions,
         convection_enhancement=environment_pars.convection_enhancement,
         characteristic_dimension_formula=conv_pars.characteristic_dimension_formula,
+        smoothing,
     )
     convection_heat_flow = convection_out.convection_flow
 
@@ -89,18 +91,19 @@ Dispatches first on `evaluation_strategy(organism)`:
 - `organism::Organism`: Organism with body geometry and traits
 - `e`: Environment containing `environment_pars` and `environment_vars`
 """
-heat_balance(T, organism::Organism, e) =
-    heat_balance(T, evaluation_strategy(organism), evaporation_pars(organism), organism, e)
+heat_balance(T, organism::Organism, e; smoothing::SmoothingStrategy=HardBound()) =
+    heat_balance(T, evaluation_strategy(organism), evaporation_pars(organism), organism, e; smoothing)
 
 # SingleBody: drop the strategy, dispatch on evaporation type
-heat_balance(T, ::SingleBody, ep, o::Organism, e) = heat_balance(T, ep, o, e)
+heat_balance(T, ::SingleBody, ep, o::Organism, e; smoothing::SmoothingStrategy=HardBound()) =
+    heat_balance(T, ep, o, e; smoothing)
 
 # Animal/ectotherm SingleBody: dispatch on insulation type
-heat_balance(T, ::AnimalEvaporationParameters, o::Organism, e) =
-    heat_balance(T, insulation(body(o)), o, e)
+heat_balance(T, ::AnimalEvaporationParameters, o::Organism, e; smoothing::SmoothingStrategy=HardBound()) =
+    heat_balance(T, insulation(body(o)), o, e; smoothing)
 
 
-function heat_balance(core_temperature, ::Naked, o::Organism, e)
+function heat_balance(core_temperature, ::Naked, o::Organism, e; smoothing::SmoothingStrategy=HardBound())
     environment_pars = stripparams(e.environment_pars)
     environment_vars = e.environment_vars
     internal_conduction = conduction_pars_internal(o)
@@ -123,6 +126,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
         clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C")),
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions,
+        smoothing,
     )
     respiration_heat_flow = respiration_out.respiration_heat_flow
     oxygen_flow = u"ml/hr"(Joules_to_O2(metabolic_heat_flow))
@@ -138,7 +142,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
     )
 
     # radiative + convective flows
-    flows = _radiative_convective_flows(surface_temperature, o, environment_pars, environment_vars)
+    flows = _radiative_convective_flows(surface_temperature, o, environment_pars, environment_vars; smoothing)
     (; solar_flow, longwave_flow_in, longwave_flow_out, convection_heat_flow,
        convection_out, convection_area, conduction_area,
        solar_out, longwave_gain_out, longwave_loss_out) = flows
@@ -231,7 +235,8 @@ Dark respiration heat is included in `metabolic_heat_flow` via the metabolic mod
 (e.g. `PlantDarkRespiration`); `respiration_heat_flow` in `energy_balance` is `0.0 W`
 (leaves have no pulmonary respiratory heat loss).
 """
-function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o::Organism, e)
+function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o::Organism, e;
+                       smoothing::SmoothingStrategy=HardBound())
     environment_pars = stripparams(e.environment_pars)
     environment_vars = e.environment_vars
     internal_conduction = conduction_pars_internal(o)
@@ -251,7 +256,7 @@ function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o:
     )
 
     # radiative + convective flows
-    flows = _radiative_convective_flows(surface_temperature, o, environment_pars, environment_vars)
+    flows = _radiative_convective_flows(surface_temperature, o, environment_pars, environment_vars; smoothing)
     (; solar_flow, longwave_flow_in, longwave_flow_out,
        convection_heat_flow, convection_out, convection_area,
        solar_out, longwave_gain_out, longwave_loss_out) = flows
@@ -388,9 +393,9 @@ function heat_balance(
 
     # Recompute temperature-dependent insulation conductivity at current temperatures.
     (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
-        insulation, insulation_pars, side, insulation_temperature, skin_temperature, longwave_depth_fraction, σ)
+        insulation, insulation_pars, side, insulation_temperature, skin_temperature, longwave_depth_fraction, σ; smoothing)
     conductivities = ThermalConductivities(k_flesh, fat_conductivity, insulation_conductivity)
-    insulation_updated = setproperties(insulation; conductivity_compressed = effective_conductivity)
+    insulation_updated = setproperties(insulation, (; conductivity_compressed = effective_conductivity))
 
     # -------------------------------------------------------------------------
     # Convection at insulation surface
@@ -440,6 +445,7 @@ function heat_balance(
         conduction_fraction,
         evaporation_flow = skin_evaporation_heat_flow,
         substrate_temperature,
+        smoothing,
     )
     radiant_temp = radiant_temp_result.radiant_temperature
     compressed_insulation_temperature = radiant_temp_result.compressed_insulation_temperature
@@ -484,6 +490,7 @@ function heat_balance(
         conductivities,
         core_temperature,
         skin_temperature,
+        smoothing,
     )
 
     # -------------------------------------------------------------------------
@@ -503,6 +510,7 @@ function heat_balance(
         core_temperature,
         calculated_insulation_temperature = insulation_temperature,
         compressed_insulation_temperature,
+        smoothing,
     )
     skin_temperature_from_heat_balance = mean_skin_temp_result.mean_skin_temperature
 
@@ -510,7 +518,7 @@ function heat_balance(
     # Respiration with pant override
     # -------------------------------------------------------------------------
     lung_temperature = (core_temperature + skin_temperature) / 2
-    resp_pars_effective = setproperties(resp_pars; pant)
+    resp_pars_effective = setproperties(resp_pars, (; pant))
     resp_out = respiration(
         MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = minimum_metabolic_heat),
         resp_pars_effective,
@@ -520,6 +528,7 @@ function heat_balance(
         air_temperature;
         gas_fractions,
         O2conversion = Kleiber1961(),
+        smoothing,
     )
     respiration_heat_flow = uconvert(u"W", resp_out.respiration_heat_flow)
 

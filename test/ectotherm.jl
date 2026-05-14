@@ -154,7 +154,7 @@ atmospheric_pressure = (ecto_input.pres)u"Pa"
 relative_humidity = (ecto_input.RH/100)
 elevation = (ecto_input.elevation)u"m"
 wind_speed = (ecto_input.VEL)u"m/s"
-fluid = ecto_input.fluid
+fluid = ecto_input.fluid == 1 ? Water() : Air()
 zenith_angle = (ecto_input.Z)u"°"
 global_radiation = (ecto_input.QSOLR)u"W/m^2"
 ground_albedo = ecto_input.alpha_sub

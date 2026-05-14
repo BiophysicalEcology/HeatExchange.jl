@@ -13,26 +13,29 @@ Find the steady-state temperature of an organism (animal or leaf) by root-findin
 
 Returns air temperature as the fallback `core_temperature` if root-finding fails.
 """
-function solve_temperature(organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"))
-    solve_temperature(evaluation_strategy(organism), organism, environment; temperature_bracket)
+function solve_temperature(organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"),
+                            smoothing::SmoothingStrategy=HardBound())
+    solve_temperature(evaluation_strategy(organism), organism, environment; temperature_bracket, smoothing)
 end
 
-function solve_temperature(::SingleBody, organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"))
+function solve_temperature(::SingleBody, organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"),
+                            smoothing::SmoothingStrategy=HardBound())
     lo = ustrip(u"K", temperature_bracket[1])
     hi = ustrip(u"K", temperature_bracket[2])
     fallback_temperature = environment.environment_vars.air_temperature
     try
         solved_temperature = zbrent(
-            T -> ustrip(u"W", heat_balance(T * u"K", organism, environment).heat_balance),
+            T -> ustrip(u"W", heat_balance(T * u"K", organism, environment; smoothing).heat_balance),
             lo, hi, 1e-3,
         )
-        heat_balance(solved_temperature * u"K", organism, environment)
+        heat_balance(solved_temperature * u"K", organism, environment; smoothing)
     catch
-        heat_balance(fallback_temperature, organism, environment)
+        heat_balance(fallback_temperature, organism, environment; smoothing)
     end
 end
 
-function solve_temperature(::MultiSided, organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"))
+function solve_temperature(::MultiSided, organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"),
+                            smoothing::SmoothingStrategy=HardBound())
     environment_pars = stripparams(environment.environment_pars)
     environment_vars = environment.environment_vars
     resp_pars  = respiration_pars(organism)
@@ -48,7 +51,7 @@ function solve_temperature(::MultiSided, organism, environment; temperature_brac
 
     function residual(temperature)
         core_temperature = temperature * u"K"
-        packed = _pack_sides(organism, environment, core_temperature, initial_skin_temperature, initial_insulation_temperature)
+        packed = _pack_sides(organism, environment, core_temperature, initial_skin_temperature, initial_insulation_temperature; smoothing)
         dmult = packed.sky_factor_ref + packed.vegetation_factor_ref
         vmult = 1 - dmult
         net_metabolic = packed.temps_out[1].flows.net_metabolic * dmult +
@@ -61,7 +64,7 @@ function solve_temperature(::MultiSided, organism, environment; temperature_brac
             MetabolicRates(; metabolic=metabolic_heat_flow, sum=metabolic_heat_flow, minimum=metabolic_heat_flow),
             resp_pars, resp_atmos, organism.body.shape.mass, lung_temperature,
             environment_vars.air_temperature;
-            gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(),
+            gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(), smoothing,
         ).respiration_heat_flow
         ustrip(u"W", metabolic_heat_flow - respiration_heat_flow - net_metabolic)
     end
@@ -73,7 +76,7 @@ function solve_temperature(::MultiSided, organism, environment; temperature_brac
     end
 
     # Re-run _pack_sides at converged temperature to assemble full output
-    packed = _pack_sides(organism, environment, equilibrium_temperature, initial_skin_temperature, initial_insulation_temperature)
+    packed = _pack_sides(organism, environment, equilibrium_temperature, initial_skin_temperature, initial_insulation_temperature; smoothing)
     dmult = packed.sky_factor_ref + packed.vegetation_factor_ref
     vmult = 1 - dmult
     skin_mean = packed.temps_out[1].skin_temperature * dmult + packed.temps_out[2].skin_temperature * vmult
@@ -84,9 +87,9 @@ function solve_temperature(::MultiSided, organism, environment; temperature_brac
         MetabolicRates(; metabolic=metabolic_heat_flow, sum=metabolic_heat_flow, minimum=metabolic_heat_flow),
         resp_pars, resp_atmos, organism.body.shape.mass, lung_temperature,
         environment_vars.air_temperature;
-        gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(),
+        gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(), smoothing,
     )
     metabolic_heat_flow = respiration_out.metabolic_heat_flow
 
-    _assemble_multisided_output(organism, environment, equilibrium_temperature, metabolic_heat_flow, respiration_out, packed)
+    _assemble_multisided_output(organism, environment, equilibrium_temperature, metabolic_heat_flow, respiration_out, packed; smoothing)
 end

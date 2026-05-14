@@ -15,11 +15,13 @@ the metabolic heat production needed.
 # Returns
 - `net_metabolic_heat_production`: Net metabolic heat generation (W)
 """
-function net_metabolic_heat(; body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature)
-    net_metabolic_heat(shape(body), body, conductivities, core_temperature, skin_temperature)
+function net_metabolic_heat(; body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature,
+                              smoothing::SmoothingStrategy=HardBound())
+    net_metabolic_heat(shape(body), body, conductivities, core_temperature, skin_temperature; smoothing)
 end
 function net_metabolic_heat(
-    shape::Union{Cylinder,Plate}, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature
+    shape::Union{Cylinder,Plate}, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -31,7 +33,8 @@ function net_metabolic_heat(
     return net_metabolic_heat_production
 end
 function net_metabolic_heat(
-    shape::Sphere, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature
+    shape::Sphere, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
@@ -43,7 +46,8 @@ function net_metabolic_heat(
     return net_metabolic_heat_production
 end
 function net_metabolic_heat(
-    shape::Ellipsoid, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature
+    shape::Ellipsoid, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
+    smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
     a_semi_major = body.geometry.length.a_semi_major_skin
@@ -54,16 +58,16 @@ function net_metabolic_heat(
     b_semi_minor_flesh = b_semi_minor - fat
     c_semi_minor_flesh = c_semi_minor - fat
 
-    a_square = min(a_semi_major_flesh^2, a_semi_major^2)
-    b_square = min(b_semi_minor_flesh^2, b_semi_minor^2)
-    c_square = min(c_semi_minor_flesh^2, c_semi_minor^2)
+    a_square = safe_min(smoothing, a_semi_major_flesh^2, a_semi_major^2; scale=oneunit(a_semi_major^2))
+    b_square = safe_min(smoothing, b_semi_minor_flesh^2, b_semi_minor^2; scale=oneunit(b_semi_minor^2))
+    c_square = safe_min(smoothing, c_semi_minor_flesh^2, c_semi_minor^2; scale=oneunit(c_semi_minor^2))
 
     ssqg =
         (a_square * b_square * c_square) /
         (a_square * b_square + a_square * c_square + b_square * c_square)
 
     bs = b_semi_minor
-    bg = min(b_semi_minor, b_semi_minor_flesh)
+    bg = safe_min(smoothing, b_semi_minor, b_semi_minor_flesh; scale=oneunit(b_semi_minor))
 
     net_metabolic_heat_production = (core_temperature - skin_temperature) / (
             (ssqg / (2 * conductivities.flesh * volume)) +

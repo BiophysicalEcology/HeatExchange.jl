@@ -62,7 +62,7 @@ environment_pars = EnvironmentalPars(;
     ground_emissivity    = 1.0,
     sky_emissivity       = 1.0,
     elevation            = 0.0u"m",
-    fluid                = 0,
+    fluid                = Air(),
     gas_fractions        = GasFractions(0.2095, 0.000412, 0.7902),
     convection_enhancement = 1.0,
 )
@@ -162,7 +162,7 @@ dorsal_insulation_temperature  = thermoreg.dorsal.insulation_temperature
 ins_d = insulation_properties(insulation_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pven)
 
 geometry_vars_d = GeometryVariables(;
-    side                    = :dorsal,
+    side                    = Dorsal(),
     conductance_coefficient = 0.0u"W/K",
     ventral_fraction        = pven,
     conduction_fraction     = external_conduction.conduction_fraction,

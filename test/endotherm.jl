@@ -148,7 +148,7 @@ for shape_number in 1:4
             ground_emissivity=1.0,
             sky_emissivity=1.0,
             elevation=(endo_input.ELEV)u"m",
-            fluid=endo_input.FLTYPE,
+            fluid=endo_input.FLTYPE == 1 ? Water() : Air(),
             gas_fractions=GasFractions(
                 endo_input.O2GAS / 100.0,
                 endo_input.CO2GAS / 100.0,

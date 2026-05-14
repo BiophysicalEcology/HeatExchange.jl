@@ -35,10 +35,19 @@ Linearly interpolate between two `FibreProperties` objects.
 Returns `a * (1 - t) + b * t` for each field.
 """
 function interpolate(a::FibreProperties, b::FibreProperties, t::Number)
-    interpolated = map(getproperties(a), getproperties(b)) do a, b
-        interpolate(a, b, t)
-    end
-    return setproperties(a; interpolated...)
+    # Explicit field-by-field construction. The `map(getproperties(a),
+    # getproperties(b))` + kwarg-splatted `setproperties` indirection used to
+    # produce a heap allocation per call when this function was reached
+    # through Enzyme.Forward — Enzyme could not erase the intermediate
+    # NamedTuple. Going direct lets the compiler keep the result on the stack.
+    FibreProperties(
+        interpolate(a.diameter,     b.diameter,     t),
+        interpolate(a.length,       b.length,       t),
+        interpolate(a.density,      b.density,      t),
+        interpolate(a.depth,        b.depth,        t),
+        interpolate(a.reflectance,  b.reflectance,  t),
+        interpolate(a.conductivity, b.conductivity, t),
+    )
 end
 interpolate(a::Number, b::Number, t::Number) = a * (1 - t) + b * t
 
@@ -58,7 +67,8 @@ Returns a NamedTuple with:
 - `fibres` — insulation fibre properties (for geometry_avg construction)
 - `evap_pars` — possibly adjusted evaporation parameters (bare_skin_fraction reset if no insulation)
 """
-function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulation_temperature)
+function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulation_temperature;
+                     smoothing::SmoothingStrategy=HardBound())
     environment_pars = stripparams(e.environment_pars)
     environment_vars = e.environment_vars
     opts = options(o)
@@ -69,7 +79,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
     evap_pars = evaporation_pars(o)
 
     avg_insulation_temp = insulation_temperature * 0.7 + skin_temperature * 0.3
-    insulation = insulation_properties(ins_pars, avg_insulation_temp, rad_pars.ventral_fraction)
+    insulation = insulation_properties(ins_pars, avg_insulation_temp, rad_pars.ventral_fraction; smoothing)
     fibres = insulation.fibres
     if insulation.insulation_test <= 0.0u"m" && evap_pars.bare_skin_fraction < 1.0
         evap_pars = AnimalEvaporationParameters(;
@@ -113,9 +123,9 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
     side_traits        = Vector{NamedTuple}(undef, 2)
     temperature_error_tolerance = opts.temperature_error_tolerance
 
-    for (side_idx, side) in enumerate((:dorsal, :ventral))
+    for (side_idx, side) in enumerate((Dorsal(), Ventral()))
         side_sky_factor, side_ground_factor, side_bush_factor, side_vegetation_factor = if solar_flow > 0.0u"W"
-            if side == :dorsal
+            if side isa Dorsal
                 solar_flow = 2.0 * solar_direct_flow + ((solar_sky_flow / sky_factor_ref) * sky_factor_ref * 2.0)
                 (sky_factor_ref * 2.0, 0.0, 0.0, vegetation_factor_ref * 2.0)
             else
@@ -126,20 +136,20 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
             end
         else
             solar_flow = 0.0u"W"
-            if side == :dorsal
+            if side isa Dorsal
                 (sky_factor_ref * 2.0, 0.0, 0.0, vegetation_factor_ref * 2.0)
             else
                 (0.0, ground_factor_ref * 2.0, bush_factor_ref * 2.0, 0.0)
             end
         end
 
-        ϵ_body = side == :dorsal ? rad_pars.body_emissivity_dorsal : rad_pars.body_emissivity_ventral
+        ϵ_body = side isa Dorsal ? rad_pars.body_emissivity_dorsal : rad_pars.body_emissivity_ventral
 
-        side_fibres = getproperty(fibres, side)
+        side_fibres = _side_value(fibres, side)
         insulation_layer = FibrousLayer(side_fibres.depth, side_fibres.diameter, side_fibres.density)
         geometry_pars = Body(o.body.shape, CompositeInsulation(insulation_layer, fat))
 
-        conductance_coefficient = if side == :ventral
+        conductance_coefficient = if side isa Ventral
             body_total_area = BiophysicalGeometry.total_area(geometry_pars)
             area_cond = body_total_area * external_conduction.conduction_fraction * 2
             (area_cond * environment_vars.substrate_conductivity) / environment_pars.conduction_depth
@@ -182,7 +192,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
         )
 
         insulation = insulation_properties(
-            ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, rad_pars.ventral_fraction
+            ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, rad_pars.ventral_fraction; smoothing
         )
         temps_out[side_idx] = solve_temperatures(;
             body=geometry_pars,
@@ -194,6 +204,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
             temperature_tolerance=opts.temperature_error_tolerance,
             skin_temperature,
             insulation_temperature,
+            smoothing,
         )
 
         side_bodies[side_idx]        = geometry_pars
@@ -229,7 +240,8 @@ or `nothing` when respiration is disabled.
 `energy_flows` includes `metabolic_heat_flow` and per-side `dorsal`/`ventral` sub-fields.
 `thermoregulation` includes per-side `dorsal`/`ventral` sub-fields alongside existing flat scalars.
 """
-function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow, respiration_out, packed)
+function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow, respiration_out, packed;
+                                     smoothing::SmoothingStrategy=HardBound())
     environment_vars = e.environment_vars
     ins_pars = insulation_pars(o)
     external_conduction = conduction_pars_external(o)
@@ -253,7 +265,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
     skin_temp_avg = (temps_out[1].skin_temperature + temps_out[2].skin_temperature) * 0.5
     ins_temp_avg  = (temps_out[1].insulation_temperature + temps_out[2].insulation_temperature) * 0.5
     insulation_for_test = insulation_properties(
-        ins_pars, ins_temp_avg * 0.7 + skin_temp_avg * 0.3, rad_pars.ventral_fraction
+        ins_pars, ins_temp_avg * 0.7 + skin_temp_avg * 0.3, rad_pars.ventral_fraction; smoothing
     )
     has_insulation = insulation_for_test.insulation_test > 0.0u"m"
 
@@ -310,7 +322,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
     insulation_temperature = temps_out[1].insulation_temperature * dmult + temps_out[2].insulation_temperature * vmult
     insulation_depth       = ins_pars.dorsal.depth * dmult + ins_pars.ventral.depth * vmult
     insulation_final = insulation_properties(
-        ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, rad_pars.ventral_fraction
+        ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, rad_pars.ventral_fraction; smoothing
     )
     insulation_conductivity_effective  = insulation_final.conductivities.average
     insulation_conductivity_compressed = insulation_final.conductivity_compressed
