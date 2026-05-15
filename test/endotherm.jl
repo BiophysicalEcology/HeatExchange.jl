@@ -382,24 +382,24 @@ for shape_number in 1:4
                     rtol
                 @test masbal_output_vec.H2OResp_g ≈ ustrip(u"g/hr", mass_flows.respiration_mass_flow) rtol =
                     rtol
-                @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_flows.m_sweat) rtol =
+                @test masbal_output_vec.H2OCut_g ≈ ustrip(u"g/hr", mass_flows.sweat_mass_flow) rtol =
                     rtol
-                #@test masbal_output_vec.H2O_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.water) rtol = rtol
-                #@test masbal_output_vec.H2O_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.water) rtol = rtol
-                @test masbal_output_vec.O2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.oxygen) rtol =
+                #@test masbal_output_vec.H2O_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_flows_in.water) rtol = rtol
+                #@test masbal_output_vec.H2O_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_flows_out.water) rtol = rtol
+                @test masbal_output_vec.O2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_flows_in.oxygen) rtol =
                     rtol
-                @test masbal_output_vec.O2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.oxygen) rtol =
+                @test masbal_output_vec.O2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_flows_out.oxygen) rtol =
                     rtol
-                #@test masbal_output_vec.CO2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.carbon_dioxide) rtol = rtol
-                #@test masbal_output_vec.CO2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.carbon_dioxide) rtol = rtol
-                @test masbal_output_vec.N2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.nitrogen) rtol =
+                #@test masbal_output_vec.CO2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_flows_in.carbon_dioxide) rtol = rtol
+                #@test masbal_output_vec.CO2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_flows_out.carbon_dioxide) rtol = rtol
+                @test masbal_output_vec.N2_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_flows_in.nitrogen) rtol =
                     rtol
-                @test masbal_output_vec.N2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_out.nitrogen) rtol =
+                @test masbal_output_vec.N2_mol_out ≈ ustrip(u"mol/hr", mass_flows.molar_flows_out.nitrogen) rtol =
                     rtol
-                @test masbal_output_vec.AIR_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_fluxes_in.air) rtol =
+                @test masbal_output_vec.AIR_mol_in ≈ ustrip(u"mol/hr", mass_flows.molar_flows_in.air) rtol =
                     rtol
                 @test masbal_output_vec.AIR_mol_out ≈
-                    ustrip(u"mol/hr", mass_flows.molar_fluxes_out.air) rtol = rtol
+                    ustrip(u"mol/hr", mass_flows.molar_flows_out.air) rtol = rtol
             end
         end
     end

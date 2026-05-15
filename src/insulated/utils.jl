@@ -7,8 +7,8 @@ function _unpack_respiration(resp_out)
         respiration_mass_flow      = nothing,
         air_flow              = nothing,
         oxygen_flow_standard  = nothing,
-        molar_fluxes_in       = nothing,
-        molar_fluxes_out      = nothing,
+        molar_flows_in       = nothing,
+        molar_flows_out      = nothing,
     )
     return (;
         balance               = resp_out.balance,
@@ -16,8 +16,8 @@ function _unpack_respiration(resp_out)
         respiration_mass_flow      = resp_out.respiration_mass_flow,
         air_flow              = resp_out.air_flow,
         oxygen_flow_standard  = resp_out.oxygen_flow_standard,
-        molar_fluxes_in       = resp_out.molar_fluxes_in,
-        molar_fluxes_out      = resp_out.molar_fluxes_out,
+        molar_flows_in       = resp_out.molar_flows_in,
+        molar_flows_out      = resp_out.molar_flows_out,
     )
 end
 
@@ -291,16 +291,16 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
         temps_out[1].flows.insulation_evaporation * dmult + temps_out[2].flows.insulation_evaporation * vmult
 
     (; balance, respiration_heat_flow, respiration_mass_flow, air_flow, oxygen_flow_standard,
-       molar_fluxes_in, molar_fluxes_out) = _unpack_respiration(respiration_out)
+       molar_flows_in, molar_flows_out) = _unpack_respiration(respiration_out)
 
     evaporation_heat_flow += respiration_heat_flow
 
     latent_heat_vaporisation = enthalpy_of_vaporisation(environment_vars.air_temperature)
-    m_sweat = u"g/hr"(
+    sweat_mass_flow = u"g/hr"(
         (temps_out[1].flows.skin_evaporation + temps_out[2].flows.skin_evaporation) * 0.5 /
         latent_heat_vaporisation
     )
-    m_evap = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + m_sweat) : u"g/hr"(m_sweat)
+    evaporation_mass_flow = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + sweat_mass_flow) : u"g/hr"(sweat_mass_flow)
 
     fat_mass     = geometry_avg.shape.mass * fat.fraction
     volume       = geometry_avg.geometry.volume
@@ -408,11 +408,11 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
     mass_flows = (;
         air_flow,
         oxygen_flow_standard,
-        m_evap,
+        evaporation_mass_flow,
         respiration_mass_flow,
-        m_sweat,
-        molar_fluxes_in,
-        molar_fluxes_out,
+        sweat_mass_flow,
+        molar_flows_in,
+        molar_flows_out,
     )
     return ThermoregulationOutput(
         ThermoregulationState(thermoregulation),

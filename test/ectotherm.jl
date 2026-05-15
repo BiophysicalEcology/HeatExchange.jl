@@ -255,16 +255,16 @@ resp_out = respiration(
 respiration_heat_flow = resp_out.respiration_heat_flow
 
 # respiration test
-molar_fluxes_in = resp_out.molar_fluxes_in
-molar_fluxes_out = resp_out.molar_fluxes_out
-@test u"mol/s"(molar_fluxes_in.carbon_dioxide) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes_out.carbon_dioxide) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes_in.water) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes_out.water) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes_in.oxygen) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes_out.oxygen) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
-@test u"mol/s"(molar_fluxes_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
+molar_flows_in = resp_out.molar_flows_in
+molar_flows_out = resp_out.molar_flows_out
+@test u"mol/s"(molar_flows_in.carbon_dioxide) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows_out.carbon_dioxide) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows_in.water) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows_out.water) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows_in.oxygen) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows_out.oxygen) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-6
+@test u"mol/s"(molar_flows_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-6
 @test resp_out.respiration_heat_flow ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test resp_out.respiration_mass_flow ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 
@@ -438,16 +438,16 @@ core_temperature_C = (Unitful.ustrip(u"K", core_temperature_s) - 273.15)u"°C"
 @test heat_balance_out.mass_balance.cutaneous_mass ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 @test heat_balance_out.mass_balance.eye_mass ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 
-molar_fluxes_in = heat_balance_out.respiration_out.molar_fluxes_in
-molar_fluxes_out = heat_balance_out.respiration_out.molar_fluxes_out
-@test u"mol/s"(molar_fluxes_in.carbon_dioxide) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes_out.carbon_dioxide) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes_in.water) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes_out.water) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-3
-@test u"mol/s"(molar_fluxes_in.oxygen) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes_out.oxygen) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
-@test u"mol/s"(molar_fluxes_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
+molar_flows_in = heat_balance_out.respiration_out.molar_flows_in
+molar_flows_out = heat_balance_out.respiration_out.molar_flows_out
+@test u"mol/s"(molar_flows_in.carbon_dioxide) ≈ (ecto_output.CO2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows_out.carbon_dioxide) ≈ (ecto_output.CO2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows_in.water) ≈ (ecto_output.WMOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows_out.water) ≈ (ecto_output.WMOL2)u"mol/s" rtol=1e-3
+@test u"mol/s"(molar_flows_in.oxygen) ≈ (ecto_output.O2MOL1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows_out.oxygen) ≈ (ecto_output.O2MOL2)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows_in.air) ≈ (ecto_output.AIRML1)u"mol/s" rtol=1e-4
+@test u"mol/s"(molar_flows_out.air) ≈ (ecto_output.AIRML2)u"mol/s" rtol=1e-4
 @test heat_balance_out.respiration_out.respiration_heat_flow ≈ (ecto_output.QRESP2)u"W" rtol=1e-3
 @test heat_balance_out.respiration_out.respiration_mass_flow ≈ (ecto_output.GEVAP)u"g/s" rtol=1e-3
 

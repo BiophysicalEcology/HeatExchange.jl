@@ -17,7 +17,7 @@ given gas concentrations, pressure, respiration rate and humidity.
 - `O2conversion::OxygenJoulesConversion`: Model to convert O2 to Watts
 
 # Returns
-NamedTuple with balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes
+NamedTuple with balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_flows
 """
 function respiration(
     rates::MetabolicRates,
@@ -107,8 +107,8 @@ function respiration(
     respiration_heat_flow = uconvert(u"W", latent_heat_vaporisation * respiration_mass_flow - sensible_heat_flow)
     net_heat_flow_check = metabolic_heat_flow - respiration_heat_flow
     balance = uconvert(u"W", net_heat_flow_check - heat_flow_sum)
-    molar_fluxes_in = MolarFluxes(air_in, water_in, oxygen_in, carbon_dioxide_in, nitrogen_in)
-    molar_fluxes_out = MolarFluxes(air_out, water_out, oxygen_out, carbon_dioxide_out, nitrogen_out)
+    molar_flows_in = MolarFluxes(air_in, water_in, oxygen_in, carbon_dioxide_in, nitrogen_in)
+    molar_flows_out = MolarFluxes(air_out, water_out, oxygen_out, carbon_dioxide_out, nitrogen_out)
     respiration_mass_flow = uconvert(u"g/hr", respiration_mass_flow)
-    return (; balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes_in, molar_fluxes_out)
+    return (; balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_flows_in, molar_flows_out)
 end

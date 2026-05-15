@@ -460,8 +460,8 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
         O2conversion  = Kleiber1961(),
     )
     latent_heat_vap = enthalpy_of_vaporisation(air_temperature)
-    m_sweat = u"g/hr"(hf.skin_evaporation_heat_flow / latent_heat_vap)
-    m_evap  = u"g/hr"(respiration_result.respiration_mass_flow + m_sweat)
+    sweat_mass_flow = u"g/hr"(hf.skin_evaporation_heat_flow / latent_heat_vap)
+    evaporation_mass_flow  = u"g/hr"(respiration_result.respiration_mass_flow + sweat_mass_flow)
 
     # Longwave flows (Stefan-Boltzmann at insulation surface)
     σ                    = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
@@ -547,11 +547,11 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
     mass_flows = (;
         air_flow             = respiration_result.air_flow,
         oxygen_flow_standard = respiration_result.oxygen_flow_standard,
-        m_evap,
+        evaporation_mass_flow,
         respiration_mass_flow     = respiration_result.respiration_mass_flow,
-        m_sweat,
-        molar_fluxes_in  = respiration_result.molar_fluxes_in,
-        molar_fluxes_out = respiration_result.molar_fluxes_out,
+        sweat_mass_flow,
+        molar_flows_in  = respiration_result.molar_flows_in,
+        molar_flows_out = respiration_result.molar_flows_out,
     )
 
     return ThermoregulationOutput(
@@ -627,9 +627,9 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     longwave_flow_in     = dorsal_lw_in  * dmult + ventral_lw_in  * vmult
 
     latent_heat_vap = enthalpy_of_vaporisation(env_vars.air_temperature)
-    m_sweat = u"g/hr"((hf_d.skin_evaporation_heat_flow * dmult + hf_v.skin_evaporation_heat_flow * vmult) /
+    sweat_mass_flow = u"g/hr"((hf_d.skin_evaporation_heat_flow * dmult + hf_v.skin_evaporation_heat_flow * vmult) /
                        latent_heat_vap)
-    m_evap  = u"g/hr"(respiration_result.respiration_mass_flow + m_sweat)
+    evaporation_mass_flow  = u"g/hr"(respiration_result.respiration_mass_flow + sweat_mass_flow)
 
     evaporation_heat_flow =
         hf_d.skin_evaporation_heat_flow       * dmult + hf_v.skin_evaporation_heat_flow       * vmult +
@@ -741,11 +741,11 @@ function nlp_assemble_output(p::MultiSidedNLPPacked, organism::Organism, environ
     mass_flows = (;
         air_flow             = respiration_result.air_flow,
         oxygen_flow_standard = respiration_result.oxygen_flow_standard,
-        m_evap,
+        evaporation_mass_flow,
         respiration_mass_flow = respiration_result.respiration_mass_flow,
-        m_sweat,
-        molar_fluxes_in  = respiration_result.molar_fluxes_in,
-        molar_fluxes_out = respiration_result.molar_fluxes_out,
+        sweat_mass_flow,
+        molar_flows_in  = respiration_result.molar_flows_in,
+        molar_flows_out = respiration_result.molar_flows_out,
     )
 
     return ThermoregulationOutput(
