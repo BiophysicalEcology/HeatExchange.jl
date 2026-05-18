@@ -67,7 +67,11 @@ export solve_metabolic_rate,
     solve_with_insulation!,
     solve_without_insulation!
 
-export ThermoregulationOutput
+export ThermoregulationOutput,
+    ThermoregulationState,
+    MorphologyState,
+    EnergyFlowState,
+    MassFlowState
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
@@ -116,6 +120,18 @@ export nlp_pack, nlp_residuals, nlp_assemble_output
 export SmoothingStrategy, HardBound, SmoothBound
 export safe_abs, safe_relu, safe_step, safe_max, safe_min, safe_clamp
 
+export example_environment_vars, example_environment_pars,
+    example_ellipsoid_shape_pars, example_shape_pars,
+    example_conduction_pars_external, example_conduction_pars_internal,
+    example_convection_pars, example_radiation_pars, example_evaporation_pars,
+    example_leaf_evaporation_pars, example_hydraulic_pars, example_respiration_pars,
+    example_metabolism_pars, example_insulation_pars,
+    example_metabolic_rate_options, example_heat_exchange_traits,
+    example_ectotherm_conduction_pars_external, example_ectotherm_conduction_pars_internal,
+    example_ectotherm_radiation_pars, example_ectotherm_evaporation_pars,
+    example_ectotherm_respiration_pars, example_ectotherm_hydraulic_pars,
+    example_ectotherm_metabolism_pars, example_ectotherm_heat_exchange_traits
+
 include("smoothing.jl")
 include("rootfinding.jl")
 include("organism.jl")
@@ -143,5 +159,7 @@ include("insulated/net_metabolic_heat.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
 include("nlp_interface.jl")
+include("examples.jl")
+include("display.jl")
 
 end

@@ -1,11 +1,28 @@
 # Active thermoregulation solver (endotherms, thermogenic plants)
 # Finds the metabolic_heat_flow that closes the heat budget at a fixed core temperature.
 
+# Named wrappers around the four output NamedTuples.
+# Wrapping enables Base.show dispatch so that e.g. `result.thermoregulation` displays
+# human-readably in the REPL instead of as a raw NamedTuple dump.
+# getproperty/propertynames forward transparently, so field access is unchanged.
+abstract type AbstractOutputSection end
+Base.getproperty(s::AbstractOutputSection, f::Symbol) =
+    f === :data ? getfield(s, :data) : getproperty(getfield(s, :data), f)
+Base.propertynames(s::AbstractOutputSection, private::Bool=false) =
+    propertynames(getfield(s, :data))
+
+struct ThermoregulationState{NT<:NamedTuple} <: AbstractOutputSection; data::NT; end
+struct MorphologyState{NT<:NamedTuple}       <: AbstractOutputSection; data::NT; end
+struct EnergyFlowState{NT<:NamedTuple}       <: AbstractOutputSection; data::NT; end
+struct MassFlowState{NT<:NamedTuple}         <: AbstractOutputSection; data::NT; end
+
 """
     ThermoregulationOutput(thermoregulation, morphology, energy_flows, mass_flows)
 
 Canonical return type for `solve_metabolic_rate` and the IPOPT/NLP path.
-Each field is a NamedTuple:
+Each field is a named wrapper around a NamedTuple (see `ThermoregulationState`,
+`MorphologyState`, `EnergyFlowState`, `MassFlowState`).
+Field access is transparent: `result.thermoregulation.core_temperature` works as expected.
 
 - `thermoregulation`: temperature states and effector values at the solution.
 - `morphology`: body surface areas and geometric measures.
