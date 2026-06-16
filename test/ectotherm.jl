@@ -435,8 +435,8 @@ core_temperature_C = (Unitful.ustrip(u"K", core_temperature_s) - 273.15)u"°C"
 @test heat_balance_out.energy_balance.respiration_heat_flow ≈ (ecto_output.QRESP)u"W" rtol=1e-3 # TODO make better?
 
 @test heat_balance_out.mass_balance.oxygen_flow ≈ (ecto_output.O2_ml)u"ml/hr" rtol=1e-4 # TODO make better?
-@test heat_balance_out.mass_balance.cutaneous_mass ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
-@test heat_balance_out.mass_balance.eye_mass ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
+@test heat_balance_out.mass_balance.cutaneous_mass_flow ≈ (ecto_output.H2OCut_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
+@test heat_balance_out.mass_balance.eye_mass_flow ≈ (ecto_output.H2OEyes_g / 3600)u"g/s" rtol=1e-4 # TODO make better?
 
 molar_flows_in = heat_balance_out.respiration_out.molar_flows_in
 molar_flows_out = heat_balance_out.respiration_out.molar_flows_out

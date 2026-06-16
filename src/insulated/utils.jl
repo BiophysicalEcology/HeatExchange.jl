@@ -4,20 +4,20 @@ function _unpack_respiration(resp_out)
     isnothing(resp_out) && return (;
         balance               = nothing,
         respiration_heat_flow = 0.0u"W",
-        respiration_mass_flow      = nothing,
+        respiration_mass_flow = nothing,
         air_flow              = nothing,
         oxygen_flow_standard  = nothing,
-        molar_flows_in       = nothing,
-        molar_flows_out      = nothing,
+        molar_flows_in        = nothing,
+        molar_flows_out       = nothing,
     )
     return (;
         balance               = resp_out.balance,
         respiration_heat_flow = resp_out.respiration_heat_flow,
-        respiration_mass_flow      = resp_out.respiration_mass_flow,
+        respiration_mass_flow = resp_out.respiration_mass_flow,
         air_flow              = resp_out.air_flow,
         oxygen_flow_standard  = resp_out.oxygen_flow_standard,
-        molar_flows_in       = resp_out.molar_flows_in,
-        molar_flows_out      = resp_out.molar_flows_out,
+        molar_flows_in        = resp_out.molar_flows_in,
+        molar_flows_out       = resp_out.molar_flows_out,
     )
 end
 
@@ -58,7 +58,7 @@ Returns a NamedTuple with:
 - `fibres` — insulation fibre properties (for geometry_avg construction)
 - `evap_pars` — possibly adjusted evaporation parameters (bare_skin_fraction reset if no insulation)
 """
-function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulation_temperature)
+function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulation_temperature) # TODO better name for this function - _solve_sides? _pack_and_solve_sides?
     environment_pars = stripparams(e.environment_pars)
     environment_vars = e.environment_vars
     opts = options(o)
@@ -68,7 +68,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
     rad_pars = radiation_pars(o)
     evap_pars = evaporation_pars(o)
 
-    avg_insulation_temp = insulation_temperature * 0.7 + skin_temperature * 0.3
+    avg_insulation_temp = insulation_temperature * 0.7 + skin_temperature * 0.3 # TODO revisit this weighting
     insulation = insulation_properties(ins_pars, avg_insulation_temp, rad_pars.ventral_fraction)
     fibres = insulation.fibres
     if insulation.insulation_test <= 0.0u"m" && evap_pars.bare_skin_fraction < 1.0
@@ -249,7 +249,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
-    # Simple average for insulation test (determines whether fur is present)
+    # Simple average for insulation test (determines whether fur is present)  # TODO seems too complex - simplify
     skin_temp_avg = (temps_out[1].skin_temperature + temps_out[2].skin_temperature) * 0.5
     ins_temp_avg  = (temps_out[1].insulation_temperature + temps_out[2].insulation_temperature) * 0.5
     insulation_for_test = insulation_properties(
@@ -273,7 +273,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
         surface_temperature_dorsal  = temps_out[1].skin_temperature
         surface_temperature_ventral = temps_out[2].skin_temperature
         area_rad_d = area_skin_final
-        area_rad_v = area_skin_final
+        area_rad_v = area_skin_final # TODO should this also be multiplied by (1 - external_conduction.conduction_fraction)?
     end
 
     dorsal_radiation_out_flow  = _side_lw_out(sky_factor_ref,    rad_pars.body_emissivity_dorsal,  area_rad_d, surface_temperature_dorsal, σ)
@@ -297,10 +297,10 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
 
     latent_heat_vaporisation = enthalpy_of_vaporisation(environment_vars.air_temperature)
     sweat_mass_flow = u"g/hr"(
-        (temps_out[1].flows.skin_evaporation + temps_out[2].flows.skin_evaporation) * 0.5 /
+        (temps_out[1].flows.skin_evaporation + temps_out[2].flows.skin_evaporation) * 0.5 / # TODO should this be weighted by fraction dorsal/ventral?
         latent_heat_vaporisation
     )
-    evaporation_mass_flow = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + sweat_mass_flow) : u"g/hr"(sweat_mass_flow)
+    evaporation_mass_flow = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + sweat_mass_flow) : u"g/hr"(sweat_mass_flow) # TODO what about ocular?
 
     fat_mass     = geometry_avg.shape.mass * fat.fraction
     volume       = geometry_avg.geometry.volume
@@ -310,7 +310,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
     insulation_temperature = temps_out[1].insulation_temperature * dmult + temps_out[2].insulation_temperature * vmult
     insulation_depth       = ins_pars.dorsal.depth * dmult + ins_pars.ventral.depth * vmult
     insulation_final = insulation_properties(
-        ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, rad_pars.ventral_fraction
+        ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, rad_pars.ventral_fraction # TODO revisit arbitrary 0.7/0.3 spit
     )
     insulation_conductivity_effective  = insulation_final.conductivities.average
     insulation_conductivity_compressed = insulation_final.conductivity_compressed
@@ -411,6 +411,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
         evaporation_mass_flow,
         respiration_mass_flow,
         sweat_mass_flow,
+        eye_mass_flow,
         molar_flows_in,
         molar_flows_out,
     )

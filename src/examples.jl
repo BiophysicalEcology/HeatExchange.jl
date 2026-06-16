@@ -151,7 +151,7 @@ end
 
 function example_metabolism_pars(;
     core_temperature=u"K"((37.0)u"°C"),
-    metabolic_heat_flow=77.61842u"W",
+    metabolic_heat_flow=77.61842u"W", # TODO make this basal_metabolic_rate(Kleiber(), 65.0u"kg")
     q10=2.0,
     model=Kleiber(),
 )

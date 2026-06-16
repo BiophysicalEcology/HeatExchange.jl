@@ -120,7 +120,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
         resp_pars,
         atmos,
         o.body.shape.mass,
-        clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C")),
+        clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C")), #TODO does this need to be safe-clamped?
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions,
     )
@@ -189,9 +189,9 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e)
     )
     mass_balance = (;
         oxygen_flow,
-        respiration_mass=respiration_out.respiration_mass_flow,
-        cutaneous_mass=evaporation_out.cutaneous_mass_flow,
-        eye_mass=evaporation_out.eyes_mass_flow,
+        respiration_mass_flow=respiration_out.respiration_mass_flow,
+        cutaneous_mass_flow=evaporation_out.cutaneous_mass_flow,
+        eye_mass_flow=evaporation_out.eyes_mass_flow,
     )
     return (;
         heat_balance=heat_balance_val,

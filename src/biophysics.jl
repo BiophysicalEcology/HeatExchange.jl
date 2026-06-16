@@ -84,13 +84,8 @@ function solar(
         zenith_angle < 90u"°" ? direct_radiation / cos(zenith_angle) : direct_radiation
     solar_direct_flow = α_d * silhouette_area * beam_radiation * (1 - shade)
     solar_sky_flow = α_d * F.sky * total_area * diffuse_radiation * (1 - shade)
-    solar_substrate_flow =
-        α_v *
-        F.ground *
-        (total_area - conduction_area) *
-        (1 - α_g) *
-        global_radiation *
-        (1 - shade)
+    solar_substrate_flow = α_v * F.ground * (total_area - conduction_area) *
+        (1 - α_g) * global_radiation * (1 - shade)
     solar_flow = (solar_direct_flow + solar_substrate_flow + solar_sky_flow)
 
     return (; solar_flow, solar_direct_flow, solar_sky_flow, solar_substrate_flow)
@@ -466,7 +461,7 @@ function evaporation(
     area,
     surface_temperature,
     air_temperature;
-    water_potential=0.0u"J/kg",
+    water_potential=0.0u"J/kg", # TODO check how this should be used
     gas_fractions::GasFractions=GasFractions(),
 )
     (; abaxial_vapour_conductance, adaxial_vapour_conductance, cuticular_conductance) = evap_pars
