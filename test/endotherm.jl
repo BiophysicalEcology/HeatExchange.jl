@@ -322,30 +322,30 @@ for shape_number in 1:4
                 ustrip(u"m", morphology.characteristic_dimension) rtol = rtol
             @test morph_output_vec.MASS_FAT ≈ ustrip(u"kg", morphology.fat_mass) rtol = rtol
             if mammal.body.shape isa Cylinder
-                @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.length_fur) rtol =
+                @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.length_fibrous) rtol =
                     rtol
-                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.radius_fur * 2) rtol =
+                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.radius_fibrous * 2) rtol =
                     rtol
             end
             if mammal.body.shape isa Sphere
-                @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.radius_fur * 2) rtol =
+                @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.radius_fibrous * 2) rtol =
                     rtol
-                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.radius_fur * 2) rtol =
+                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.radius_fibrous * 2) rtol =
                     rtol
             end
             if mammal.body.shape isa Plate
-                @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.length_fur) rtol =
+                @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.length_fibrous) rtol =
                     rtol
-                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.width_fur) rtol =
+                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.width_fibrous) rtol =
                     rtol
             end
             if mammal.body.shape isa Ellipsoid
                 @test morph_output_vec.LENGTH ≈
-                    ustrip(u"m", morphology.a_semi_major_fur * 2) rtol = rtol
-                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor_fur * 2) rtol =
+                    ustrip(u"m", morphology.a_semi_major_fibrous * 2) rtol = rtol
+                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor_fibrous * 2) rtol =
                     rtol
                 @test morph_output_vec.HEIGHT ≈
-                    ustrip(u"m", morphology.c_semi_minor_fur * 2) rtol = rtol
+                    ustrip(u"m", morphology.c_semi_minor_fibrous * 2) rtol = rtol
             end
             @test morph_output_vec.FAT_THICK ≈ ustrip(u"m", fat) rtol = rtol
         end
