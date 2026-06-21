@@ -33,7 +33,7 @@ function example_environment_pars(;
     ground_emissivity=1.0,
     sky_emissivity=1.0,
     elevation=0.0u"m",
-    fluid=0,
+    fluid=Air(),
     gas_fractions=GasFractions(),
     convection_enhancement=1.0,
 )
