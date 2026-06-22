@@ -480,7 +480,7 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
 
     # Insulation properties at solution temperatures
     sol_ins_props = insulation_properties(sol_ins_pars, insulation_temperature * 0.7 + skin_temperature * 0.3, pp.ventral_fraction)
-    sol_aspect_ratio   = pp.body_is_sphere ? 1.0 : sol_body.shape.axis_ratio_b
+    sol_axis_ratio   = pp.body_is_sphere ? 1.0 : sol_body.shape.axis_ratio_b
 
     insulation_depth = sol_ins_pars.dorsal.depth * pp.dorsal_weight + sol_ins_pars.ventral.depth * pp.ventral_weight
 
@@ -490,7 +490,7 @@ function nlp_assemble_output(p::WeightedMeanNLPPacked, organism::Organism, envir
         insulation_temperature             = insulation_temperature,
         lung_temperature,
         insulation_depth,
-        axis_ratio_b                       = sol_aspect_ratio,
+        axis_ratio_b                       = sol_axis_ratio,
         pant,
         skin_wetness,
         flesh_conductivity                 = k_flesh,
