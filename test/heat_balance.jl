@@ -233,7 +233,7 @@ balance = metabolic_heat_flow + hb_d.solar_heat_flow -
 #@test abs(ustrip(u"K", hb_d.residual_skin_temperature)) < 0.01
 
 # -------------------------------------------------------------------------
-# Smoke tests: MultiSided solve_temperature for insulated organism
+# MultiSided solve_temperature for insulated organism
 # -------------------------------------------------------------------------
 @test evaluation_strategy(organism) isa MultiSided
 
