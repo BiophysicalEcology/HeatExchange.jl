@@ -89,20 +89,24 @@ end
 """
     InternalConductionParameters <: AbstractPhysiologyParameters
 
-Morphological parameters relating to conductive heat flow within the organism.
+Morphological parameters relating to conductive heat flow within the organism;
+also the flesh/fat conductivity and specific-heat source for `onelump`/`twolump`.
 
 # Parameters
 - `fat_fraction` — Fraction of body mass that is fat (0–1).
 - `flesh_conductivity::K` — Thermal conductivity of lean tissue (W/m/K).
 - `fat_conductivity::K` — Thermal conductivity of fat tissue (W/m/K).
 - `fat_density` — Density of fat tissue (kg/m³).
-
+- `flesh_specific_heat` — Specific heat of lean tissue (J/kg/K).
+- `fat_specific_heat` — Specific heat of fat tissue (J/kg/K).
 """
-Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF} <: AbstractPhysiologyParameters
+Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF,SH,SF} <: AbstractPhysiologyParameters
     fat_fraction::FF = Param(0.0, bounds=(0.0, 1.0))
     flesh_conductivity::FL = Param(0.9u"W/m/K")
     fat_conductivity::FA = Param(0.230u"W/m/K")
     fat_density::DF = Param(901.0u"kg/m^3")
+    flesh_specific_heat::SH = Param(3073.0u"J/kg/K")
+    fat_specific_heat::SF = Param(3073.0u"J/kg/K")
 end
 
 """

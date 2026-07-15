@@ -18,3 +18,4 @@ end
 @safetestset "heat_balance" begin include("heat_balance.jl") end
 @safetestset "ellipsoid" begin include("ellipsoid.jl") end
 @safetestset "metabolism" begin include("metabolism.jl") end
+@safetestset "onelump_derivative" begin include("onelump_derivative.jl") end

@@ -57,6 +57,8 @@ export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
 export heat_balance, solve_temperature, surface_and_lung_temperature
+export ellipsoid_shape_factor, internal_gradient_shape_factor
+export onelump, twolump
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -147,6 +149,7 @@ include("respiration.jl")
 include("insulated/insulation.jl")
 
 include("internal_temperature.jl")
+include("transient_lumped.jl")
 include("heat_balance.jl")
 include("solve_temperature.jl")
 
