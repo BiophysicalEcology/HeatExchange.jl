@@ -67,7 +67,8 @@ export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
 export solve_metabolic_rate,
     ellipsoid_endotherm,
     solve_with_insulation!,
-    solve_without_insulation!
+    solve_without_insulation!,
+    endotherm_onelump
 
 export ThermoregulationOutput,
     ThermoregulationState,
@@ -161,6 +162,7 @@ include("insulated/mean_skin_temperature.jl")
 include("insulated/net_metabolic_heat.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
+include("transient_lumped_endotherm.jl")
 include("nlp_interface.jl")
 include("examples.jl")
 include("display.jl")

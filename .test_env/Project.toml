@@ -1,0 +1,6 @@
+[deps]
+BiophysicalGeometry = "06c61620-4f66-4020-a018-07befe374221"
+FluidProperties = "d16f1b92-71d3-42f3-aafa-43e5bb0efda8"
+HeatExchange = "720bd838-cdd6-4aad-926b-452b962dce21"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
