@@ -45,9 +45,9 @@ end
 
 function surface_and_lung_temperature(::Union{Cylinder,DesertIguana,LeopardFrog}, body::AbstractBody, flesh_conductivity, specific_metabolic_heat_production, core_temperature)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
-    r2 = internal_gradient_shape_factor(body)
-    surface_temperature = core_temperature - specific_metabolic_heat_production * r2 / (4 * flesh_conductivity)
-    lung_temperature = (specific_metabolic_heat_production * r2) / (8 * flesh_conductivity) + surface_temperature
+    shape_factor = internal_gradient_shape_factor(body)
+    surface_temperature = core_temperature - specific_metabolic_heat_production * shape_factor / (4 * flesh_conductivity)
+    lung_temperature = (specific_metabolic_heat_production * shape_factor) / (8 * flesh_conductivity) + surface_temperature
 
     return (; surface_temperature, lung_temperature)
 end
@@ -63,9 +63,9 @@ function surface_and_lung_temperature(::Plate, body::AbstractBody, flesh_conduct
 end
 
 function surface_and_lung_temperature(::Ellipsoid, body::AbstractBody, flesh_conductivity, specific_metabolic_heat_production, core_temperature)
-    x = internal_gradient_shape_factor(body)
-    surface_temperature = core_temperature - (specific_metabolic_heat_production / (2 * flesh_conductivity)) * x
-    lung_temperature = (specific_metabolic_heat_production / (4 * flesh_conductivity)) * x + surface_temperature
+    shape_factor = internal_gradient_shape_factor(body)
+    surface_temperature = core_temperature - (specific_metabolic_heat_production / (2 * flesh_conductivity)) * shape_factor
+    lung_temperature = (specific_metabolic_heat_production / (4 * flesh_conductivity)) * shape_factor + surface_temperature
 
     return (; surface_temperature, lung_temperature)
 end
