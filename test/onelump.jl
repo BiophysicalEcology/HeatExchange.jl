@@ -3,7 +3,7 @@ using BiophysicalGeometry
 using Unitful
 using Test
 
-# Self-consistency checks for endotherm_onelump: no R reference exists for this (transient
+# Self-consistency checks for onelump: no R reference exists for this (transient
 # endotherm body temperature is new, not a NicheMapR port), so the primary check is
 # convergence to solve_metabolic_rate's independently-computed equilibrium.
 
@@ -13,7 +13,7 @@ environment_vars = example_environment_vars(;
 environment_pars = example_environment_pars()
 e = (; environment_pars, environment_vars)
 
-@testset "endotherm_onelump: Naked" begin
+@testset "onelump: Naked" begin
     shape_pars = example_shape_pars(; mass=0.5u"kg")
     body = Body(shape_pars, Naked())
     traits = example_heat_exchange_traits(;
@@ -22,7 +22,7 @@ e = (; environment_pars, environment_vars)
     organism = Organism(body, traits)
 
     core_temperature = u"K"(38.0u"°C")
-    out = endotherm_onelump(core_temperature, 0.0u"s", organism, e)
+    out = onelump(core_temperature, 0.0u"s", organism, e)
 
     # exact cross-check: the Naked branch reuses heat_balance's own residual verbatim
     hb = heat_balance(core_temperature, organism, e)
@@ -30,8 +30,8 @@ e = (; environment_pars, environment_vars)
 
     # sign sanity: colder core than the surrounding environment should warm (dT/dt > 0),
     # hotter core should cool (dT/dt < 0)
-    rate_hot = endotherm_onelump(u"K"(45.0u"°C"), 0.0u"s", organism, e).core_temperature_rate
-    rate_cold = endotherm_onelump(u"K"(5.0u"°C"), 0.0u"s", organism, e).core_temperature_rate
+    rate_hot = onelump(u"K"(45.0u"°C"), 0.0u"s", organism, e).core_temperature_rate
+    rate_cold = onelump(u"K"(5.0u"°C"), 0.0u"s", organism, e).core_temperature_rate
     @test rate_hot < 0u"K/s"
     @test rate_cold > 0u"K/s"
 
@@ -41,13 +41,13 @@ e = (; environment_pars, environment_vars)
         conduction_pars_internal=example_conduction_pars_internal(; flesh_specific_heat=3.0e4u"J/kg/K"),
     )
     organism_heavy = Organism(body, traits_heavy)
-    rate_heavy = endotherm_onelump(core_temperature, 0.0u"s", organism_heavy, e).core_temperature_rate
+    rate_heavy = onelump(core_temperature, 0.0u"s", organism_heavy, e).core_temperature_rate
     rate_normal = out.core_temperature_rate
     @test sign(rate_heavy) == sign(rate_normal)
     @test abs(ustrip(u"K/s", rate_heavy)) < abs(ustrip(u"K/s", rate_normal))
 end
 
-@testset "endotherm_onelump: Insulated" begin
+@testset "onelump: Insulated" begin
     shape_pars = example_shape_pars(; mass=0.0337u"kg")
     insulation_pars = example_insulation_pars()
     conduction_pars_internal = example_conduction_pars_internal(; fat_fraction=0.05)
@@ -73,8 +73,8 @@ end
     # steady-state convergence: feeding the exact equilibrium metabolic_heat_flow that
     # solve_metabolic_rate independently finds should give core_temperature_rate ≈ 0
     solved = solve_metabolic_rate(organism, e, core_temperature - 3.0u"K", environment_vars.air_temperature)
-    equilibrium_mhf = solved.energy_flows.metabolic_heat_flow
-    out_eq = endotherm_onelump(core_temperature, 0.0u"s", organism, e; metabolic_heat_flow=equilibrium_mhf)
+    equilibrium_metabolic_heat_flow = solved.energy_flows.metabolic_heat_flow
+    out_eq = onelump(core_temperature, 0.0u"s", organism, e; metabolic_heat_flow=equilibrium_metabolic_heat_flow)
     @test ustrip(u"K/hr", out_eq.core_temperature_rate) ≈ 0.0 atol = 1e-3
 
     # flow-conservation check at that equilibrium point
@@ -82,11 +82,11 @@ end
     @test ustrip(u"W", ef.metabolic_heat_flow - ef.respiration_heat_flow - out_eq.net_metabolic_heat_internal) ≈ 0.0 atol = 1e-6
 
     # below-equilibrium metabolic_heat_flow should cool the core
-    low_mhf = equilibrium_mhf * 0.5
-    out_low = endotherm_onelump(core_temperature, 0.0u"s", organism, e; metabolic_heat_flow=low_mhf)
+    low_metabolic_heat_flow = equilibrium_metabolic_heat_flow * 0.5
+    out_low = onelump(core_temperature, 0.0u"s", organism, e; metabolic_heat_flow=low_metabolic_heat_flow)
     @test out_low.core_temperature_rate < 0u"K/s"
 
     # a Function(core_temperature) metabolic_heat_flow is supported (Q10-style)
-    out_fn = endotherm_onelump(core_temperature, 0.0u"s", organism, e; metabolic_heat_flow=T -> equilibrium_mhf)
+    out_fn = onelump(core_temperature, 0.0u"s", organism, e; metabolic_heat_flow=T -> equilibrium_metabolic_heat_flow)
     @test ustrip(u"K/hr", out_fn.core_temperature_rate) ≈ ustrip(u"K/hr", out_eq.core_temperature_rate) rtol = 1e-8
 end

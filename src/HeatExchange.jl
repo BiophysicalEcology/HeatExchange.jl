@@ -58,7 +58,7 @@ export solar,
 
 export heat_balance, solve_temperature, surface_and_lung_temperature
 export ellipsoid_shape_factor, internal_gradient_shape_factor
-export ectotherm_onelump, ectotherm_twolump
+export onelump, twolump, SurfaceSolveStrategy, LinearizedSurface, RootFindSurface
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -67,8 +67,7 @@ export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
 export solve_metabolic_rate,
     ellipsoid_endotherm,
     solve_with_insulation!,
-    solve_without_insulation!,
-    endotherm_onelump
+    solve_without_insulation!
 
 export ThermoregulationOutput,
     ThermoregulationState,

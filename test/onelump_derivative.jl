@@ -3,10 +3,10 @@ using BiophysicalGeometry
 using Unitful
 using Test
 
-# Self-consistency checks for the transient lumped-capacitance models: no R reference
-# data exists for these yet (see test/R/onelump_test.R, a manual step), so these check
-# the derivative-form ectotherm_onelump/ectotherm_twolump against the closed-form ectotherm_onelump under a constant
-# environment, which is the cross-check the plan specifies in place of an R reference.
+# Self-consistency checks for the unified onelump/twolump transient physics: no closed
+# form survives the unification (see src/transient.jl), so equilibria are checked against
+# solve_temperature's independently-computed root instead — the same pattern
+# test/onelump.jl already uses for the insulated branch against solve_metabolic_rate.
 
 function rk4_step(f, u, t, dt)
     k1 = f(u, t)
@@ -21,54 +21,66 @@ environment_vars = example_environment_vars(;
     air_temperature=u"K"(20.0u"°C"), global_radiation=500.0u"W/m^2",
     zenith_angle=20.0u"°", wind_speed=1.0u"m/s",
 )
-internal_conduction = example_conduction_pars_internal()
-kw = (;
-    internal_conduction, posture=Intermediate(),
-    body_absorptivity=0.85, emissivity=0.95, sky_view_factor=0.4, ground_view_factor=0.4,
-    metabolic_heat_volumetric=0.0u"W/m^3",
+e = (; environment_pars, environment_vars)
+
+shapes = (
+    Ellipsoid(0.5u"kg", 1000.0u"kg/m^3", 1.1, 1.1),
+    Cylinder(0.5u"kg", 1000.0u"kg/m^3", 1.5),
 )
 
-@testset "ectotherm_onelump: derivative matches closed form" for body in (
-    Body(Ellipsoid(0.5u"kg", 1000.0u"kg/m^3", 1.1, 1.1), Naked()),
-    Body(Cylinder(0.5u"kg", 1000.0u"kg/m^3", 1.5), Naked()),
-)
-    core_temperature_init = u"K"(20.0u"°C")
-    closed = ectotherm_onelump((1:60:36000)u"s", core_temperature_init, body, environment_pars, environment_vars; kw...)
+core_temperature_init = u"K"(20.0u"°C")
+dt = 5.0u"s"
+nsteps = 7200
+shell_thickness = 1.0e-3u"m"
 
-    initial_rate = ectotherm_onelump(core_temperature_init, 0.0u"s", body, environment_pars, environment_vars; kw...)
-    @test ustrip(u"K/s", initial_rate) ≈ ustrip(u"K/s", closed.initial_rate) rtol = 1e-8
+@testset "onelump (Naked): RK4 converges to solve_temperature's equilibrium" for shape_pars in shapes
+    body = Body(shape_pars, Naked())
+    traits = example_heat_exchange_traits(; shape_pars)
+    organism = Organism(body, traits)
 
-    dt = 5.0u"s"
-    f(u, t) = ectotherm_onelump(u, t, body, environment_pars, environment_vars; kw...)
+    f(u, t) = onelump(u, t, organism, e).core_temperature_rate
     core_temperature = core_temperature_init
-    core_temperature_trace = [core_temperature]
-    for i in 1:7200
+    for i in 1:nsteps
         core_temperature = rk4_step(f, core_temperature, (i - 1) * dt, dt)
-        push!(core_temperature_trace, core_temperature)
     end
-    @test ustrip(u"K", core_temperature) ≈ ustrip(u"K", closed.final_core_temperature) rtol = 1e-3
 
-    # Uncomment to compare the RK4 trajectory against the closed form visually:
-    # using Plots
-    # plot((0:7200) * dt, core_temperature_trace; label="RK4 (derivative form)")
-    # plot!((1:60:36000)u"s", closed.core_temperature; label="closed form")
+    equilibrium = solve_temperature(organism, e).core_temperature
+    @test ustrip(u"K", core_temperature) ≈ ustrip(u"K", equilibrium) rtol = 1e-3
 end
 
-@testset "ectotherm_twolump: steady state matches ectotherm_onelump" for body in (
-    Body(Ellipsoid(0.5u"kg", 1000.0u"kg/m^3", 1.1, 1.1), Naked()),
-    Body(Cylinder(0.5u"kg", 1000.0u"kg/m^3", 1.5), Naked()),
-)
-    core_temperature_init = u"K"(20.0u"°C")
-    one = ectotherm_onelump((1:60:36000)u"s", core_temperature_init, body, environment_pars, environment_vars; kw...)
+@testset "twolump: RK4-converged trajectory is physically consistent" for shape_pars in shapes
+    body = Body(shape_pars, Naked())
+    traits = example_heat_exchange_traits(; shape_pars)
+    organism = Organism(body, traits)
 
-    two_kw = (;
-        internal_conduction, shell_thickness=1.0e-3u"m", posture=Intermediate(),
-        body_absorptivity=0.85, emissivity=0.95, sky_view_factor=0.4, ground_view_factor=0.4,
-        metabolic_heat_volumetric=0.0u"W/m^3",
-    )
-    two = ectotherm_twolump(
-        (; core_temperature=core_temperature_init, shell_temperature=core_temperature_init),
-        0.0u"s", body, environment_pars, environment_vars; two_kw...,
-    )
-    @test ustrip(u"K", two.final_core_temperature) ≈ ustrip(u"K", one.final_core_temperature) rtol = 1e-2
+    # (b) twolump (LinearizedSurface) vs. onelump, both RK4-converged: a loose
+    # self-consistency check, not a tight one — twolump omits evaporation/respiration.
+    f_one(u, t) = onelump(u, t, organism, e).core_temperature_rate
+    core_one = core_temperature_init
+    for i in 1:nsteps
+        core_one = rk4_step(f_one, core_one, (i - 1) * dt, dt)
+    end
+
+    state = (; core_temperature=core_temperature_init, shell_temperature=core_temperature_init)
+    for i in 1:nsteps
+        out = twolump(state, (i - 1) * dt, organism, e; shell_thickness)
+        state = (;
+            core_temperature=state.core_temperature + out.core_temperature_rate * dt,
+            shell_temperature=state.shell_temperature + out.shell_temperature_rate * dt,
+        )
+    end
+    @test ustrip(u"K", state.core_temperature) ≈ ustrip(u"K", core_one) atol = 5.0
+
+    # (c) final_core_temperature at the converged state should match it, rates ≈ 0.
+    out_converged = twolump(state, nsteps * dt, organism, e; shell_thickness)
+    @test ustrip(u"K", out_converged.final_core_temperature) ≈ ustrip(u"K", state.core_temperature) rtol = 1e-2
+    @test ustrip(u"K/s", out_converged.core_temperature_rate) ≈ 0.0 atol = 1e-4
+    @test ustrip(u"K/s", out_converged.shell_temperature_rate) ≈ 0.0 atol = 1e-4
+
+    # (d) LinearizedSurface vs RootFindSurface should agree near steady state: both give
+    # rates ≈ 0 and matching surface_temperature.
+    out_rootfind = twolump(state, nsteps * dt, organism, e; shell_thickness, surface_solve=RootFindSurface())
+    @test ustrip(u"K/s", out_rootfind.core_temperature_rate) ≈ 0.0 atol = 1e-4
+    @test ustrip(u"K/s", out_rootfind.shell_temperature_rate) ≈ 0.0 atol = 1e-4
+    @test ustrip(u"K", out_rootfind.surface_temperature) ≈ ustrip(u"K", out_converged.surface_temperature) rtol = 1e-2
 end
