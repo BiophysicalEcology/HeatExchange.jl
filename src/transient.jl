@@ -1,8 +1,20 @@
-# One-lump / two-lump transient (lumped-capacitance) body-temperature models.
-# Ported from NicheMapR's onelump.R / onelump_var.R / twolump.R.
+# Transient (ODE, lumped-capacitance) body-temperature models.
+#
+# This file currently holds two parallel formulations, pending a follow-up pass that
+# unifies them onto the same steady-state-derived physics:
+# - Ectotherm-style (`ectotherm_onelump`/`ectotherm_twolump`): a near-literal port of
+#   NicheMapR's onelump.R/onelump_var.R/twolump.R, with its own linearized
+#   solar/convection/radiation physics and a bare-`body` calling convention.
+# - Endotherm-style (`endotherm_onelump`): reuses the steady-state `heat_balance`/
+#   `_pack_sides` residuals directly as the ODE numerator, `Organism`-based calling
+#   convention.
 
-_volumetric_metabolic_heat(metabolic_heat_volumetric::Function, core_temperature) = metabolic_heat_volumetric(core_temperature)
-_volumetric_metabolic_heat(metabolic_heat_volumetric, core_temperature) = metabolic_heat_volumetric
+_resolve_metabolic_heat(value, core_temperature) = value
+_resolve_metabolic_heat(f::Function, core_temperature) = f(core_temperature)
+
+# ---------------------------------------------------------------------------
+# Ectotherm: onelump / twolump (NicheMapR-derived, linearized physics)
+# ---------------------------------------------------------------------------
 
 _lumped_characteristic_dimension_formula(shape) = VolumeCubeRoot()
 _lumped_characteristic_dimension_formula(::Cylinder) = ScaledDimension(1.0, :length_skin)
@@ -14,7 +26,7 @@ _lumped_internal_gradient_correction(shape, shape_factor, flesh_conductivity, vo
     (convection = volumetric_metabolic_heat * shape_factor / (4 * flesh_conductivity),
      radiation = volumetric_metabolic_heat * shape_factor / (2 * flesh_conductivity))
 
-"""Solar/convective/radiative flows shared by [`onelump`](@ref) and [`twolump`](@ref)."""
+"""Solar/convective/radiative flows shared by [`ectotherm_onelump`](@ref) and [`ectotherm_twolump`](@ref)."""
 function _lumped_flows(
     body::AbstractBody, posture, environment_pars, environment_vars,
     surface_temperature, radiation_linearisation_temperature;
@@ -51,7 +63,7 @@ function _lumped_flows(
 end
 
 """
-    onelump(core_temperature, t, body, environment_pars, environment_vars;
+    ectotherm_onelump(core_temperature, t, body, environment_pars, environment_vars;
             internal_conduction, posture=Intermediate(),
             body_absorptivity, emissivity, sky_view_factor, ground_view_factor,
             metabolic_heat_volumetric, smoothing=HardBound())
@@ -68,7 +80,7 @@ Kearney, Michael R., Warren P. Porter, and Raymond B. Huey. 2021. “Modelling t
  Body Size and Microclimate on Heat Budgets and Foraging Opportunities of Ectotherms.”
  Methods in Ecology and Evolution 12 (13): 458–67. https://doi.org/10.1111/2041-210X.13528.
 """
-function onelump(
+function ectotherm_onelump(
     core_temperature, t, body::AbstractBody, environment_pars, environment_vars;
     internal_conduction::InternalConductionParameters,
     posture=Intermediate(), body_absorptivity, emissivity, sky_view_factor, ground_view_factor,
@@ -77,7 +89,7 @@ function onelump(
     mass = shape(body).mass
     volume = body.geometry.volume
     thermal_capacitance = mass * internal_conduction.flesh_specific_heat
-    volumetric_metabolic_heat = _volumetric_metabolic_heat(metabolic_heat_volumetric, core_temperature)
+    volumetric_metabolic_heat = _resolve_metabolic_heat(metabolic_heat_volumetric, core_temperature)
     metabolic_heat_flow = volumetric_metabolic_heat * volume
 
     flows = _lumped_flows(
@@ -99,7 +111,7 @@ function onelump(
 end
 
 """
-    onelump(t::AbstractVector, core_temperature_init, body, environment_pars, environment_vars;
+    ectotherm_onelump(t::AbstractVector, core_temperature_init, body, environment_pars, environment_vars;
             internal_conduction, posture=Intermediate(),
             body_absorptivity, emissivity, sky_view_factor, ground_view_factor,
             metabolic_heat_volumetric, smoothing=HardBound())
@@ -116,7 +128,7 @@ Kearney, Michael R., Warren P. Porter, and Raymond B. Huey. 2021. “Modelling t
  Body Size and Microclimate on Heat Budgets and Foraging Opportunities of Ectotherms.”
  Methods in Ecology and Evolution 12 (13): 458–67. https://doi.org/10.1111/2041-210X.13528.
 """
-function onelump(
+function ectotherm_onelump(
     t::AbstractVector, core_temperature_init, body::AbstractBody, environment_pars, environment_vars;
     internal_conduction::InternalConductionParameters,
     posture=Intermediate(), body_absorptivity, emissivity, sky_view_factor, ground_view_factor,
@@ -125,7 +137,7 @@ function onelump(
     mass = shape(body).mass
     volume = body.geometry.volume
     thermal_capacitance = mass * internal_conduction.flesh_specific_heat
-    volumetric_metabolic_heat = _volumetric_metabolic_heat(metabolic_heat_volumetric, core_temperature_init)
+    volumetric_metabolic_heat = _resolve_metabolic_heat(metabolic_heat_volumetric, core_temperature_init)
     metabolic_heat_flow = volumetric_metabolic_heat * volume
 
     flows = _lumped_flows(
@@ -174,7 +186,7 @@ function _twolump_core_geometry(::Cylinder, body::AbstractBody, shell_thickness)
 end
 
 """
-    twolump(state::NamedTuple{(:core_temperature,:shell_temperature)}, t, body, environment_pars,
+    ectotherm_twolump(state::NamedTuple{(:core_temperature,:shell_temperature)}, t, body, environment_pars,
             environment_vars; internal_conduction, shell_thickness, posture=Intermediate(),
             body_absorptivity, emissivity, sky_view_factor, ground_view_factor,
             metabolic_heat_volumetric, smoothing=HardBound())
@@ -197,7 +209,7 @@ Kearney, Michael R., Warren P. Porter, and Raymond B. Huey. 2021. “Modelling t
  Body Size and Microclimate on Heat Budgets and Foraging Opportunities of Ectotherms.”
  Methods in Ecology and Evolution 12 (13): 458–67. https://doi.org/10.1111/2041-210X.13528.
 """
-function twolump(
+function ectotherm_twolump(
     state::NamedTuple{(:core_temperature, :shell_temperature)}, t, body::AbstractBody, environment_pars, environment_vars;
     internal_conduction::InternalConductionParameters, shell_thickness,
     posture=Intermediate(), body_absorptivity, emissivity, sky_view_factor, ground_view_factor,
@@ -206,7 +218,7 @@ function twolump(
     (; core_temperature, shell_temperature) = state
     density = shape(body).density
     volume = body.geometry.volume
-    volumetric_metabolic_heat = _volumetric_metabolic_heat(metabolic_heat_volumetric, core_temperature)
+    volumetric_metabolic_heat = _resolve_metabolic_heat(metabolic_heat_volumetric, core_temperature)
     metabolic_heat_flow = volumetric_metabolic_heat * volume
 
     core_geometry = _twolump_core_geometry(shape(body), body, shell_thickness)
@@ -241,4 +253,90 @@ function twolump(
     shell_temperature_rate = ((core_temperature - shell_temperature) / core_shell_resistance - (shell_temperature - surface_temperature) / (shell_resistance / 2)) / shell_capacitance
 
     return (; core_temperature_rate, shell_temperature_rate, surface_temperature, final_core_temperature)
+end
+
+# ---------------------------------------------------------------------------
+# Endotherm: onelump (reuses steady-state heat_balance / _pack_sides residuals)
+# ---------------------------------------------------------------------------
+
+_thermal_capacitance(organism::Organism) =
+    flesh_volume(body(organism)) * shape(body(organism)).density *
+    conduction_pars_internal(organism).flesh_specific_heat
+
+"""
+    endotherm_onelump(core_temperature, t, organism::Organism, e; kw...)
+
+One-lump transient core-temperature derivative for an endotherm, reusing the existing
+steady-state heat-balance physics as the ODE numerator. Dispatches on `insulation(body(organism))`:
+
+- `Naked`: reuses `heat_balance(core_temperature, organism, e)` verbatim; metabolic heat comes
+  from `organism`'s own `metabolism_pars.model` (a genuine forward model, not solved for).
+- `FibrousLayer`/`CompositeInsulation`: needs a `metabolic_heat_flow` keyword (`Quantity` or
+  `Function(core_temperature)`) since the steady-state path only has this as a zbrent-solved
+  unknown, not a forward model. Skin/insulation temperature are solved algebraically each call
+  via the existing `_pack_sides` machinery (not a second ODE state).
+
+All other thermoregulatory effectors are read from `organism`'s traits and held fixed.
+
+# Returns
+NamedTuple with `core_temperature_rate` (K/s), `skin_temperature`, `insulation_temperature`,
+`energy_flows`, `mass_flows`.
+"""
+endotherm_onelump(core_temperature, t, organism::Organism, e; kw...) =
+    endotherm_onelump(core_temperature, t, insulation(body(organism)), organism, e; kw...)
+
+function endotherm_onelump(
+    core_temperature, t, ::Naked, organism::Organism, e; smoothing::SmoothingStrategy=HardBound(),
+)
+    out = heat_balance(core_temperature, organism, e; smoothing)
+    core_temperature_rate = out.energy_balance.heat_balance / _thermal_capacitance(organism)
+    return (;
+        core_temperature_rate,
+        skin_temperature=out.skin_temperature,
+        insulation_temperature=out.insulation_temperature,
+        energy_flows=out.energy_balance,
+        mass_flows=out.mass_balance,
+    )
+end
+
+function endotherm_onelump(
+    core_temperature, t, ::Union{FibrousLayer,CompositeInsulation}, organism::Organism, e;
+    metabolic_heat_flow,
+    skin_temperature_guess=core_temperature - 3u"K",
+    insulation_temperature_guess=e.environment_vars.air_temperature,
+    minimum_metabolic_heat=metabolism_pars(organism).metabolic_heat_flow,
+    smoothing::SmoothingStrategy=HardBound(),
+)
+    mhf = _resolve_metabolic_heat(metabolic_heat_flow, core_temperature)
+
+    packed = _pack_sides(organism, e, core_temperature, skin_temperature_guess, insulation_temperature_guess; smoothing)
+    (; temps_out, sky_factor_ref, vegetation_factor_ref) = packed
+    dmult = sky_factor_ref + vegetation_factor_ref
+    vmult = 1 - dmult
+
+    net_metabolic_heat_internal = temps_out[1].flows.net_metabolic * dmult + temps_out[2].flows.net_metabolic * vmult
+    skin_temperature = temps_out[1].skin_temperature * dmult + temps_out[2].skin_temperature * vmult
+    lung_temperature = (core_temperature + skin_temperature) / 2
+
+    environment_pars = stripparams(e.environment_pars)
+    resp_atmos = AtmosphericConditions(e.environment_vars)
+    respiration_out = respiration(
+        MetabolicRates(; metabolic=mhf, sum=net_metabolic_heat_internal, minimum=minimum_metabolic_heat),
+        respiration_pars(organism), resp_atmos, body(organism).shape.mass, lung_temperature,
+        e.environment_vars.air_temperature;
+        gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(), smoothing,
+    )
+    respiration_heat_flow = respiration_out.respiration_heat_flow
+
+    core_temperature_rate = (mhf - respiration_heat_flow - net_metabolic_heat_internal) / _thermal_capacitance(organism)
+
+    out = _assemble_multisided_output(organism, e, core_temperature, mhf, respiration_out, packed; smoothing)
+    return (;
+        core_temperature_rate,
+        skin_temperature=out.thermoregulation.skin_temperature,
+        insulation_temperature=out.thermoregulation.insulation_temperature,
+        net_metabolic_heat_internal,
+        energy_flows=out.energy_flows,
+        mass_flows=out.mass_flows,
+    )
 end

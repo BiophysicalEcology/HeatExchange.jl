@@ -89,8 +89,7 @@ end
 """
     InternalConductionParameters <: AbstractPhysiologyParameters
 
-Morphological parameters relating to conductive heat flow within the organism;
-also the flesh/fat conductivity and specific-heat source for `onelump`/`twolump`.
+Morphological parameters relating to conductive heat flow and storage within the organism.
 
 # Parameters
 - `fat_fraction` — Fraction of body mass that is fat (0–1).

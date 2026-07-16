@@ -5,7 +5,7 @@ using Test
 
 # Self-consistency checks for the transient lumped-capacitance models: no R reference
 # data exists for these yet (see test/R/onelump_test.R, a manual step), so these check
-# the derivative-form onelump/twolump against the closed-form onelump under a constant
+# the derivative-form ectotherm_onelump/ectotherm_twolump against the closed-form ectotherm_onelump under a constant
 # environment, which is the cross-check the plan specifies in place of an R reference.
 
 function rk4_step(f, u, t, dt)
@@ -28,18 +28,18 @@ kw = (;
     metabolic_heat_volumetric=0.0u"W/m^3",
 )
 
-@testset "onelump: derivative matches closed form" for body in (
+@testset "ectotherm_onelump: derivative matches closed form" for body in (
     Body(Ellipsoid(0.5u"kg", 1000.0u"kg/m^3", 1.1, 1.1), Naked()),
     Body(Cylinder(0.5u"kg", 1000.0u"kg/m^3", 1.5), Naked()),
 )
     core_temperature_init = u"K"(20.0u"°C")
-    closed = onelump((1:60:36000)u"s", core_temperature_init, body, environment_pars, environment_vars; kw...)
+    closed = ectotherm_onelump((1:60:36000)u"s", core_temperature_init, body, environment_pars, environment_vars; kw...)
 
-    initial_rate = onelump(core_temperature_init, 0.0u"s", body, environment_pars, environment_vars; kw...)
+    initial_rate = ectotherm_onelump(core_temperature_init, 0.0u"s", body, environment_pars, environment_vars; kw...)
     @test ustrip(u"K/s", initial_rate) ≈ ustrip(u"K/s", closed.initial_rate) rtol = 1e-8
 
     dt = 5.0u"s"
-    f(u, t) = onelump(u, t, body, environment_pars, environment_vars; kw...)
+    f(u, t) = ectotherm_onelump(u, t, body, environment_pars, environment_vars; kw...)
     core_temperature = core_temperature_init
     core_temperature_trace = [core_temperature]
     for i in 1:7200
@@ -54,19 +54,19 @@ kw = (;
     # plot!((1:60:36000)u"s", closed.core_temperature; label="closed form")
 end
 
-@testset "twolump: steady state matches onelump" for body in (
+@testset "ectotherm_twolump: steady state matches ectotherm_onelump" for body in (
     Body(Ellipsoid(0.5u"kg", 1000.0u"kg/m^3", 1.1, 1.1), Naked()),
     Body(Cylinder(0.5u"kg", 1000.0u"kg/m^3", 1.5), Naked()),
 )
     core_temperature_init = u"K"(20.0u"°C")
-    one = onelump((1:60:36000)u"s", core_temperature_init, body, environment_pars, environment_vars; kw...)
+    one = ectotherm_onelump((1:60:36000)u"s", core_temperature_init, body, environment_pars, environment_vars; kw...)
 
     two_kw = (;
         internal_conduction, shell_thickness=1.0e-3u"m", posture=Intermediate(),
         body_absorptivity=0.85, emissivity=0.95, sky_view_factor=0.4, ground_view_factor=0.4,
         metabolic_heat_volumetric=0.0u"W/m^3",
     )
-    two = twolump(
+    two = ectotherm_twolump(
         (; core_temperature=core_temperature_init, shell_temperature=core_temperature_init),
         0.0u"s", body, environment_pars, environment_vars; two_kw...,
     )

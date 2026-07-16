@@ -32,7 +32,7 @@ function diurnal_trajectory(times, core_temperature_init, shell_temperature_init
     for i in 2:length(times)
         dt = times[i] - times[i - 1]
         environment_vars = environment_at(times[i - 1])
-        out = twolump((; core_temperature, shell_temperature), times[i - 1], body, environment_pars, environment_vars; kw...)
+        out = ectotherm_twolump((; core_temperature, shell_temperature), times[i - 1], body, environment_pars, environment_vars; kw...)
         core_temperature += out.core_temperature_rate * dt
         shell_temperature += out.shell_temperature_rate * dt
         push!(core_trace, core_temperature)

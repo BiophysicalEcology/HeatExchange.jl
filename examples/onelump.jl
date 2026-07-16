@@ -22,7 +22,7 @@ function heating_trajectory(; mass, air_temperature, wind_speed)
         sky_view_factor=0.4, ground_view_factor=0.4,
         metabolic_heat_volumetric=0.0u"W/m^3",
     )
-    onelump(times, u"K"(20.0u"°C"), body, environment_pars, environment_vars; kw...)
+    ectotherm_onelump(times, u"K"(20.0u"°C"), body, environment_pars, environment_vars; kw...)
 end
 
 # small (5 g) vs large (500 g), same wind speed and air temperature

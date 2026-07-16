@@ -58,7 +58,7 @@ export solar,
 
 export heat_balance, solve_temperature, surface_and_lung_temperature
 export ellipsoid_shape_factor, internal_gradient_shape_factor
-export onelump, twolump
+export ectotherm_onelump, ectotherm_twolump
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -150,7 +150,6 @@ include("respiration.jl")
 include("insulated/insulation.jl")
 
 include("internal_temperature.jl")
-include("transient_lumped.jl")
 include("heat_balance.jl")
 include("solve_temperature.jl")
 
@@ -162,7 +161,7 @@ include("insulated/mean_skin_temperature.jl")
 include("insulated/net_metabolic_heat.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
-include("transient_lumped_endotherm.jl")
+include("transient.jl")
 include("nlp_interface.jl")
 include("examples.jl")
 include("display.jl")
