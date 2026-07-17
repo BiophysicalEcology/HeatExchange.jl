@@ -41,10 +41,29 @@ struct RootFindSurface <: SurfaceSolveStrategy end
 Copy of `organism` with `radiation_pars.solar_orientation` overridden to `posture`.
 Kept as an explicit kwarg (rather than a trait override in `heat_balance.jl`) because
 behavioral drivers vary orientation per call in a way a static trait can't capture.
+
+Overrides via the accessor interface, not `setproperties` on `traits(organism)` directly —
+composed traits types don't expose `radiation_pars` as a top-level field.
 """
+struct _SolarOrientationOverride{T<:AbstractFunctionalTraits,S} <: AbstractFunctionalTraits
+    traits::T
+    solar_orientation::S
+end
+shape_pars(t::_SolarOrientationOverride) = shape_pars(t.traits)
+insulation_pars(t::_SolarOrientationOverride) = insulation_pars(t.traits)
+conduction_pars_external(t::_SolarOrientationOverride) = conduction_pars_external(t.traits)
+conduction_pars_internal(t::_SolarOrientationOverride) = conduction_pars_internal(t.traits)
+convection_pars(t::_SolarOrientationOverride) = convection_pars(t.traits)
+radiation_pars(t::_SolarOrientationOverride) =
+    setproperties(radiation_pars(t.traits), (; solar_orientation=t.solar_orientation))
+evaporation_pars(t::_SolarOrientationOverride) = evaporation_pars(t.traits)
+hydraulic_pars(t::_SolarOrientationOverride) = hydraulic_pars(t.traits)
+respiration_pars(t::_SolarOrientationOverride) = respiration_pars(t.traits)
+metabolism_pars(t::_SolarOrientationOverride) = metabolism_pars(t.traits)
+options(t::_SolarOrientationOverride) = options(t.traits)
+
 _with_solar_orientation(organism::Organism, posture) =
-    Organism(body(organism), setproperties(traits(organism),
-        (; radiation_pars = setproperties(radiation_pars(organism), (; solar_orientation = posture)))))
+    Organism(body(organism), _SolarOrientationOverride(traits(organism), posture))
 
 # ---------------------------------------------------------------------------
 # onelump
