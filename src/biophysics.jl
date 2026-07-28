@@ -268,7 +268,11 @@ function convection(;
     # still push this negative even with ΔT floored -- Grashof can't be
     # negative physically, so floor it the same AD-safe way before `^(1/4)`.
     grashof_number = safe_pow_floor(smoothing, grashof_number, zero(grashof_number))
-    reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
+    # |wind_speed|: Reynolds number is a speed-magnitude quantity regardless
+    # of flow direction, and nusselt_forced raises it to a fractional power
+    # (0.6 for Ellipsoid/Sphere) -- same AD-kink-at-zero reasoning as ΔT above.
+    wind_speed_magnitude = safe_abs(smoothing, wind_speed; scale=1.0u"m/s")
+    reynolds_number = fluid_density * wind_speed_magnitude * characteristic_dim / dynamic_viscosity
     free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)
     free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
