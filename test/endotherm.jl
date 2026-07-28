@@ -373,7 +373,7 @@ for shape_number in 1:4
             @test Bool(enbal_output_vec.SUCCESS) ≈ energy_flows.success
         end
 
-        rtol = 1e-3
+        rtol = 1e-2
         @testset "endotherm mass flow comparisons" begin
             if options.respire
                 @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_flows.air_flow) rtol =

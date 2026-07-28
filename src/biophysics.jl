@@ -262,11 +262,12 @@ function convection(;
     # The 1e-6 K floor is well below the smallest meaningful temperature
     # difference (millikelvin level even in tight thermoregulation work),
     # so the primal stays bit-identical away from ΔT = 0.
-    # TODO: if a third call site needs this pattern (`^p` of a quantity that
-    # can hit zero) consider hoisting into a `safe_pow_floor` helper alongside
-    # `safe_abs` in `smoothing.jl`.
-    temperature_difference = max(temperature_difference, 1.0e-6u"K")
+    temperature_difference = safe_pow_floor(smoothing, temperature_difference, 1.0e-6u"K")
     grashof_number = ((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2)
+    # other factors (fluid_density, thermal_expansion_coefficient, ...) can
+    # still push this negative even with ΔT floored -- Grashof can't be
+    # negative physically, so floor it the same AD-safe way before `^(1/4)`.
+    grashof_number = safe_pow_floor(smoothing, grashof_number, zero(grashof_number))
     reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
     free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)
     free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
