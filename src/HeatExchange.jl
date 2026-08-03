@@ -108,6 +108,7 @@ export ConductanceCoeffs,
     Water
 
 export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
+export ConvectionCorrelation, ShapeCorrelation, SimpleForcedCorrelation
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, PlantDarkRespiration
 
