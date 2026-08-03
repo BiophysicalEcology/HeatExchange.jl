@@ -1,4 +1,5 @@
 using HeatExchange
+using BiophysicalGeometry
 using Test
 using Unitful
 using UnitfulMoles
@@ -45,4 +46,30 @@ using UnitfulMoles
     out_dry = evaporation(leaf_pars, mass_windy, atmos, area, surface_temperature, air_temperature;
         water_potential = -1e6u"J/kg")
     @test out_dry.evaporation_heat_flow < out.evaporation_heat_flow
+end
+
+@testset "SimpleForcedCorrelation" begin
+    body = Body(Ellipsoid(0.2u"g" |> u"kg", 700.0u"kg/m^3", 1.0, 100.0), Naked())
+    common = (; body, area=0.01u"m^2", air_temperature=u"K"(25.0u"°C"),
+        surface_temperature=u"K"(30.0u"°C"), atmospheric_pressure=101325.0u"Pa", fluid=Air())
+
+    windy = convection(; common..., wind_speed=2.0u"m/s", correlation=SimpleForcedCorrelation())
+    @test isfinite(ustrip(u"W", windy.convection_flow))
+    @test windy.convection_flow > 0.0u"W"
+
+    # No free-convection term: zero wind gives zero convective flow.
+    calm = convection(; common..., wind_speed=0.0u"m/s", correlation=SimpleForcedCorrelation())
+    @test calm.convection_flow == 0.0u"W"
+
+    # Nusselt correlation, not shape, drives forced convection: same
+    # Reynolds number gives the same Nu regardless of shape argument.
+    @test nusselt_forced(SimpleForcedCorrelation(), Plate(1.0u"kg", 1.0u"kg/m^3", 1.0, 1.0), 500.0) ==
+        nusselt_forced(SimpleForcedCorrelation(), Ellipsoid(1.0u"kg", 1.0u"kg/m^3", 1.0, 1.0), 500.0)
+    @test nusselt_forced(SimpleForcedCorrelation(), Plate(1.0u"kg", 1.0u"kg/m^3", 1.0, 1.0), 500.0) ≈ 0.6 * sqrt(500.0)
+    @test nusselt_free(SimpleForcedCorrelation(), Plate(1.0u"kg", 1.0u"kg/m^3", 1.0, 1.0), 1.0e5, 0.71) == 0.0
+
+    # ShapeCorrelation (default) includes free convection -- differs from
+    # SimpleForcedCorrelation even at the same wind speed.
+    shaped = convection(; common..., wind_speed=2.0u"m/s")
+    @test shaped.convection_flow != windy.convection_flow
 end
