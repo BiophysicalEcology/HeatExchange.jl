@@ -176,6 +176,7 @@ function solve_without_insulation!(
                 fluid,
                 gas_fractions,
                 convection_enhancement,
+                characteristic_dim=geometry.characteristic_dim,
                 smoothing,
             )
             heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
@@ -354,6 +355,7 @@ function solve_with_insulation!(
                 fluid,
                 gas_fractions,
                 convection_enhancement,
+                characteristic_dim=geometry.characteristic_dim,
                 smoothing,
             )
             heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
