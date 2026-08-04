@@ -84,7 +84,7 @@ export HeatCoupling, SharedCore, ConductiveCoupling
 export CompartmentGraph, compartment_graph, num_compartments,
     compartment_part_names, compartment_of, parts_in_compartment
 export contribution_to_conductance, contribution_to_heat_load, build_conductance_matrix
-export solve_core_temperatures
+export solve_core_temperatures, solve_part_surface
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
@@ -172,6 +172,7 @@ include("insulated/net_metabolic_heat.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
 include("compartments.jl")
+include("part_surface.jl")
 include("heat_balance_problem.jl")
 include("nlp_interface.jl")
 include("examples.jl")
