@@ -4,7 +4,8 @@ using Unitful
 
 using HeatExchange: HeatCoupling, SharedCore, ConductiveCoupling,
     CompartmentGraph, compartment_graph, num_compartments,
-    compartment_part_names, compartment_of, parts_in_compartment
+    compartment_part_names, compartment_of, parts_in_compartment,
+    contribution_to_conductance, contribution_to_heat_load, build_conductance_matrix
 
 @testset "HeatCoupling constructors" begin
     @test SharedCore() isa HeatCoupling
@@ -83,4 +84,78 @@ end
 @testset "Unknown part errors" begin
     graph = compartment_graph((:body,), ())
     @test_throws ArgumentError compartment_of(graph, :nonexistent)
+end
+
+@testset "contribution_to_conductance" begin
+    area = 2.0u"cm^2"
+    dist = 1.0u"cm"
+    k = 0.5u"W/m/K"
+
+    # SharedCore edges are contracted — no matrix entry
+    @test contribution_to_conductance(SharedCore(), area, dist, dist, k, k) === nothing
+
+    # Derived series resistance: symmetric parts → G = 1 / (2·d/(k·A))
+    G = contribution_to_conductance(ConductiveCoupling(), area, dist, dist, k, k)
+    expected = 1 / (2 * dist / (k * area))
+    @test G ≈ expected
+    @test unit(G) == u"W/K"
+    # Series resistance: two equal resistors → half the conductance of one alone
+    G_one = 1 / (dist / (k * area))
+    @test G ≈ G_one / 2
+
+    # Asymmetric distances/conductivities still add in series
+    G2 = contribution_to_conductance(ConductiveCoupling(), area, 1.0u"cm", 3.0u"cm", 0.5u"W/m/K", 0.6u"W/m/K")
+    r2 = 1.0u"cm"/(0.5u"W/m/K"*area) + 3.0u"cm"/(0.6u"W/m/K"*area)
+    @test G2 ≈ 1 / r2
+
+    # Explicit override: interface conductance coefficient × area
+    h = 10.0u"W/m^2/K"
+    Goverride = contribution_to_conductance(ConductiveCoupling(h), area, dist, dist, k, k)
+    @test Goverride ≈ h * area
+    @test unit(Goverride) == u"W/K"
+end
+
+@testset "contribution_to_heat_load default is zero" begin
+    @test contribution_to_heat_load(SharedCore()) == 0.0u"W"
+    @test contribution_to_heat_load(ConductiveCoupling()) == 0.0u"W"
+end
+
+@testset "build_conductance_matrix — two compartments, one conductive join" begin
+    # head + torso, no SharedCore → 2 compartments; one conductive join between them
+    graph = compartment_graph((:head, :torso), ())
+    G = 0.4u"W/K"
+    K = build_conductance_matrix(graph, ((1, 2, G),))
+    @test size(K) == (2, 2)
+    @test K[1, 1] ≈ G
+    @test K[2, 2] ≈ G
+    @test K[1, 2] ≈ -G
+    @test K[2, 1] ≈ -G
+    # Graph-Laplacian: rows sum to zero
+    @test K[1, 1] + K[1, 2] ≈ 0.0u"W/K"
+    @test K[2, 1] + K[2, 2] ≈ 0.0u"W/K"
+end
+
+@testset "build_conductance_matrix — three compartments, chain" begin
+    graph = compartment_graph((:a, :b, :c), ())
+    Gab = 0.3u"W/K"
+    Gbc = 0.5u"W/K"
+    K = build_conductance_matrix(graph, ((1, 2, Gab), (2, 3, Gbc)))
+    @test K[1, 1] ≈ Gab
+    @test K[2, 2] ≈ Gab + Gbc
+    @test K[3, 3] ≈ Gbc
+    @test K[1, 2] ≈ -Gab
+    @test K[2, 3] ≈ -Gbc
+    @test K[1, 3] ≈ 0.0u"W/K"
+    # every row of a Laplacian sums to zero
+    for row in 1:3
+        @test sum(K[row, :]) ≈ 0.0u"W/K"
+    end
+end
+
+@testset "build_conductance_matrix — empty entries (no conductive joins)" begin
+    # dorsal/ventral SharedCore → single compartment, zero conductive network
+    graph = compartment_graph((:dorsal, :ventral), ((:dorsal, :ventral),))
+    K = build_conductance_matrix(graph, ())
+    @test size(K) == (1, 1)
+    @test K[1, 1] == 0.0u"W/K"
 end
