@@ -47,6 +47,7 @@ function solve_part_surface(;
     skin_temperature,
     insulation_temperature,
     temperature_tolerance,
+    covered_area=zero(BiophysicalGeometry.total_area(body)),
     smoothing::SmoothingStrategy=HardBound(),
 )
     core_temperature = traits.core_temperature
@@ -59,6 +60,13 @@ function solve_part_surface(;
         conduction_fraction,
         longwave_depth_fraction,
     )
+    # A joined part exposes only its uncovered surface: the flat face(s) that mate
+    # with neighbouring parts (the SharedCore/conductive join patch) are internal,
+    # so the convective/radiative/evaporative area is total − covered.
+    geometry = (;
+        total_area       = BiophysicalGeometry.total_area(body) - covered_area,
+        area_evaporation = evaporation_area(body) - covered_area,
+    )
     result = solve_temperatures(;
         body,
         insulation_pars,
@@ -69,6 +77,7 @@ function solve_part_surface(;
         temperature_tolerance,
         skin_temperature,
         insulation_temperature,
+        geometry,
         smoothing,
     )
     net_metabolic = result.flows.net_metabolic

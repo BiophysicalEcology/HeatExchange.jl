@@ -95,6 +95,7 @@ function solve_temperatures(;
     temperature_tolerance,
     skin_temperature,
     insulation_temperature,
+    geometry=_part_geometry(body),
     smoothing::SmoothingStrategy=HardBound(),
 )
     insulation_test = u"m"(insulation.insulation_test)
@@ -111,6 +112,7 @@ function solve_temperatures(;
             temperature_tolerance,
             skin_temperature,
             insulation_temperature;
+            geometry,
             smoothing,
         )
     else
@@ -122,6 +124,7 @@ function solve_temperatures(;
             temperature_tolerance,
             skin_temperature,
             insulation_temperature;
+            geometry,
             smoothing,
         )
     end
@@ -129,6 +132,7 @@ end
 
 function solve_without_insulation!(
     body::AbstractBody, geometry_vars::GeometryVariables, environment_vars::NamedTuple, traits::NamedTuple, temperature_tolerance, skin_temperature, insulation_temperature;
+    geometry=_part_geometry(body),
     smoothing::SmoothingStrategy=HardBound(),
 )
     (;
@@ -150,7 +154,7 @@ function solve_without_insulation!(
 
     ntry = 0
     volume = flesh_volume(body)
-    total_area = BiophysicalGeometry.total_area(body)
+    total_area = geometry.total_area
     area_evaporation = total_area
     area_convection = total_area #* (1 - conduction_fraction)
     r_skin = skin_radius(body)
@@ -286,6 +290,7 @@ function solve_with_insulation!(
     temperature_tolerance,
     skin_temperature,
     insulation_temperature;
+    geometry=_part_geometry(body),
     smoothing::SmoothingStrategy=HardBound(),
 )
     (; side, conductance_coefficient, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geometry_vars
@@ -319,8 +324,7 @@ function solve_with_insulation!(
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
-    area_evaporation = evaporation_area(body)
-    total_area = BiophysicalGeometry.total_area(body)
+    (; total_area, area_evaporation) = geometry
     area_convection = total_area * (1 - conduction_fraction)
     insulation_test = insulation.insulation_test
 
