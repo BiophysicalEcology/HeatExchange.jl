@@ -321,8 +321,9 @@ per part (outside the hot loop) so `solve_part_heat_balance` never touches
 `BiophysicalGeometry` on the differentiable / iterated path.
 """
 _part_geometry(body::AbstractBody) = (;
-    total_area       = BiophysicalGeometry.total_area(body),
-    area_evaporation = evaporation_area(body),
+    total_area         = BiophysicalGeometry.total_area(body),
+    area_evaporation   = evaporation_area(body),
+    characteristic_dim = characteristic_dimension(VolumeCubeRoot(), body),
 )
 
 # Backwards-compatible name: the per-part primitive used to be a 4-arg `heat_balance`

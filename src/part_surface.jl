@@ -48,6 +48,7 @@ function solve_part_surface(;
     insulation_temperature,
     temperature_tolerance,
     covered_area=zero(BiophysicalGeometry.total_area(body)),
+    characteristic_dim=characteristic_dimension(VolumeCubeRoot(), body),
     smoothing::SmoothingStrategy=HardBound(),
 )
     core_temperature = traits.core_temperature
@@ -64,8 +65,9 @@ function solve_part_surface(;
     # with neighbouring parts (the SharedCore/conductive join patch) are internal,
     # so the convective/radiative/evaporative area is total − covered.
     geometry = (;
-        total_area       = BiophysicalGeometry.total_area(body) - covered_area,
-        area_evaporation = evaporation_area(body) - covered_area,
+        total_area         = BiophysicalGeometry.total_area(body) - covered_area,
+        area_evaporation   = evaporation_area(body) - covered_area,
+        characteristic_dim,
     )
     result = solve_temperatures(;
         body,

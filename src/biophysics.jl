@@ -223,10 +223,10 @@ function convection(;
     gas_fractions::GasFractions=GasFractions(),
     convection_enhancement=1.0,
     characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
+    characteristic_dim=characteristic_dimension(characteristic_dimension_formula, body),
     smoothing::SmoothingStrategy=HardBound(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
-    characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
     dry_air_out = dry_air_properties(air_temperature, atmospheric_pressure; gas_fractions)
     vapour_diffusivity = dry_air_out.vapour_diffusivity
     # Dispatch on the fluid singleton — both branches are concrete-typed and

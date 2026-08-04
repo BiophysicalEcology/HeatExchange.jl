@@ -56,6 +56,21 @@ function radiant_temperature(;
         smoothing,
     )
 end
+
+"""
+    _shell_angle_fraction(shape) -> Real
+
+Fraction of a full closed cylindrical/ellipsoidal shell that this part actually
+exposes to the environment. A whole shape exposes all of it (`1`); a half-shape
+joined to a neighbour at its flat face exposes half its curved shell (`0.5`), so the
+`2π·length` (full-circumference) fur-conductance factor in the cylindrical
+radiant-temperature formulas must be halved. Whole shapes are unaffected, so
+existing single-body numerics are unchanged.
+"""
+_shell_angle_fraction(::AbstractShape) = 1.0
+_shell_angle_fraction(::HalfCylinder) = 0.5
+_shell_angle_fraction(::HalfEllipsoid) = 0.5
+
 function radiant_temperature(
     shape::Union{AbstractCylindrical,AbstractSlab},
     body::AbstractBody,
@@ -82,9 +97,12 @@ function radiant_temperature(
     compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
     length = body.geometry.length.length_skin
+    # A part joined at its flat face exposes only a fraction of the full closed
+    # cylindrical shell; scale the 2π (full-circumference) fur-conductance factor.
+    shell = _shell_angle_fraction(shape)
 
     compression_fraction =
-        (conduction_fraction * 2 * π * compressed_conductivity * length) / log(r_compressed / r_skin)
+        (conduction_fraction * 2 * π * shell * compressed_conductivity * length) / log(r_compressed / r_skin)
     compressed_insulation_temperature = safe_gated_ratio(
         conduction_fraction,
         compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature,
@@ -100,15 +118,15 @@ function radiant_temperature(
 
     geometric_divisor =
         1 +
-        ((2 * π * length * r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
-        ((2 * π * length * r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
+        ((2 * π * shell * length * r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
+        ((2 * π * shell * length * r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
     evaporative_divisor =
         evaporation_flow * ((r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
         evaporation_flow * ((r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
     numerator_divisor =
-        ((2 * π * length) / geometric_divisor) *
+        ((2 * π * shell * length) / geometric_divisor) *
         (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) *
         r_flesh^2 / (2 * volume)
 

@@ -91,6 +91,12 @@ part_traits(ϵ_body) = (;
     eye_fraction       = evap.eye_fraction,
 )
 
+# The two halves reassemble the full cylinder, so their external curvature — hence
+# the convective characteristic dimension — is the full cylinder's, not the value
+# VolumeCubeRoot derives from a half's reduced volume. (Per §3.6 this is a Tier-1
+# cache input the caller supplies.)
+full_characteristic_dim = characteristic_dimension(VolumeCubeRoot(), full_body)
+
 function part_setup(view_factors, ϵ_body)
     part_body = Body(HalfCylinder(mass / 2, ρ, b), CompositeInsulation(fur, fat))
     # Covered join patch: the flat face that mates with the other half
@@ -106,6 +112,7 @@ function part_setup(view_factors, ϵ_body)
         ventral_fraction = 0.5,
         longwave_depth_fraction = 1.0,
         covered_area,
+        characteristic_dim = full_characteristic_dim,
     )
 end
 
@@ -178,16 +185,16 @@ end
     # The two parts are identical and equal-mass in the uniform symmetric case,
     # and their surface temperatures track the dorsal/ventral mean closely.
     @test multipart.parts[1].net_metabolic ≈ multipart.parts[2].net_metabolic
-    @test multipart.skin_temperature ≈ baseline.thermoregulation.skin_temperature rtol = 0.005
-    @test multipart.insulation_temperature ≈ baseline.thermoregulation.insulation_temperature rtol = 0.01
+    @test multipart.skin_temperature ≈ baseline.thermoregulation.skin_temperature rtol = 1e-3
+    @test multipart.insulation_temperature ≈ baseline.thermoregulation.insulation_temperature rtol = 1e-3
 
-    # Metabolic heat flow currently matches to ~13%. The residual is a known
-    # geometric approximation: a standalone HalfCylinder's skin/insulation area
-    # (used for the fur conductance in radiant_temperature / mean_skin_temperature)
-    # still counts the covered flat face, so the fur couples skin to insulation
-    # too tightly and the small core–skin gradient is under-resolved. Threading the
-    # exposed skin/insulation area through those functions (as done for convection)
-    # tightens this. Tracked; the exact whole-body gate above is the primary proof.
-    @test_broken multipart.metabolic_heat_flow ≈ base_metabolic rtol = 0.02
-    @test multipart.metabolic_heat_flow ≈ base_metabolic rtol = 0.15
+    # Metabolic heat flow now matches the dorsal/ventral result closely. Closing the
+    # earlier ~13% gap needed three geometric corrections for the joined half-shape:
+    #  - convective/evaporative area = total − covered flat face (solve_part_surface);
+    #  - characteristic dimension supplied by the caller (the full body's), not
+    #    derived from the half's reduced volume (§3.6 Tier-1 cache);
+    #  - the 2π (full-circumference) fur-conductance factor in the cylindrical
+    #    radiant-temperature formulas scaled by the exposed shell fraction
+    #    (_shell_angle_fraction = 0.5 for a HalfCylinder).
+    @test multipart.metabolic_heat_flow ≈ base_metabolic rtol = 1e-3
 end

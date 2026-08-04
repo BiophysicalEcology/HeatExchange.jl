@@ -105,6 +105,9 @@ function insulation_radiant_temperature(
     r_skin = skin_radius(body)
     r_insulation = insulation_radius(body)
     length = body.geometry.length.length_skin
+    # Match radiant_temperature: a joined part exposes only a fraction of the full
+    # cylindrical shell, so halve the 2π (full-circumference) fur-conductance factor.
+    shell = _shell_angle_fraction(shape)
 
     r_radiation =
         r_skin +
@@ -116,12 +119,12 @@ function insulation_radiant_temperature(
             coeffs.sky * T.sky + coeffs.bush * T.bush + coeffs.vegetation * T.vegetation + coeffs.ground * T.ground -
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) *
             ((numerator_divisor / radiative_divisor) + ((compressed_insulation_temperature * compressed_conductance) / radiative_divisor))
-        ins_calc2 = ((2 * π * length) / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
+        ins_calc2 = ((2 * π * shell * length) / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
         ins_calc3 =
             heat_transfer_coefficient * area_convection * T.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * T.substrate -
             insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
-            (2 * π * length * uncompressed_conductance) / geometric_divisor +
+            (2 * π * shell * length * uncompressed_conductance) / geometric_divisor +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) * (
                 (
                     (insulation_conductivity / log(r_insulation / r_radiation)) *
@@ -143,12 +146,12 @@ function insulation_radiant_temperature(
     else
         ins_calc1 =
             coeffs.sky * T.sky + coeffs.bush * T.bush + coeffs.vegetation * T.vegetation + coeffs.ground * T.ground
-        ins_calc2 = ((2 * π * length) / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
+        ins_calc2 = ((2 * π * shell * length) / geometric_divisor) * (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance)
         ins_calc3 =
             heat_transfer_coefficient * area_convection * T.air - conductance_coefficient * compressed_insulation_temperature + conductance_coefficient * T.substrate -
             insulation_evaporation_heat_flow + solar_flow
         ins_calc4 =
-            (2 * π * length * uncompressed_conductance) / geometric_divisor +
+            (2 * π * shell * length * uncompressed_conductance) / geometric_divisor +
             (coeffs.sky + coeffs.bush + coeffs.vegetation + coeffs.ground) +
             heat_transfer_coefficient * area_convection
         calculated_insulation_temperature = u"K"((ins_calc1 + ins_calc2 + ins_calc3) / ins_calc4)
