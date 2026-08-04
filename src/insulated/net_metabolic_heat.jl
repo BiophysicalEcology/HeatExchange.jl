@@ -20,7 +20,7 @@ function net_metabolic_heat(; body::AbstractBody, conductivities::ThermalConduct
     net_metabolic_heat(shape(body), body, conductivities, core_temperature, skin_temperature; smoothing)
 end
 function net_metabolic_heat(
-    shape::Union{Cylinder,Plate}, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
+    shape::Union{AbstractCylindrical,AbstractSlab}, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)

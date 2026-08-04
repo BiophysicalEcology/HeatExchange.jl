@@ -73,7 +73,7 @@ function insulation_radiant_temperature(;
     )
 end
 function insulation_radiant_temperature(
-    shape::Union{Cylinder,Plate},
+    shape::Union{AbstractCylindrical,AbstractSlab},
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
