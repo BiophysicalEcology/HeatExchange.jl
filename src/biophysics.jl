@@ -310,7 +310,7 @@ Calculate the Nusselt number for free convection based on body shape.
 # Returns
 - Free convection Nusselt number (dimensionless)
 """
-function nusselt_free(shape::Union{Cylinder,DesertIguana,LeopardFrog}, grashof_number, prandtl_number)
+function nusselt_free(shape::Union{AbstractCylindrical,DesertIguana,LeopardFrog}, grashof_number, prandtl_number)
     #  free convection for a cylinder
     #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
     rayleigh_number = grashof_number * prandtl_number
@@ -333,12 +333,12 @@ function nusselt_free(shape::Union{Cylinder,DesertIguana,LeopardFrog}, grashof_n
     end
     return nusselt_number
 end
-function nusselt_free(shape::Plate, grashof_number, prandtl_number)
+function nusselt_free(shape::AbstractSlab, grashof_number, prandtl_number)
     rayleigh_number = grashof_number * prandtl_number
     nusselt_number = 0.13 * rayleigh_number ^ (1 / 3) # Gates 1980 eq. 9.77
     return nusselt_number
 end
-function nusselt_free(shape::Union{Sphere,Ellipsoid}, grashof_number, prandtl_number)
+function nusselt_free(shape::Union{AbstractSpherical,AbstractEllipsoidal}, grashof_number, prandtl_number)
     #  sphere free convection
     #  from p.413 Bird et all (1960) Transport Phenomena
     rayleigh_number = (grashof_number ^ (1 / 4)) * (prandtl_number ^ (1 / 3))
@@ -358,7 +358,7 @@ Calculate the Nusselt number for forced convection based on body shape.
 # Returns
 - Forced convection Nusselt number (dimensionless)
 """
-function nusselt_forced(shape::Cylinder, reynolds_number)
+function nusselt_forced(shape::AbstractCylindrical, reynolds_number)
     #  forced convection of a cylinder
     #  adjusting Nusselt-Reynolds correlation for Reynolds number (p. 260 McAdams, 1954)
     if reynolds_number < 4
@@ -382,11 +382,11 @@ function nusselt_forced(shape::Cylinder, reynolds_number)
     end
     return nusselt_number
 end
-function nusselt_forced(shape::Plate, reynolds_number)
+function nusselt_forced(shape::AbstractSlab, reynolds_number)
     # forced convection of a plate
     0.032 * reynolds_number ^ 0.8
 end
-function nusselt_forced(shape::Union{Ellipsoid,Sphere,DesertIguana,LeopardFrog}, reynolds_number)
+function nusselt_forced(shape::Union{AbstractSpherical,AbstractEllipsoidal,DesertIguana,LeopardFrog}, reynolds_number)
     #  forced convection of a sphere
     0.35 * reynolds_number ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end

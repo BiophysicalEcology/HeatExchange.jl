@@ -135,7 +135,7 @@ function radiant_temperature(
     return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)
 end
 function radiant_temperature(
-    shape::Sphere,
+    shape::AbstractSpherical,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -223,7 +223,7 @@ function radiant_temperature(
     return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)
 end
 function radiant_temperature(
-    shape::Ellipsoid,
+    shape::AbstractEllipsoidal,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,

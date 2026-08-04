@@ -158,7 +158,7 @@ function insulation_radiant_temperature(
     return (; calculated_insulation_temperature, radiant_temperature2)
 end
 function insulation_radiant_temperature(
-    shape::Sphere,
+    shape::AbstractSpherical,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -242,7 +242,7 @@ function insulation_radiant_temperature(
 end
 
 function insulation_radiant_temperature(
-    shape::Ellipsoid,
+    shape::AbstractEllipsoidal,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,

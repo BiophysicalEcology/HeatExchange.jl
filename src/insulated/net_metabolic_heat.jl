@@ -33,7 +33,7 @@ function net_metabolic_heat(
     return net_metabolic_heat_production
 end
 function net_metabolic_heat(
-    shape::Sphere, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
+    shape::AbstractSpherical, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
@@ -46,7 +46,7 @@ function net_metabolic_heat(
     return net_metabolic_heat_production
 end
 function net_metabolic_heat(
-    shape::Ellipsoid, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
+    shape::AbstractEllipsoidal, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
