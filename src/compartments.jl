@@ -250,3 +250,54 @@ function _conductance_eltype(entries)
     end
     return typeof(0.0u"W/K")
 end
+
+# ---------------------------------------------------------------------------
+# Compartment core-temperature solve.
+#
+# The heat balance at compartment c's core node, treating its parts' skins and the
+# neighbouring compartment cores as boundaries at their current estimates:
+#
+#   metabolic_c − respiration_c
+#       = Σ_{parts p in c} G_flesh_p · (core_c − skin_p)      [conducted to own skins]
+#       + Σ_{neighbours j} G_cj       · (core_c − core_j)     [conducted to neighbours]
+#
+# Collecting the unknown cores on the left gives the linear system
+#
+#   (L + diag(Σ_p G_flesh_p)) · core = (metabolic − respiration) + Σ_p G_flesh_p · skin_p
+#
+# where L is the inter-compartment conductance Laplacian (`build_conductance_matrix`).
+# Adding the flesh conductance to the diagonal is what makes the system non-singular
+# in the degenerate single-compartment case: for K = 1 with one part it reduces to
+# core = skin + (metabolic − respiration) / G_flesh, i.e. the exact
+# `net_metabolic = G_flesh·(core − skin) = metabolic − respiration` criterion the
+# dorsal/ventral root-find enforces today.
+# ---------------------------------------------------------------------------
+
+"""
+    solve_core_temperatures(graph, conductance_entries, net_generation,
+                            flesh_conductance, flesh_weighted_skin) -> SVector{K}
+
+Solve for the per-compartment core temperatures in one linear step.
+
+`graph` fixes the compartment count `K`. `conductance_entries` are the
+inter-compartment `(i, j, conductance)` triples (`build_conductance_matrix` input).
+The three remaining arguments are per-compartment aggregates over the parts in each
+compartment:
+
+- `net_generation[c]` — `Σ (metabolic − respiration)` (W)
+- `flesh_conductance[c]` — `Σ G_flesh_p` (W/K), the total core→skin conductance
+- `flesh_weighted_skin[c]` — `Σ G_flesh_p · skin_p` (W)
+
+Returns the `SVector{K}` of compartment core temperatures — a stack-allocated,
+heap-free solve.
+"""
+function solve_core_temperatures(graph::CompartmentGraph{P,N,K}, conductance_entries,
+        net_generation::NTuple{K}, flesh_conductance::NTuple{K},
+        flesh_weighted_skin::NTuple{K}) where {P,N,K}
+    laplacian = build_conductance_matrix(graph, conductance_entries)
+    # Assemble and solve in unit-stripped SI space (W/K, W → K) so the StaticArrays
+    # linear solve sees plain Float64 — Unitful matrix division is fragile.
+    system = ustrip.(u"W/K", laplacian) + Diagonal(SVector(ustrip.(u"W/K", flesh_conductance)))
+    load = SVector(ustrip.(u"W", net_generation)) .+ SVector(ustrip.(u"W", flesh_weighted_skin))
+    return (system \ load) .* u"K"
+end
