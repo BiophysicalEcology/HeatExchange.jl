@@ -252,3 +252,40 @@ result = solve_temperature(organism, e)
 @test :dorsal in propertynames(result.thermoregulation)
 @test :ventral in propertynames(result.thermoregulation)
 @test u"K"(0.0u"°C") < result.thermoregulation.core_temperature < u"K"(80.0u"°C")
+
+# -------------------------------------------------------------------------
+# CommonSolve interface (HeatBalanceProblem / init / solve! / reinit! / solve)
+# wraps the same solve_metabolic_rate physics — results must be identical.
+# -------------------------------------------------------------------------
+let
+    init_skin = u"K"(34.0u"°C")
+    init_ins  = u"K"(29.0u"°C")
+    direct = solve_metabolic_rate(organism, e, init_skin, init_ins)
+
+    problem = HeatBalanceProblem(organism, e)
+    initial_state = (; skin_temperature = init_skin, insulation_temperature = init_ins)
+
+    # One-shot solve == direct call.
+    oneshot = solve(problem; initial_state)
+    @test oneshot isa ThermoregulationOutput
+    @test oneshot.energy_flows.metabolic_heat_flow ≈ direct.energy_flows.metabolic_heat_flow
+    @test oneshot.thermoregulation.skin_temperature ≈ direct.thermoregulation.skin_temperature
+    @test oneshot.thermoregulation.core_temperature ≈ direct.thermoregulation.core_temperature
+
+    # Stepwise: init → solve! gives the same, and threads state forward.
+    solver = init(problem; initial_state)
+    stepwise = solve!(solver)
+    @test stepwise.energy_flows.metabolic_heat_flow ≈ direct.energy_flows.metabolic_heat_flow
+    @test solver.state.skin_temperature ≈ direct.thermoregulation.skin_temperature
+
+    # reinit! with the same problem, warm-started from the converged state,
+    # re-solves consistently — but only to the solver's convergence tolerance
+    # (1e-3 K), since the temperature seed differs from the cold-start `direct`.
+    reinit!(solver, problem)
+    resolved = solve!(solver)
+    @test resolved.energy_flows.metabolic_heat_flow ≈ direct.energy_flows.metabolic_heat_flow rtol=1e-2
+
+    # reinit! without warm start resets to the default initial state.
+    reinit!(solver, problem; warm_start = false)
+    @test solver.state.skin_temperature == HeatExchange.default_initial_state(problem).skin_temperature
+end
