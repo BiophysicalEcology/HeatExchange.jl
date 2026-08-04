@@ -77,6 +77,11 @@ export ThermoregulationOutput,
 export HeatBalanceProblem, HeatBalanceSolver
 export init, solve!, solve, reinit!
 
+# Heat coupling + compartment partitioning
+export HeatCoupling, SharedCore, ConductiveCoupling
+export CompartmentGraph, compartment_graph, num_compartments,
+    compartment_part_names, compartment_of, parts_in_compartment
+
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
 export solve_temperatures, mean_skin_temperature, respiration
@@ -162,6 +167,7 @@ include("insulated/mean_skin_temperature.jl")
 include("insulated/net_metabolic_heat.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
+include("compartments.jl")
 include("heat_balance_problem.jl")
 include("nlp_interface.jl")
 include("examples.jl")
