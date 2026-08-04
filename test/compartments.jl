@@ -5,7 +5,8 @@ using Unitful
 using HeatExchange: HeatCoupling, SharedCore, ConductiveCoupling,
     CompartmentGraph, compartment_graph, num_compartments,
     compartment_part_names, compartment_of, parts_in_compartment,
-    contribution_to_conductance, contribution_to_heat_load, build_conductance_matrix
+    contribution_to_conductance, contribution_to_heat_load, build_conductance_matrix,
+    solve_core_temperatures
 
 @testset "HeatCoupling constructors" begin
     @test SharedCore() isa HeatCoupling
@@ -158,4 +159,76 @@ end
     K = build_conductance_matrix(graph, ())
     @test size(K) == (1, 1)
     @test K[1, 1] == 0.0u"W/K"
+end
+
+@testset "solve_core_temperatures — single compartment reduces to zbrent criterion" begin
+    # K = 1: core = skin + (metabolic − respiration) / G_flesh, and
+    # net_metabolic = G_flesh·(core − skin) = metabolic − respiration exactly.
+    graph = compartment_graph((:body,), ())
+    net_generation = (10.0u"W",)          # metabolic − respiration
+    flesh_conductance = (2.0u"W/K",)      # G_flesh
+    skin = 305.0u"K"
+    flesh_weighted_skin = (flesh_conductance[1] * skin,)
+    cores = solve_core_temperatures(graph, (), net_generation, flesh_conductance, flesh_weighted_skin)
+    @test length(cores) == 1
+    @test cores[1] ≈ 310.0u"K"                       # 305 + 10/2
+    # the closure criterion holds to machine precision
+    net_metabolic = flesh_conductance[1] * (cores[1] - skin)
+    @test net_metabolic ≈ net_generation[1]
+end
+
+@testset "solve_core_temperatures — two independent compartments" begin
+    # No coupling entries → each compartment solves standalone.
+    graph = compartment_graph((:a, :b), ())
+    net_generation = (10.0u"W", 4.0u"W")
+    flesh_conductance = (2.0u"W/K", 1.0u"W/K")
+    skins = (305.0u"K", 300.0u"K")
+    flesh_weighted_skin = (flesh_conductance[1]*skins[1], flesh_conductance[2]*skins[2])
+    cores = solve_core_temperatures(graph, (), net_generation, flesh_conductance, flesh_weighted_skin)
+    @test cores[1] ≈ 310.0u"K"    # 305 + 10/2
+    @test cores[2] ≈ 304.0u"K"    # 300 + 4/1
+end
+
+@testset "solve_core_temperatures — two conductively coupled compartments" begin
+    # Hand-verified: G_flesh = 1 W/K each, skins = 300 K, coupling G12 = 0.5 W/K,
+    # generations 5 W and 1 W → cores 304 K and 302 K, with 1 W flowing 1→2.
+    graph = compartment_graph((:a, :b), ())
+    G12 = 0.5u"W/K"
+    net_generation = (5.0u"W", 1.0u"W")
+    flesh_conductance = (1.0u"W/K", 1.0u"W/K")
+    skin = 300.0u"K"
+    flesh_weighted_skin = (flesh_conductance[1]*skin, flesh_conductance[2]*skin)
+    cores = solve_core_temperatures(graph, ((1, 2, G12),), net_generation, flesh_conductance, flesh_weighted_skin)
+    @test cores[1] ≈ 304.0u"K"
+    @test cores[2] ≈ 302.0u"K"
+    # Energy conservation per compartment core node
+    flesh_loss_1 = flesh_conductance[1] * (cores[1] - skin)
+    coupling_flow = G12 * (cores[1] - cores[2])
+    @test flesh_loss_1 + coupling_flow ≈ net_generation[1]           # comp 1: 4 + 1 = 5
+    flesh_loss_2 = flesh_conductance[2] * (cores[2] - skin)
+    @test flesh_loss_2 ≈ net_generation[2] + coupling_flow           # comp 2: 2 = 1 + 1
+end
+
+@testset "solve_core_temperatures — all-SharedCore composite is one node" begin
+    # Two half-cylinders sharing a core → single compartment, generations sum,
+    # flesh conductances sum, skin contributions flesh-weighted.
+    graph = compartment_graph((:dorsal, :ventral), ((:dorsal, :ventral),))
+    @test num_compartments(graph) == 1
+    gen = (3.0u"W", 2.0u"W")
+    gflesh = (1.5u"W/K", 0.5u"W/K")
+    skins = (301.0u"K", 299.0u"K")
+    net_generation = (gen[1] + gen[2],)                              # 5 W
+    flesh_conductance = (gflesh[1] + gflesh[2],)                     # 2 W/K
+    flesh_weighted_skin = (gflesh[1]*skins[1] + gflesh[2]*skins[2],) # 1.5·301 + 0.5·299
+    cores = solve_core_temperatures(graph, (), net_generation, flesh_conductance, flesh_weighted_skin)
+    # core = (net_gen + Σ G_flesh·skin) / Σ G_flesh
+    expected = (5.0u"W" + (1.5u"W/K"*301.0u"K" + 0.5u"W/K"*299.0u"K")) / 2.0u"W/K"
+    @test cores[1] ≈ expected
+end
+
+@testset "solve_core_temperatures — type stability" begin
+    graph = compartment_graph((:a, :b), ())
+    cores = @inferred solve_core_temperatures(graph, ((1, 2, 0.5u"W/K"),),
+        (5.0u"W", 1.0u"W"), (1.0u"W/K", 1.0u"W/K"), (300.0u"W", 300.0u"W"))
+    @test length(cores) == 2
 end
