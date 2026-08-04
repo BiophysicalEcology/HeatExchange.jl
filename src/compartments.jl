@@ -163,3 +163,90 @@ The part names belonging to `compartment`.
 function parts_in_compartment(graph::CompartmentGraph{P}, compartment::Integer) where {P}
     return Tuple(P[i] for i in eachindex(P) if graph.part_compartment[i] == compartment)
 end
+
+# ---------------------------------------------------------------------------
+# Coupling contributions to the compartment linear system.
+#
+# Two-method interface (plan §3.4): new coupling physics is a new pair of
+# methods, never a rewrite of the compartment solve.
+#   contribution_to_conductance(coupling, ...) -> W/K conductance across the join
+#                                                 (nothing when the edge is contracted)
+#   contribution_to_heat_load(coupling, ...)   -> W right-hand-side shift
+#                                                 (zero except for perfusion-like couplings)
+# ---------------------------------------------------------------------------
+
+"""
+    contribution_to_conductance(coupling, join_area, distance_parent, distance_child,
+                                conductivity_parent, conductivity_child) -> conductance | nothing
+
+Thermal conductance (W/K) that a join contributes across the two compartments it
+connects, or `nothing` when the join contributes no matrix entry.
+
+- `SharedCore` → `nothing`: the edge is already contracted away by the compartment
+  partition, so it never appears in the conductance matrix.
+- `ConductiveCoupling{Nothing}` → derived series resistance through each part's
+  flesh: `1 / (distance_parent/(conductivity_parent·area) +
+  distance_child/(conductivity_child·area))`.
+- `ConductiveCoupling` with an explicit value → the override is an interface
+  conductance coefficient (W/m²/K); total conductance is `value · join_area`.
+"""
+contribution_to_conductance(::SharedCore, args...) = nothing
+
+function contribution_to_conductance(::ConductiveCoupling{Nothing}, join_area,
+        distance_parent, distance_child, conductivity_parent, conductivity_child)
+    resistance = distance_parent / (conductivity_parent * join_area) +
+                 distance_child  / (conductivity_child  * join_area)
+    # Canonicalise to W/K so every join contributes the same element type into the
+    # conductance matrix regardless of the length units its inputs carried.
+    return Unitful.uconvert(u"W/K", 1 / resistance)
+end
+
+# Explicit override (any non-Nothing parameter): interface conductance coefficient × area.
+function contribution_to_conductance(coupling::ConductiveCoupling, join_area,
+        distance_parent, distance_child, conductivity_parent, conductivity_child)
+    return Unitful.uconvert(u"W/K", coupling.interface_conductivity * join_area)
+end
+
+"""
+    contribution_to_heat_load(coupling) -> Power
+
+Right-hand-side heat-load shift (W) a coupling adds to the compartment balance.
+Zero for the conduction/contraction couplings here; a future
+`BloodPerfusionCoupling` (plan §8.4) overrides this with a nonzero advective term.
+"""
+contribution_to_heat_load(::HeatCoupling) = 0.0u"W"
+
+"""
+    build_conductance_matrix(graph, entries) -> SMatrix{K,K}
+
+Assemble the `K×K` compartment conductance (graph-Laplacian) matrix, where
+`K == num_compartments(graph)`. `entries` is an iterable of
+`(compartment_i, compartment_j, conductance)` triples — one per `ConductiveCoupling`
+join whose endpoints lie in *different* compartments (a join internal to a
+compartment, e.g. between two `SharedCore`-linked parts, contributes nothing).
+
+Each entry adds `+conductance` to the two diagonal slots and `−conductance` to the
+two off-diagonal slots, the standard thermal-network stiffness assembly. The result
+is a stack-allocated `SMatrix` so the per-iteration compartment solve
+`core_temperatures = matrix \\ heat_load` never touches the heap.
+"""
+function build_conductance_matrix(::CompartmentGraph{P,N,K}, entries) where {P,N,K}
+    conductance_type = _conductance_eltype(entries)
+    matrix = zeros(MMatrix{K,K,conductance_type})
+    for (i, j, conductance) in entries
+        matrix[i, i] += conductance
+        matrix[j, j] += conductance
+        matrix[i, j] -= conductance
+        matrix[j, i] -= conductance
+    end
+    return SMatrix(matrix)
+end
+
+# Element type of the conductance entries (third slot of each triple). Falls back
+# to W/K when there are no inter-compartment conductive joins.
+function _conductance_eltype(entries)
+    for e in entries
+        return typeof(e[3])
+    end
+    return typeof(0.0u"W/K")
+end
