@@ -1,0 +1,112 @@
+using HeatExchange
+using BiophysicalGeometry
+using Unitful, UnitfulMoles
+using FluidProperties
+using Test
+
+using HeatExchange: solve_part_surface,
+    EnvironmentTemperatures, ViewFactors, AtmosphericConditions,
+    example_environment_vars, example_environment_pars
+
+# ---------------------------------------------------------------------------
+# A single insulated part: an Ellipsoid with a uniform fur layer.
+# ---------------------------------------------------------------------------
+shape = Ellipsoid(1.0u"kg", 1000.0u"kg/m^3", 2.0, 2.0)
+fat   = FatLayer(0.10, 901.0u"kg/m^3")
+fur   = FibrousLayer(0.01u"m", 3e-5u"m", 3e7u"1/m^2")
+part_body = Body(shape, CompositeInsulation(fur, fat))
+
+# Single-valued part insulation: identical dorsal/ventral fibres so the surface
+# solve's side label is immaterial (the part has one insulation).
+part_fibres = FibreProperties(;
+    diameter = 3e-5u"m", length = 0.01u"m", density = 3e7u"1/m^2",
+    depth = 0.01u"m", reflectance = 0.2, conductivity = 0.209u"W/m/K",
+)
+part_insulation_pars = InsulationParameters(;
+    dorsal = part_fibres, ventral = part_fibres,
+    depth_compressed = 0.01u"m", longwave_depth_fraction = 1.0,
+)
+
+env_vars = example_environment_vars(;
+    air_temperature = u"K"(20.0u"°C"),
+    wind_speed = 1.0u"m/s",
+    global_radiation = 0.0u"W/m^2",
+)
+env_pars = example_environment_pars()
+
+core_temperature = u"K"(37.0u"°C")
+traits = (;
+    core_temperature,
+    flesh_conductivity = 0.5u"W/m/K",
+    fat_conductivity   = 0.2u"W/m/K",
+    ϵ_body             = 0.99,
+    skin_wetness       = 0.01,
+    insulation_wetness = 0.0,
+    bare_skin_fraction = 0.0,
+    eye_fraction       = 0.0,
+)
+
+# Packed per-part environment: view factors + boundaries come from the part's own
+# pose/exposure (here a simple upright-ish exposure), independent of insulation.
+packed_environment = (;
+    temperature = EnvironmentTemperatures(
+        env_vars.air_temperature, env_vars.sky_temperature,
+        env_vars.ground_temperature, env_vars.vegetation_temperature,
+        env_vars.bush_temperature, env_vars.substrate_temperature,
+    ),
+    view_factors = ViewFactors(0.5, 0.5, 0.0, 0.0),
+    atmos = AtmosphericConditions(env_vars),
+    fluid = env_pars.fluid,
+    solar_flow = 0.0u"W",
+    gas_fractions = env_pars.gas_fractions,
+    convection_enhancement = env_pars.convection_enhancement,
+)
+
+result = solve_part_surface(;
+    body = part_body,
+    insulation_pars = part_insulation_pars,
+    traits,
+    environment_vars = packed_environment,
+    conduction_fraction = 0.0,
+    conductance_coefficient = 0.0u"W/K",
+    ventral_fraction = 0.5,
+    longwave_depth_fraction = 1.0,
+    skin_temperature = core_temperature - 5u"K",
+    insulation_temperature = env_vars.air_temperature + 2u"K",
+    temperature_tolerance = 1e-3u"K",
+)
+
+@testset "solve_part_surface — physical sanity" begin
+    @test result.success
+    # Skin sits between the air and the core for a heat-generating endotherm
+    @test env_vars.air_temperature < result.skin_temperature < core_temperature
+    # Insulation surface is cooler than skin (heat flows outward through the fur)
+    @test result.insulation_temperature < result.skin_temperature
+    # Heat is conducted core → skin
+    @test result.net_metabolic > 0.0u"W"
+end
+
+@testset "solve_part_surface — flesh conductance extraction is consistent" begin
+    # G_flesh · (core − skin) reconstructs net_metabolic exactly
+    reconstructed = result.flesh_conductance * (core_temperature - result.skin_temperature)
+    @test reconstructed ≈ result.net_metabolic
+    @test unit(result.flesh_conductance) == u"W/K"
+end
+
+@testset "solve_part_surface — hotter core drives more heat out" begin
+    hotter = solve_part_surface(;
+        body = part_body,
+        insulation_pars = part_insulation_pars,
+        traits = merge(traits, (; core_temperature = core_temperature + 3u"K")),
+        environment_vars = packed_environment,
+        conduction_fraction = 0.0,
+        conductance_coefficient = 0.0u"W/K",
+        ventral_fraction = 0.5,
+        longwave_depth_fraction = 1.0,
+        skin_temperature = core_temperature - 5u"K",
+        insulation_temperature = env_vars.air_temperature + 2u"K",
+        temperature_tolerance = 1e-3u"K",
+    )
+    @test hotter.net_metabolic > result.net_metabolic
+    @test hotter.skin_temperature > result.skin_temperature
+end
