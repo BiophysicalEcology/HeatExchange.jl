@@ -56,7 +56,7 @@ export body,
 export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
-export heat_balance, solve_temperature, surface_and_lung_temperature
+export heat_balance, solve_part_heat_balance, solve_temperature, surface_and_lung_temperature
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 

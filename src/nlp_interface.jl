@@ -298,14 +298,18 @@ function nlp_residuals(p::WeightedMeanNLPPacked, core_temperature, skin_temperat
     trial_insulation_props = insulation_properties(trial_ins_pars, mean_ins_temperature, pp.ventral_fraction;
                                                    smoothing = pp.smoothing)
 
+    # Precompute this part's geometry once (keeps BiophysicalGeometry off the hot path)
+    trial_geometry = _part_geometry(trial_body)
+
     # Update conductance coefficient for new body size
-    trial_conduction_area  = BiophysicalGeometry.total_area(trial_body) * pp.ext_cond.conduction_fraction * 2 # TODO why *2?
+    trial_conduction_area  = trial_geometry.total_area * pp.ext_cond.conduction_fraction * 2 # TODO why *2?
     trial_conduction_coeff = trial_conduction_area * pp.substrate_conductivity / pp.conduction_depth * pp.ventral_weight
     trial_geometry_vars    = setproperties(pp.geometry_vars; conductance_coefficient = trial_conduction_coeff)
 
-    balance = heat_balance(
+    balance = solve_part_heat_balance(
         core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow;
         body             = trial_body,
+        geometry         = trial_geometry,
         insulation_pars  = trial_ins_pars,
         insulation       = trial_insulation_props,
         geometry_vars    = trial_geometry_vars,
@@ -367,14 +371,19 @@ function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_tem
     trial_ins_props_d = insulation_properties(trial_ins_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pp.ventral_fraction; smoothing = pp.smoothing)
     trial_ins_props_v = insulation_properties(trial_ins_pars, ventral_insulation_temperature * 0.7 + ventral_skin_temperature * 0.3, pp.ventral_fraction; smoothing = pp.smoothing)
 
+    # Precompute per-part geometry once (keeps BiophysicalGeometry off the hot path)
+    trial_geometry_d = _part_geometry(trial_body_d)
+    trial_geometry_v = _part_geometry(trial_body_v)
+
     # Update ventral conductance coefficient for new body size (dorsal is always 0)
-    trial_cond_area_v   = BiophysicalGeometry.total_area(trial_body_v) * pp.ext_cond.conduction_fraction * 2
+    trial_cond_area_v   = trial_geometry_v.total_area * pp.ext_cond.conduction_fraction * 2
     trial_cond_coeff_v  = trial_cond_area_v * pp.substrate_conductivity / pp.conduction_depth
     trial_geom_vars_v   = setproperties(pp.side_geometry_vars_v; conductance_coefficient = trial_cond_coeff_v)
 
-    balance_d = heat_balance(
+    balance_d = solve_part_heat_balance(
         core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, metabolic_heat_flow;
         body             = trial_body_d,
+        geometry         = trial_geometry_d,
         insulation_pars  = trial_ins_pars,
         insulation       = trial_ins_props_d,
         geometry_vars    = pp.side_geometry_vars_d,
@@ -384,9 +393,10 @@ function nlp_residuals(p::MultiSidedNLPPacked, core_temperature, dorsal_skin_tem
         k_flesh, pant, skin_wetness,
         smoothing        = pp.smoothing,
     )
-    balance_v = heat_balance(
+    balance_v = solve_part_heat_balance(
         core_temperature, ventral_skin_temperature, ventral_insulation_temperature, metabolic_heat_flow;
         body             = trial_body_v,
+        geometry         = trial_geometry_v,
         insulation_pars  = trial_ins_pars,
         insulation       = trial_ins_props_v,
         geometry_vars    = trial_geom_vars_v,
