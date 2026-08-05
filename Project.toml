@@ -18,7 +18,7 @@ UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [sources]
 BiologicalScaling = {rev = "heatexchange-areas-resting", url = "https://github.com/BiophysicalEcology/BiologicalScaling.jl"}
-BiophysicalGeometry = {rev = "remove-empirical-shapes", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
+BiophysicalGeometry = {rev = "multipart_geoms", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
 FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
 
 [compat]
