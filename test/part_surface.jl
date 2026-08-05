@@ -4,9 +4,9 @@ using Unitful, UnitfulMoles
 using FluidProperties
 using Test
 
-using HeatExchange: solve_part_surface,
+using HeatExchange: solve_part_surface, part_surface_residuals,
     EnvironmentTemperatures, ViewFactors, AtmosphericConditions,
-    example_environment_vars, example_environment_pars
+    example_environment_vars, example_environment_pars, example_respiration_pars
 
 # ---------------------------------------------------------------------------
 # A single insulated part: an Ellipsoid with a uniform fur layer.
@@ -91,6 +91,47 @@ end
     reconstructed = result.flesh_conductance * (core_temperature - result.skin_temperature)
     @test reconstructed ≈ result.net_metabolic
     @test unit(result.flesh_conductance) == u"W/K"
+end
+
+@testset "part_surface_residuals — vanishes at the converged surface solve" begin
+    # The non-iterative residual twin must report ≈0 surface and skin-temperature
+    # residuals when handed the temperatures `solve_part_surface` converged to.
+    setup = (;
+        body = part_body,
+        insulation_pars = part_insulation_pars,
+        traits,
+        environment_vars = packed_environment,
+        conduction_fraction = 0.0,
+        conductance_coefficient = 0.0u"W/K",
+        ventral_fraction = 0.5,
+        longwave_depth_fraction = 1.0,
+        covered_area = 0.0u"m^2",
+        characteristic_dim = HeatExchange.characteristic_dimension(
+            HeatExchange.VolumeCubeRoot(), part_body),
+    )
+    res = part_surface_residuals(
+        setup, core_temperature, result.skin_temperature, result.insulation_temperature,
+        1.0u"W";
+        k_flesh = traits.flesh_conductivity,
+        pant = 1.0,
+        skin_wetness = traits.skin_wetness,
+        resp_pars = example_respiration_pars(),
+    )
+    # Surface balance and skin-temperature residual are driven to zero at the root.
+    @test abs(ustrip(u"W", res.surface_balance)) < 1e-2
+    @test abs(ustrip(u"K", res.residual_skin_temperature)) < 1e-2
+    # Flesh-conducted heat matches solve_part_surface's net_metabolic (both are the
+    # same shape-dispatched flesh conduction at the converged temperatures).
+    @test res.net_metabolic_heat_internal ≈ result.net_metabolic rtol=1e-3
+    # Metabolic/respiration cancel in the surface balance: doubling metabolic input
+    # leaves the surface residual unchanged.
+    res2 = part_surface_residuals(
+        setup, core_temperature, result.skin_temperature, result.insulation_temperature,
+        2.0u"W";
+        k_flesh = traits.flesh_conductivity, pant = 1.0,
+        skin_wetness = traits.skin_wetness, resp_pars = example_respiration_pars(),
+    )
+    @test res2.surface_balance ≈ res.surface_balance rtol=1e-6
 end
 
 @testset "solve_part_surface — hotter core drives more heat out" begin

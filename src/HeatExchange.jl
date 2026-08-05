@@ -84,7 +84,7 @@ export HeatCoupling, SharedCore, ConductiveCoupling
 export CompartmentGraph, compartment_graph, num_compartments,
     compartment_part_names, compartment_of, parts_in_compartment
 export contribution_to_conductance, contribution_to_heat_load, build_conductance_matrix
-export solve_core_temperatures, solve_part_surface, solve_coupled_metabolic_rate
+export solve_core_temperatures, solve_part_surface, part_surface_residuals, solve_coupled_metabolic_rate
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
