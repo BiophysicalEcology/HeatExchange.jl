@@ -15,6 +15,35 @@
 # the label is immaterial. Ground contact is governed entirely by
 # `conduction_fraction` + `conductance_coefficient`, not the side label.
 
+# The insulation, geometry_vars, and geometry a part's surface solve is built from.
+# Shared verbatim by the iterative `solve_part_surface` and its non-iterative residual
+# twin `part_surface_residuals`, so the two can never build these three differently —
+# the join-covered area decoupling (total − covered) and the part's `characteristic_dim`
+# reach both paths identically.
+@inline function _part_surface_setup(body, insulation_pars, skin_temperature,
+        insulation_temperature, conductance_coefficient, ventral_fraction,
+        conduction_fraction, longwave_depth_fraction, covered_area, characteristic_dim,
+        smoothing::SmoothingStrategy)
+    insulation_temperature_mean = insulation_temperature * 0.7 + skin_temperature * 0.3
+    insulation = insulation_properties(insulation_pars, insulation_temperature_mean, ventral_fraction; smoothing)
+    geometry_vars = GeometryVariables(;
+        side = Dorsal(),
+        conductance_coefficient,
+        ventral_fraction,
+        conduction_fraction,
+        longwave_depth_fraction,
+    )
+    # A joined part exposes only its uncovered surface: the flat face(s) that mate
+    # with neighbouring parts (the SharedCore/conductive join patch) are internal,
+    # so the convective/radiative/evaporative area is total − covered.
+    geometry = (;
+        total_area         = BiophysicalGeometry.total_area(body) - covered_area,
+        area_evaporation   = evaporation_area(body) - covered_area,
+        characteristic_dim,
+    )
+    return (; insulation, geometry_vars, geometry)
+end
+
 """
     solve_part_surface(; body, insulation_pars, traits, environment_vars,
                        conduction_fraction, conductance_coefficient,
@@ -52,23 +81,10 @@ function solve_part_surface(;
     smoothing::SmoothingStrategy=HardBound(),
 )
     core_temperature = traits.core_temperature
-    insulation_temperature_mean = insulation_temperature * 0.7 + skin_temperature * 0.3
-    insulation = insulation_properties(insulation_pars, insulation_temperature_mean, ventral_fraction; smoothing)
-    geometry_vars = GeometryVariables(;
-        side = Dorsal(),
-        conductance_coefficient,
-        ventral_fraction,
-        conduction_fraction,
-        longwave_depth_fraction,
-    )
-    # A joined part exposes only its uncovered surface: the flat face(s) that mate
-    # with neighbouring parts (the SharedCore/conductive join patch) are internal,
-    # so the convective/radiative/evaporative area is total − covered.
-    geometry = (;
-        total_area         = BiophysicalGeometry.total_area(body) - covered_area,
-        area_evaporation   = evaporation_area(body) - covered_area,
-        characteristic_dim,
-    )
+    (; insulation, geometry_vars, geometry) = _part_surface_setup(
+        body, insulation_pars, skin_temperature, insulation_temperature,
+        conductance_coefficient, ventral_fraction, conduction_fraction,
+        longwave_depth_fraction, covered_area, characteristic_dim, smoothing)
     result = solve_temperatures(;
         body,
         insulation_pars,
@@ -152,20 +168,10 @@ function part_surface_residuals(
        conductance_coefficient, ventral_fraction, longwave_depth_fraction,
        covered_area, characteristic_dim) = setup
 
-    insulation_temperature_mean = insulation_temperature * 0.7 + skin_temperature * 0.3
-    insulation = insulation_properties(insulation_pars, insulation_temperature_mean, ventral_fraction; smoothing)
-    geometry_vars = GeometryVariables(;
-        side = Dorsal(),
-        conductance_coefficient,
-        ventral_fraction,
-        conduction_fraction,
-        longwave_depth_fraction,
-    )
-    geometry = (;
-        total_area         = BiophysicalGeometry.total_area(body) - covered_area,
-        area_evaporation   = evaporation_area(body) - covered_area,
-        characteristic_dim,
-    )
+    (; insulation, geometry_vars, geometry) = _part_surface_setup(
+        body, insulation_pars, skin_temperature, insulation_temperature,
+        conductance_coefficient, ventral_fraction, conduction_fraction,
+        longwave_depth_fraction, covered_area, characteristic_dim, smoothing)
     balance = solve_part_heat_balance(
         core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow;
         body,

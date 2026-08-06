@@ -314,7 +314,7 @@ end
 # ---------------------------------------------------------------------------
 
 """
-    _part_geometry(body) -> (; total_area, area_evaporation)
+    _part_geometry(body) -> (; total_area, area_evaporation, characteristic_dim)
 
 Precompute the body-derived scalar areas the per-part heat balance needs. Called once
 per part (outside the hot loop) so `solve_part_heat_balance` never touches
@@ -355,8 +355,9 @@ per part. Geometry is decoupled: the body-derived areas arrive precomputed throu
 # Keywords
 - `body::AbstractBody`: Body geometry (shape + composite insulation); used for shape-dispatched
   conduction/radiant-temperature physics, not for the scalar areas
-- `geometry`: Precomputed `(; total_area, area_evaporation)` for this part; defaults to
-  `_part_geometry(body)`
+- `geometry`: Precomputed `(; total_area, area_evaporation, characteristic_dim)` for this
+  part; defaults to `_part_geometry(body)`. `characteristic_dim` is optional and falls back
+  to the body's `VolumeCubeRoot` value.
 - `insulation_pars::InsulationParameters`: Insulation parameters (fibre properties, depths)
 - `insulation::InsulationProperties`: Precomputed insulation properties; temperature-sensitive
   conductivities are recomputed internally from `skin_temperature` and `insulation_temperature`
@@ -412,6 +413,10 @@ function solve_part_heat_balance(
     # Body areas (precomputed once per part, outside the hot loop)
     (; total_area, area_evaporation) = geometry
     area_convection  = total_area * (1 - conduction_fraction)
+    # Honour a caller-supplied characteristic dimension (a joined/elongated part sets
+    # its own), falling back to the body's default — the same value `solve_with_insulation!`
+    # passes to `convection`, so the residual twin can't silently diverge on it.
+    characteristic_dim = get(geometry, :characteristic_dim, characteristic_dimension(VolumeCubeRoot(), body))
 
     # Recompute temperature-dependent insulation conductivity at current temperatures.
     (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
@@ -432,6 +437,7 @@ function solve_part_heat_balance(
         fluid,
         gas_fractions,
         convection_enhancement,
+        characteristic_dim,
         smoothing,
     )
     heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
