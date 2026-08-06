@@ -126,9 +126,7 @@ export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
 export zbrac, zbrent
 
-export NLPStrategy, WeightedMeanNLP, MultiSidedNLP
-export WeightedMeanNLPPacked, MultiSidedNLPPacked
-export nlp_pack, nlp_residuals, nlp_assemble_output
+export NLPStrategy, nlp_pack
 
 export SmoothingStrategy, HardBound, SmoothBound
 export safe_abs, safe_relu, safe_step, safe_max, safe_min, safe_clamp
