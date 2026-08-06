@@ -1,5 +1,5 @@
 # Unpack a respiration result (or nothing) into a flat NamedTuple of scalar fields.
-# Used by _assemble_multisided_output and nlp_assemble_output(::MultiSidedNLPPacked).
+# Used by _assemble_multisided_output.
 function _unpack_respiration(resp_out)
     isnothing(resp_out) && return (;
         balance               = nothing,
