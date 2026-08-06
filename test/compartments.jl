@@ -177,6 +177,22 @@ end
     @test net_metabolic ≈ net_generation[1]
 end
 
+@testset "solve_core_temperatures — coupling heat load shifts the core" begin
+    # The advective/perfusion RHS term enters generation: core = skin + (net + Q)/G_flesh.
+    graph = compartment_graph((:body,), ())
+    net_generation = (10.0u"W",)
+    flesh_conductance = (2.0u"W/K",)
+    skin = 305.0u"K"
+    flesh_weighted_skin = (flesh_conductance[1] * skin,)
+    coupling_heat_load = (4.0u"W",)
+    cores = solve_core_temperatures(graph, (), net_generation, flesh_conductance,
+        flesh_weighted_skin, coupling_heat_load)
+    @test cores[1] ≈ 312.0u"K"                       # 305 + (10 + 4)/2
+    # Default (omitted) is zero — no shift.
+    base = solve_core_temperatures(graph, (), net_generation, flesh_conductance, flesh_weighted_skin)
+    @test base[1] ≈ 310.0u"K"
+end
+
 @testset "solve_core_temperatures — two independent compartments" begin
     # No coupling entries → each compartment solves standalone.
     graph = compartment_graph((:a, :b), ())
