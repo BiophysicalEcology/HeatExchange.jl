@@ -60,6 +60,9 @@ export solar,
 
 export heat_balance, solve_part_heat_balance, solve_temperature, surface_and_lung_temperature
 
+export AbstractRadialLayer, GeneratingCore, ConductiveShell,
+    stack_resistance, core_to_skin_stack, radial_net_metabolic_heat
+
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
 export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
@@ -167,6 +170,7 @@ include("insulated/insulation_radiant_temperature.jl")
 include("insulated/compressed_radiant_temperature.jl")
 include("insulated/mean_skin_temperature.jl")
 include("insulated/net_metabolic_heat.jl")
+include("radial_layers.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
 include("compartments.jl")

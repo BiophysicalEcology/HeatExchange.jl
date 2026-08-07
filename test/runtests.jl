@@ -18,6 +18,7 @@ end
 @safetestset "heat_balance" begin include("heat_balance.jl") end
 @safetestset "compartments" begin include("compartments.jl") end
 @safetestset "part_surface" begin include("part_surface.jl") end
+@safetestset "radial_layers" begin include("radial_layers.jl") end
 @safetestset "coupled_solve" begin include("coupled_solve.jl") end
 @safetestset "equivalence" begin include("equivalence.jl") end
 @safetestset "ellipsoid" begin include("ellipsoid.jl") end

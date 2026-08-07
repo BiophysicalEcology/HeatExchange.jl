@@ -170,7 +170,42 @@ lateral:    ground-contact branch off the skin node (parallel path to substrate)
   `{skin, insulation}` two-variable structure. Adding a layer becomes a change to the
   *structure*, exactly like adding a part did.
 
-## 6. Open design decisions (what step 2 must settle)
+## 5a. Implementation status
+
+**Foundation done (`src/radial_layers.jl`, gated by `test/radial_layers.jl`).** The
+conduction chain is realised as an ordered stack of `GeneratingCore` (flesh, uniform
+volumetric generation) + `ConductiveShell` (fat/fur/…) layers, each contributing a
+shape-dispatched thermal resistance. `radial_net_metabolic_heat` sums the series and
+**reproduces `net_metabolic_heat` to `rtol < 1e-10`** for cylinders/slabs and spheres
+across 0.1–100 kg. This proves §1's central claim in running code: today's closed
+form *is* this radial network collapsed. Nothing is wired into the production heat
+balance — it is additive, so there is zero regression risk.
+
+**Remaining phases** (each additive, each gated on reproducing the existing numbers
+before it earns the right to extend):
+
+1. **Ellipsoid layers** — its shells are anisotropic (three semi-axes), so they are not
+   yet a clean `r_inner/r_outer` instance; reproduce the `ssqg`-based terms shape-
+   dispatched.
+2. **N-shell flesh discretisation** — split the generating core into concentric shells
+   with distributed generation; must reduce to the 1-shell `GeneratingCore` (the
+   "second flesh layer for a large animal").
+3. **Surface node + outer boundary** — add the skin and outer-surface nodes with
+   convection + radiation + evaporation − solar; reproduce `solve_part_heat_balance`'s
+   surface residual (the skin node's flux balance replaces the calc1/calc2 average,
+   which §4.1 measured as numerically identical).
+4. **Ground-contact branch** — the substrate node off the skin node (§4.2 measured it
+   at 8–45 % of loss); a lateral branch, the compartment-coupling idiom applied
+   radially.
+5. **Discretised radiative source** — radiation as a source term on interior fur
+   shell(s), superseding the singular closed form (§4.3); reproduces the default
+   surface-radiation case trivially.
+6. **NLP integration** — generalise the multipart NLP's hardcoded `{skin, insulation}`
+   variable structure to the N-node radial stack (Flatten already makes "N variables
+   from a structure" free), then retire `solve_without_insulation!` and the naked/
+   insulated branch once the general path reproduces both.
+
+## 6. Open design decisions (what the later phases must settle)
 
 - **Radiation at depth vs at surface.** Keep the optical-depth coupling (distribute
   radiation across fur shells) or move radiation to the outer node? The first is
