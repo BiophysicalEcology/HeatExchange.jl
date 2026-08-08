@@ -124,16 +124,14 @@ end
     # same shape-dispatched flesh conduction at the converged temperatures).
     @test res.net_metabolic_heat_internal ≈ result.net_metabolic rtol=1e-3
     # Metabolic/respiration cancel in the surface balance: doubling metabolic input
-    # leaves the surface residual unchanged. Compared with an absolute tolerance because both
-    # are evaluated at the converged root where surface_balance ≈ 0 (~1e-13 W); a broken
-    # cancellation would move it by O(metabolic) = 1 W, far above this atol.
+    # leaves the surface residual unchanged.
     res2 = part_surface_residuals(
         setup, core_temperature, result.skin_temperature, result.insulation_temperature,
         2.0u"W";
         k_flesh = traits.flesh_conductivity, pant = 1.0,
         skin_wetness = traits.skin_wetness, resp_pars = example_respiration_pars(),
     )
-    @test res2.surface_balance ≈ res.surface_balance atol=1e-8u"W"
+    @test res2.surface_balance ≈ res.surface_balance rtol=1e-6
 end
 
 @testset "solve_part_surface — hotter core drives more heat out" begin
