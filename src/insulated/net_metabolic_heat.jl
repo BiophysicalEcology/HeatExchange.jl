@@ -1,10 +1,11 @@
 """
     net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature)
 
-Calculate net metabolic heat generation required to maintain core-to-skin temperature gradient.
+Calculate net metabolic heat conducted core→skin to maintain the core-to-skin gradient.
 
-Uses shape-specific heat conduction equations through flesh and fat layers to compute
-the metabolic heat production needed.
+Thin wrapper over the radial-layer conduction stack (`radial_net_metabolic_heat`,
+radial_layers.jl): the flesh core plus fat shell as an ordered series of shape-dispatched
+resistances. See that file for the per-shape resistances and their derivation.
 
 # Keywords
 - `body::AbstractBody`: Body geometry
@@ -15,63 +16,6 @@ the metabolic heat production needed.
 # Returns
 - `net_metabolic_heat_production`: Net metabolic heat generation (W)
 """
-function net_metabolic_heat(; body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature,
-                              smoothing::SmoothingStrategy=HardBound())
-    net_metabolic_heat(shape(body), body, conductivities, core_temperature, skin_temperature; smoothing)
-end
-function net_metabolic_heat(
-    shape::Union{AbstractCylindrical,AbstractSlab}, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
-    smoothing::SmoothingStrategy=HardBound(),
-)
-    volume = flesh_volume(body)
-    r_skin = skin_radius(body)
-    r_flesh = flesh_radius(body)
-    net_metabolic_heat_production = (core_temperature - skin_temperature) / (
-            (r_flesh ^ 2 / (4 * conductivities.flesh * volume)) +
-            ((r_flesh^2 / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh))
-        )
-    return net_metabolic_heat_production
-end
-function net_metabolic_heat(
-    shape::AbstractSpherical, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
-    smoothing::SmoothingStrategy=HardBound(),
-)
-    volume = flesh_volume(body)
-    r_skin = skin_radius(body)
-    r_flesh = flesh_radius(body)
-    net_metabolic_heat_production = (core_temperature - skin_temperature) / (
-            (r_flesh ^ 2 / (6 * conductivities.flesh * volume)) +
-            ((r_flesh^3 / (3 * conductivities.fat * volume)) * ((r_skin - r_flesh)/(r_flesh * r_skin)))
-        )
-    return net_metabolic_heat_production
-end
-function net_metabolic_heat(
-    shape::AbstractEllipsoidal, body::AbstractBody, conductivities::ThermalConductivities, core_temperature, skin_temperature;
-    smoothing::SmoothingStrategy=HardBound(),
-)
-    volume = flesh_volume(body)
-    a_semi_major = body.geometry.length.a_semi_major_skin
-    b_semi_minor = body.geometry.length.b_semi_minor_skin
-    c_semi_minor = body.geometry.length.c_semi_minor_skin
-    fat = body.geometry.length.fat
-    a_semi_major_flesh = a_semi_major - fat
-    b_semi_minor_flesh = b_semi_minor - fat
-    c_semi_minor_flesh = c_semi_minor - fat
-
-    a_square = safe_min(smoothing, a_semi_major_flesh^2, a_semi_major^2; scale=oneunit(a_semi_major^2))
-    b_square = safe_min(smoothing, b_semi_minor_flesh^2, b_semi_minor^2; scale=oneunit(b_semi_minor^2))
-    c_square = safe_min(smoothing, c_semi_minor_flesh^2, c_semi_minor^2; scale=oneunit(c_semi_minor^2))
-
-    ssqg =
-        (a_square * b_square * c_square) /
-        (a_square * b_square + a_square * c_square + b_square * c_square)
-
-    bs = b_semi_minor
-    bg = safe_min(smoothing, b_semi_minor, b_semi_minor_flesh; scale=oneunit(b_semi_minor))
-
-    net_metabolic_heat_production = (core_temperature - skin_temperature) / (
-            (ssqg / (2 * conductivities.flesh * volume)) +
-            (((sqrt(3 * ssqg)^3) / (3 * conductivities.fat * volume)) * ((bs - bg) / (bg * bs)))
-        )
-    return net_metabolic_heat_production
-end
+net_metabolic_heat(; body::AbstractBody, conductivities::ThermalConductivities,
+                     core_temperature, skin_temperature, smoothing::SmoothingStrategy=HardBound()) =
+    radial_net_metabolic_heat(body, conductivities, core_temperature, skin_temperature; smoothing)
