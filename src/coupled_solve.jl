@@ -27,6 +27,10 @@ keyword inputs `solve_part_surface` needs *except* the temperatures and toleranc
 (`body`, `insulation_pars`, `traits`, `environment_vars`, `conduction_fraction`,
 `conductance_coefficient`, `ventral_fraction`, `longwave_depth_fraction`).
 
+`extra_net_metabolic` (default zero) is added to the internal heat this compartment
+must produce — the conductive heat it sheds across `ConductiveCoupling` joins to
+floating neighbouring compartments. Zero for a lone regulated compartment.
+
 Returns a NamedTuple:
 - `metabolic_heat_flow` — the closed metabolic heat rate (W)
 - `parts` — per-part `solve_part_surface` results (skin, insulation, net_metabolic, …)
@@ -49,6 +53,7 @@ function solve_coupled_metabolic_rate(;
     gas_fractions,
     metabolic_heat_flow_setpoint,
     resp_tolerance,
+    extra_net_metabolic=zero(metabolic_heat_flow_setpoint),
     smoothing::SmoothingStrategy=HardBound(),
 )
     # 1. Per-part surface solve at the shared setpoint core.
@@ -62,8 +67,11 @@ function solve_coupled_metabolic_rate(;
         )
     end
 
-    # 2. Internal heat that must be produced = plain sum of per-part core→skin flow.
-    net_metabolic_total = sum(part -> part.net_metabolic, parts)
+    # 2. Internal heat that must be produced = plain sum of per-part core→skin flow,
+    #    plus any `extra_net_metabolic` this compartment sheds to *other* compartments
+    #    (the conductive loss across `ConductiveCoupling` joins to floating neighbours;
+    #    zero for a lone regulated compartment).
+    net_metabolic_total = sum(part -> part.net_metabolic, parts) + extra_net_metabolic
 
     # Part-mean surface temperatures and lung temperature.
     number_of_parts = length(parts)
