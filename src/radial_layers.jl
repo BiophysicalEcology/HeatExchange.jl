@@ -35,12 +35,13 @@ end
     ConductiveShell(conductivity, r_inner, r_outer)
 
 A passive concentric shell (fat, fur, clothing, snow) carrying heat by conduction
-between its inner and outer radii.
+between its inner and outer radii. Inner and outer radii are typed independently: for
+some geometries they arrive in different (but dimension-compatible) unit representations.
 """
-struct ConductiveShell{K,R} <: AbstractRadialLayer
+struct ConductiveShell{K,Ri,Ro} <: AbstractRadialLayer
     conductivity::K
-    r_inner::R
-    r_outer::R
+    r_inner::Ri
+    r_outer::Ro
 end
 
 # --- Per-layer thermal resistance (K/W), shape-dispatched --------------------
@@ -51,22 +52,42 @@ end
 # `flesh_radius³/flesh_volume = 3/(4π)` for a sphere), so the same expression works for
 # a shell at any radii, not only the flesh/fat boundary.
 
+# The `smoothing` kwarg is used only by the ellipsoid (its safe_min semi-axis guard); the
+# cylinder/sphere resistances accept and ignore it so `stack_resistance` can pass it uniformly.
+
 # Cylinder / slab (grouped exactly as `net_metabolic_heat` groups them).
-_layer_resistance(l::GeneratingCore, ::Union{AbstractCylindrical,AbstractSlab}, body) =
+_layer_resistance(l::GeneratingCore, ::Union{AbstractCylindrical,AbstractSlab}, body; smoothing::SmoothingStrategy = HardBound()) =
     flesh_radius(body)^2 / (4 * l.conductivity * flesh_volume(body))
-_layer_resistance(l::ConductiveShell, ::Union{AbstractCylindrical,AbstractSlab}, body) =
+_layer_resistance(l::ConductiveShell, ::Union{AbstractCylindrical,AbstractSlab}, body; smoothing::SmoothingStrategy = HardBound()) =
     flesh_radius(body)^2 / (2 * l.conductivity * flesh_volume(body)) * log(l.r_outer / l.r_inner)
 
 # Sphere.
-_layer_resistance(l::GeneratingCore, ::AbstractSpherical, body) =
+_layer_resistance(l::GeneratingCore, ::AbstractSpherical, body; smoothing::SmoothingStrategy = HardBound()) =
     flesh_radius(body)^2 / (6 * l.conductivity * flesh_volume(body))
-_layer_resistance(l::ConductiveShell, ::AbstractSpherical, body) =
+_layer_resistance(l::ConductiveShell, ::AbstractSpherical, body; smoothing::SmoothingStrategy = HardBound()) =
     flesh_radius(body)^3 / (3 * l.conductivity * flesh_volume(body)) *
     ((l.r_outer - l.r_inner) / (l.r_inner * l.r_outer))
 
-# Ellipsoid is genuinely anisotropic (its "shells" are parametrised by three semi-axes,
-# not a single radius), so it is not a clean instance of the r_inner/r_outer shell yet.
-# Deferred — see the design doc; `net_metabolic_heat` still handles it directly.
+# Ellipsoid. Concentric ellipsoidal shells have no exact separable conduction solution, so
+# this uses the established equivalent-sphere approximation: an equivalent radius
+# `r_eq = sqrt(3·ssqg)` (with `ssqg` the core's semi-axis combination), and the b-semi-minor
+# axis as the radial coordinate. It telescopes across shells exactly like the sphere and
+# reduces to the sphere when the body is spherical. `r_inner`/`r_outer` on the shell are the
+# b-semi-minor axes of its inner/outer surfaces.
+@inline function _ellipsoid_ssqg(body, smoothing::SmoothingStrategy)
+    len = body.geometry.length
+    a, b, c, fat = len.a_semi_major_skin, len.b_semi_minor_skin, len.c_semi_minor_skin, len.fat
+    a2 = safe_min(smoothing, (a - fat)^2, a^2; scale = oneunit(a^2))
+    b2 = safe_min(smoothing, (b - fat)^2, b^2; scale = oneunit(b^2))
+    c2 = safe_min(smoothing, (c - fat)^2, c^2; scale = oneunit(c^2))
+    return (a2 * b2 * c2) / (a2 * b2 + a2 * c2 + b2 * c2)
+end
+
+_layer_resistance(l::GeneratingCore, ::AbstractEllipsoidal, body; smoothing::SmoothingStrategy = HardBound()) =
+    _ellipsoid_ssqg(body, smoothing) / (2 * l.conductivity * flesh_volume(body))
+_layer_resistance(l::ConductiveShell, ::AbstractEllipsoidal, body; smoothing::SmoothingStrategy = HardBound()) =
+    sqrt(3 * _ellipsoid_ssqg(body, smoothing))^3 / (3 * l.conductivity * flesh_volume(body)) *
+    ((l.r_outer - l.r_inner) / (l.r_inner * l.r_outer))
 
 """
     stack_resistance(stack, body) -> resistance
@@ -74,8 +95,8 @@ _layer_resistance(l::ConductiveShell, ::AbstractSpherical, body) =
 Total series thermal resistance (K/W) of an ordered tuple of radial layers, summing
 each layer's shape-dispatched resistance. Layers in series simply add.
 """
-stack_resistance(stack::Tuple, body) =
-    sum(l -> _layer_resistance(l, shape(body), body), stack)
+stack_resistance(stack::Tuple, body; smoothing::SmoothingStrategy = HardBound()) =
+    sum(l -> _layer_resistance(l, shape(body), body; smoothing), stack)
 
 """
     core_to_skin_stack(body, conductivities) -> Tuple
@@ -84,10 +105,22 @@ The current model's core→skin radial stack: a generating flesh core in series 
 passive fat shell (`flesh_radius → skin_radius`). The fur shell (`skin_radius →
 insulation_radius`) is the next segment out, handled at the surface node.
 """
-core_to_skin_stack(body, c::ThermalConductivities) = (
+core_to_skin_stack(body, c::ThermalConductivities; smoothing::SmoothingStrategy = HardBound()) =
+    _core_to_skin_stack(shape(body), body, c, smoothing)
+
+# Cylinder/sphere/slab use the actual flesh/skin radii as the shell's radial coordinates.
+_core_to_skin_stack(::Union{AbstractCylindrical,AbstractSlab,AbstractSpherical}, body, c, ::SmoothingStrategy) = (
     GeneratingCore(c.flesh),
     ConductiveShell(c.fat, flesh_radius(body), skin_radius(body)),
 )
+# Ellipsoid uses the b-semi-minor axis of the flesh/skin surfaces as the shell coordinates
+# (see `_layer_resistance` above). A zero-thickness fat shell contributes zero resistance.
+function _core_to_skin_stack(::AbstractEllipsoidal, body, c, smoothing::SmoothingStrategy)
+    len = body.geometry.length
+    b_skin  = len.b_semi_minor_skin
+    b_flesh = safe_min(smoothing, b_skin, b_skin - len.fat; scale = oneunit(b_skin))
+    return (GeneratingCore(c.flesh), ConductiveShell(c.fat, b_flesh, b_skin))
+end
 
 """
     radial_net_metabolic_heat(body, conductivities, core_temperature, skin_temperature)
@@ -97,5 +130,7 @@ is the series resistance of the explicit radial stack. Reproduces `net_metabolic
 to machine precision for cylinders/slabs and spheres (gated), demonstrating that the
 current closed form *is* this radial network collapsed.
 """
-radial_net_metabolic_heat(body, c::ThermalConductivities, core_temperature, skin_temperature) =
-    (core_temperature - skin_temperature) / stack_resistance(core_to_skin_stack(body, c), body)
+radial_net_metabolic_heat(body, c::ThermalConductivities, core_temperature, skin_temperature;
+                          smoothing::SmoothingStrategy = HardBound()) =
+    (core_temperature - skin_temperature) /
+    stack_resistance(core_to_skin_stack(body, c; smoothing), body; smoothing)
