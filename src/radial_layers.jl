@@ -10,11 +10,10 @@
 # layer — a second flesh shell for a large animal, extra fur, clothing — becomes an
 # entry in the list, not a new bespoke formula.
 #
-# Phase 8 foundation: the conduction chain only (core→skin, reproduce-gated). The
-# outer boundary node (convection/radiation/evaporation), the ground-contact branch,
-# and the discretised radiative source are the next phases — see the design doc's
-# "target shape" and "open design decisions" sections. Nothing here is wired into the
-# production heat balance yet; it is the proven foundation the redesign builds on.
+# This is the production core→skin conduction path: `net_metabolic_heat` (net_metabolic_heat.jl)
+# is a thin wrapper over `radial_net_metabolic_heat` here. The outer boundary is the separate
+# per-part energy balance in `solve_part_heat_balance`; the ground-contact branch and the
+# discretised radiative source remain design decisions — see docs/radial_layer_model.md.
 # =============================================================================
 
 abstract type AbstractRadialLayer end
