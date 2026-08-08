@@ -183,32 +183,31 @@ slab, and **ellipsoid** (via the equivalent-sphere approximation) are all implem
 values (`rtol < 1e-10`) for every shape, with and without fat, so §1's claim is proven in
 running code: the old closed form *is* this radial network collapsed.
 
-**Surface solve: unified; the iterative twin is retired.** The rule-based per-part surface
-solve for insulated parts now root-finds skin and insulation temperatures on the same
-residuals the multipart NLP uses (`surface_balance` + `residual_skin_temperature`), via the
-shared `solve_part_heat_balance` primitive (`_solve_temperatures_insulated`). The hand-rolled
-iterative `solve_with_insulation!` is gone; the rule-based and NLP paths share one
-surface-physics implementation. `solve_part_heat_balance` already *is* the "surface node" an
-earlier draft listed as a separate phase — a non-iterative per-part energy balance
-(convection + radiation + evaporation + conduction − solar) returning residuals — so no new
-node abstraction was needed. The bare-skin path (`solve_without_insulation!`) is kept: the
-insulated formulation's `log(r_insulation/r_skin)` conductance factors are singular at zero
-insulation. The unified solver balances surface energy exactly where NicheMapR endoR used a
-linearised update, so `test/endotherm.jl` agrees with it to ~0.3 % on surface quantities and
-~1 % on metabolic-heat-linked flows (regulated core/lung temperatures and geometry still
-match to <0.1 %).
+**Surface solve: two implementations still coexist.** `solve_part_heat_balance` already *is*
+the non-iterative "surface node" an earlier draft listed as a phase — a per-part energy
+balance (convection + radiation + evaporation + conduction − solar) returning residuals, used
+by the multipart NLP via `part_surface_residuals`. The rule-based path still runs its own
+iterative `solve_temperatures` / `solve_with_insulation!` / `solve_without_insulation!`.
+Unifying them onto the NLP's `surface_balance` residual was attempted and reverted: the
+energy-balance closure diverges from NicheMapR endoR's linearised surface update by up to
+~8 % at hot / heat-stress conditions (`BiophysicalBehaviour`'s endotherm suite), too much to
+absorb into the validation. Retiring the iterative twin therefore needs a closure that
+reproduces NicheMapR, not just any energy-conserving root — still open.
 
 **Remaining:**
 
-1. **N-shell generating flesh** — the "second flesh layer for a large animal". The layer
+1. **Retire the iterative surface twin** — replace `solve_with_insulation!` /
+   `solve_without_insulation!` with a solve that reproduces NicheMapR to the suite's
+   tolerance (the exact-energy-balance closure does not; see above).
+2. **N-shell generating flesh** — the "second flesh layer for a large animal". The layer
    resistance is trivial (`(r_out²−r_in²)/(n·k·V)`, reducing to `GeneratingCore` at
    `r_in = 0`), but the `Body`/geometry model has no representation of an internal flesh
    boundary (only `flesh_radius` + fat) and nothing needs one yet — so it is blocked on a
    BiophysicalGeometry change, not on this module.
-2. **Ground-contact branch** — the substrate node off the skin node (§4.2 measured it at
+3. **Ground-contact branch** — the substrate node off the skin node (§4.2 measured it at
    8–45 % of loss). Open design decision (§6): a topology change, not gateable by
    reproduction alone.
-3. **Discretised radiative source** — radiation as a source term on interior fur shell(s)
+4. **Discretised radiative source** — radiation as a source term on interior fur shell(s)
    (§4.3). Open design decision (§6): radiation-at-depth vs at the outer node changes the
    physics.
 
