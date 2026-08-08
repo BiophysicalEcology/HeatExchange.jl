@@ -68,9 +68,7 @@ export radiant_temperature, insulation_radiant_temperature, compressed_radiant_t
 export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
 
 export solve_metabolic_rate,
-    ellipsoid_endotherm,
-    solve_with_insulation!,
-    solve_without_insulation!
+    ellipsoid_endotherm
 
 export ThermoregulationOutput,
     ThermoregulationState,
