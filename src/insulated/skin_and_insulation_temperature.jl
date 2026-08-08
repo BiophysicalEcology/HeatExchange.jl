@@ -59,20 +59,31 @@ end
 """
     solve_temperatures(; body, insulation_pars, insulation, geometry_vars, environment_vars, traits, temperature_tolerance, skin_temperature, insulation_temperature)
 
-Solve a part's skin and insulation-surface temperatures at an imposed core temperature.
+Simultaneously solve for skin and insulation surface temperatures.
 
-Insulated parts (`insulation.insulation_test > 0`) root-find the two temperatures on exactly
-the residuals the multipart NLP uses — `surface_balance` (the surface energy balance; the
-metabolic and respiration terms cancel out of it) and `residual_skin_temperature` — via the
-shared `solve_part_heat_balance` primitive (`_solve_temperatures_insulated`). So the
-rule-based and NLP paths share one surface-physics implementation (this replaced the former
-hand-rolled iterative `solve_with_insulation!`). The bare-skin case (`insulation_test ≤ 0`)
-has no insulation shell — the insulated formulation's `log(r_insulation / r_skin)` factors
-are singular there — so it keeps its own direct-to-skin balance (`solve_without_insulation!`).
+Iteratively finds temperatures that satisfy heat balance equations for an endotherm,
+accounting for convection, radiation, evaporation, and conduction through insulation.
+
+# Keywords
+- `body::AbstractBody`: Body geometry
+- `insulation_pars::InsulationParameters`: Insulation parameters
+- `insulation::InsulationProperties`: Computed insulation properties
+- `geometry_vars::GeometryVariables`: Geometric variables (side, conduction_fraction, etc.)
+- `environment_vars::NamedTuple`: Environmental variables (temperatures, wind, humidity, etc.)
+- `traits::NamedTuple`: Organism traits (core_temperature, conductivities, emissivity, etc.)
+- `temperature_tolerance`: Convergence tolerance for temperature iteration
+- `skin_temperature`: Initial guess for skin temperature
+- `insulation_temperature`: Initial guess for insulation surface temperature
 
 # Returns
-NamedTuple with `insulation_temperature`, `skin_temperature`, `flows::HeatFlows`,
-`insulation_conductivity`, `tolerance`, `success`, `ntry`.
+NamedTuple with:
+- `insulation_temperature`: Converged insulation surface temperature
+- `skin_temperature`: Converged mean skin temperature
+- `flows::HeatFlows`: Heat flow components
+- `insulation_conductivity`: Effective insulation conductivity
+- `tolerance`: Final tolerance used
+- `success`: Whether convergence was achieved
+- `ntry`: Number of iterations
 """
 function solve_temperatures(;
     body::AbstractBody,
@@ -87,148 +98,38 @@ function solve_temperatures(;
     geometry=_part_geometry(body),
     smoothing::SmoothingStrategy=HardBound(),
 )
-    if u"m"(insulation.insulation_test) > zero(u"m"(insulation.insulation_test))
-        return _solve_temperatures_insulated(; body, insulation_pars, insulation, geometry_vars,
-            environment_vars, traits, temperature_tolerance, skin_temperature,
-            insulation_temperature, geometry, smoothing)
-    else
-        return solve_without_insulation!(body, geometry_vars, environment_vars, traits,
-            temperature_tolerance, skin_temperature, insulation_temperature; geometry, smoothing)
-    end
-end
+    insulation_test = u"m"(insulation.insulation_test)
+    success = true
 
-# Insulated surface solve — root-find skin & insulation on the NLP residuals via the shared
-# `solve_part_heat_balance` primitive (replaces the former iterative `solve_with_insulation!`).
-function _solve_temperatures_insulated(;
-    body::AbstractBody,
-    insulation_pars::InsulationParameters,
-    insulation::InsulationProperties,
-    geometry_vars::GeometryVariables,
-    environment_vars::NamedTuple,
-    traits::NamedTuple,
-    temperature_tolerance,
-    skin_temperature,
-    insulation_temperature,
-    geometry=_part_geometry(body),
-    smoothing::SmoothingStrategy=HardBound(),
-)
-    core_temperature = traits.core_temperature
-    # Respiration and metabolic heat cancel out of `surface_balance`, so these two never
-    # affect the root — a default (stripped) respiration and a unit metabolic probe just
-    # keep `solve_part_heat_balance` on its normal path.
-    resp_pars = stripparams(RespirationParameters())
-    metabolic_probe = 1.0u"W"
-
-    function surface_residuals(skin, insulation_surface)
-        b = solve_part_heat_balance(
-            core_temperature, skin, insulation_surface, metabolic_probe;
-            body, geometry, insulation_pars, insulation, geometry_vars,
-            environment_vars, traits, resp_pars,
-            k_flesh = traits.flesh_conductivity, pant = resp_pars.pant,
-            skin_wetness = traits.skin_wetness, smoothing,
+    if insulation_test > 0.0u"m"
+        return solve_with_insulation!(
+            body,
+            insulation_pars,
+            insulation,
+            geometry_vars,
+            environment_vars,
+            traits,
+            temperature_tolerance,
+            skin_temperature,
+            insulation_temperature;
+            geometry,
+            smoothing,
         )
-        surface_balance = b.residual_energy_balance - b.residual_internal_conduction
-        return (; surface_balance, residual_skin = b.residual_skin_temperature, balance = b)
+    else
+        return solve_without_insulation!(
+            body,
+            geometry_vars,
+            environment_vars,
+            traits,
+            temperature_tolerance,
+            skin_temperature,
+            insulation_temperature;
+            geometry,
+            smoothing,
+        )
     end
-
-    sol = _newton_surface(surface_residuals, skin_temperature, insulation_temperature)
-    b = sol.balance
-
-    # Effective insulation conductivity at the converged temperatures (a diagnostic the
-    # compartment/coupled solves report).
-    σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
-    (; insulation_conductivity) = _insulation_conductivity(
-        insulation, insulation_pars, geometry_vars.side, sol.insulation, sol.skin,
-        geometry_vars.longwave_depth_fraction, σ; smoothing)
-
-    flows = HeatFlows(
-        b.convection_heat_flow,
-        b.conduction_heat_flow,
-        b.net_metabolic_heat_internal,
-        b.skin_evaporation_heat_flow,
-        b.insulation_evaporation_heat_flow,
-        b.radiation_heat_flow,
-        b.solar_heat_flow,
-        b.sky_radiation_flow,
-        b.bush_radiation_flow,
-        b.vegetation_radiation_flow,
-        b.ground_radiation_flow,
-    )
-    return (;
-        insulation_temperature = sol.insulation,
-        skin_temperature = sol.skin,
-        flows,
-        insulation_conductivity,
-        tolerance = temperature_tolerance,
-        success = sol.success,
-        ntry = sol.iters,
-    )
 end
 
-# Damped 2×2 Newton for the per-part surface solve. Unknowns are the skin and
-# insulation-surface temperatures; residuals are `surface_balance` (W) and `residual_skin`
-# (K), each nondimensionalised by its own unit so the Jacobian is dimensionless. The
-# Jacobian is a finite difference — this path is not differentiated (the NLP uses
-# `part_surface_residuals` directly), so a numeric Jacobian keeps the solve self-contained.
-# Each step is backtracked until the residual norm strictly decreases and stays finite,
-# which keeps the iterate out of the unphysical (negative-temperature → NaN) region the raw
-# Newton step can overshoot into; a singular/degenerate Jacobian falls back to a bounded
-# fixed-point nudge (skin toward its own balance, insulation toward energy balance).
-function _newton_surface(f, skin0, insulation0; tol=1.0e-9, maxiter=200)
-    Tunit = oneunit(skin0)
-    scale1(x) = x / oneunit(x)
-    resnorm(rr) = hypot(scale1(rr.surface_balance), scale1(rr.residual_skin))
-    s = skin0 / Tunit
-    n = insulation0 / Tunit
-    r = f(s * Tunit, n * Tunit)
-    nr = resnorm(r)
-    success = false
-    iters = 0
-    for iter in 1:maxiter
-        iters = iter
-        if nr < tol
-            success = true
-            break
-        end
-        R1 = scale1(r.surface_balance)
-        R2 = scale1(r.residual_skin)
-        h = 1.0e-4
-        rs = f((s + h) * Tunit, n * Tunit)
-        rn = f(s * Tunit, (n + h) * Tunit)
-        J11 = (scale1(rs.surface_balance) - R1) / h
-        J21 = (scale1(rs.residual_skin)   - R2) / h
-        J12 = (scale1(rn.surface_balance) - R1) / h
-        J22 = (scale1(rn.residual_skin)   - R2) / h
-        det = J11 * J22 - J12 * J21
-        if !isfinite(det) || abs(det) < 1.0e-12
-            # Degenerate Jacobian: bounded fixed-point nudge. `residual_skin = skin −
-            # skin_from_balance`, so `s -= R2` is the skin fixed point; nudge insulation
-            # down-gradient of the energy balance.
-            ds = clamp(R2, -1.0, 1.0)
-            dn = clamp(R1, -1.0, 1.0)
-        else
-            ds = ( J22 * R1 - J12 * R2) / det
-            dn = (-J21 * R1 + J11 * R2) / det
-        end
-        # Backtracking line search: shrink the step until the residual norm decreases and
-        # both residuals are finite (rejects overshoots into the NaN region).
-        α = 1.0
-        snew, nnew, rnew, nrnew = s, n, r, nr
-        for _ in 1:40
-            snew = s - α * ds
-            nnew = n - α * dn
-            rnew = f(snew * Tunit, nnew * Tunit)
-            nrnew = resnorm(rnew)
-            (isfinite(nrnew) && nrnew < nr) && break
-            α *= 0.5
-        end
-        s, n, r, nr = snew, nnew, rnew, nrnew
-    end
-    return (; skin = s * Tunit, insulation = n * Tunit, balance = r.balance, success, iters)
-end
-
-# --- Bare-skin surface solve (no insulation shell). Kept separate because the insulated
-# formulation's log(r_insulation/r_skin) conductance factors are singular at zero insulation.
 function solve_without_insulation!(
     body::AbstractBody, geometry_vars::GeometryVariables, environment_vars::NamedTuple, traits::NamedTuple, temperature_tolerance, skin_temperature, insulation_temperature;
     geometry=_part_geometry(body),
@@ -378,4 +279,357 @@ function solve_without_insulation!(
             end
         end
     end
+end
+
+function solve_with_insulation!(
+    body::AbstractBody,
+    insulation_pars::InsulationParameters,
+    insulation::InsulationProperties,
+    geometry_vars::GeometryVariables,
+    environment_vars::NamedTuple,
+    traits::NamedTuple,
+    temperature_tolerance,
+    skin_temperature,
+    insulation_temperature;
+    geometry=_part_geometry(body),
+    smoothing::SmoothingStrategy=HardBound(),
+)
+    (; side, conductance_coefficient, ventral_fraction, conduction_fraction, longwave_depth_fraction) = geometry_vars
+    (;
+        temperature,
+        view_factors,
+        atmos,
+        fluid,
+        solar_flow,
+        gas_fractions,
+        convection_enhancement,
+    ) = environment_vars
+    env_temps = temperature
+    T = env_temps
+    F = view_factors
+    air_temperature = T.air
+    substrate_temperature = T.substrate
+    (; relative_humidity, wind_speed, atmospheric_pressure) = atmos
+    (;
+        core_temperature,
+        flesh_conductivity,
+        fat_conductivity,
+        ϵ_body,
+        skin_wetness,
+        insulation_wetness,
+        bare_skin_fraction,
+        eye_fraction,
+    ) = traits
+
+    tolerance = temperature_tolerance
+
+    σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
+
+    (; total_area, area_evaporation) = geometry
+    area_convection = total_area * (1 - conduction_fraction)
+    insulation_test = insulation.insulation_test
+
+    ntry = 0
+    solct = 0
+    solution_procedure = 1
+    success = true
+    net_metabolic = 0.0u"W"
+
+    while ntry < 20
+        ntry += 1
+        for i in 1:20
+            # Evaporative heat loss
+            # first from the skin
+            conv = convection(;
+                body,
+                area=area_convection,
+                air_temperature,
+                surface_temperature=insulation_temperature,
+                wind_speed,
+                atmospheric_pressure,
+                fluid,
+                gas_fractions,
+                convection_enhancement,
+                characteristic_dim=geometry.characteristic_dim,
+                smoothing,
+            )
+            heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
+            evap_pars_skin = AnimalEvaporationParameters(;
+                skin_wetness,
+                eye_fraction,
+                bare_skin_fraction,
+            )
+            atmos_skin = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
+            skin_evaporation_flow = evaporation(
+                evap_pars_skin,
+                conv.mass_transfer_coefficient,
+                atmos_skin,
+                area_evaporation,
+                skin_temperature,
+                air_temperature;
+                gas_fractions,
+            ).evaporation_heat_flow
+            # second from insulation
+            insulation_evaporation_heat_flow = _insulation_evaporation(
+                conv, atmos_skin, area_convection, insulation_temperature, air_temperature,
+                insulation_wetness, insulation_test; gas_fractions, smoothing)
+            # Recompute insulation thermal properties for current temperatures
+            (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
+                insulation, insulation_pars, side, insulation_temperature, skin_temperature,
+                longwave_depth_fraction, σ; smoothing)
+            side_conductivities = _set_side_conductivity(insulation.conductivities, side, effective_conductivity)
+            insulation = setproperties(insulation;
+                conductivity_compressed=effective_conductivity,
+                conductivities=side_conductivities,
+            )
+            conductivities = ThermalConductivities(flesh_conductivity, fat_conductivity, insulation_conductivity)
+            org_temps = OrganismTemperatures(core_temperature, skin_temperature, insulation_temperature)
+            radiant_temp_result = radiant_temperature(;
+                body,
+                insulation,
+                insulation_pars,
+                org_temps,
+                conductivities,
+                side,
+                conductance_coefficient,
+                longwave_depth_fraction,
+                conduction_fraction,
+                evaporation_flow=skin_evaporation_flow,
+                substrate_temperature,
+                smoothing,
+            )
+            calculated_radiant_temperature = radiant_temp_result.radiant_temperature
+            compressed_insulation_temperature = radiant_temp_result.compressed_insulation_temperature
+            conductances = radiant_temp_result.conductances
+            divisors = radiant_temp_result.divisors
+            # Radiative heat flows
+            radiation_coeffs = _radiation_coefficients(area_convection, F, ϵ_body, σ,
+                calculated_radiant_temperature, T)
+            sky_radiation_coeff        = radiation_coeffs.sky
+            bush_radiation_coeff       = radiation_coeffs.bush
+            vegetation_radiation_coeff = radiation_coeffs.vegetation
+            ground_radiation_coeff     = radiation_coeffs.ground
+            if conduction_fraction < 1
+                # These calculations are for when there is less than 100% conduction.
+                # The term insulation_evaporation_heat_flow is included for heat lost due to evaporation from
+                # the insulation surface
+                insulation_temp_result = insulation_radiant_temperature(;
+                    body,
+                    insulation,
+                    insulation_pars,
+                    env_temps,
+                    coeffs=radiation_coeffs,
+                    conductances,
+                    divisors,
+                    side,
+                    area_convection,
+                    heat_transfer_coefficient,
+                    conductance_coefficient,
+                    insulation_conductivity,
+                    longwave_depth_fraction,
+                    conduction_fraction,
+                    solar_flow,
+                    insulation_evaporation_heat_flow,
+                    core_temperature,
+                    compressed_insulation_temperature,
+                )
+                insulation_temperature_calc = insulation_temp_result.calculated_insulation_temperature
+                radiant_temperature2 = insulation_temp_result.radiant_temperature2
+
+                sky_radiation_flow = sky_radiation_coeff * (radiant_temperature2 - T.sky)
+                bush_radiation_flow = bush_radiation_coeff * (radiant_temperature2 - T.bush)
+                vegetation_radiation_flow = vegetation_radiation_coeff * (radiant_temperature2 - T.vegetation)
+                ground_radiation_flow = ground_radiation_coeff * (radiant_temperature2 - T.ground)
+                longwave_flow = sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow
+                convection_flow = heat_transfer_coefficient * area_convection * (insulation_temperature_calc - T.air)
+                conduction_flow = u"W"(conductance_coefficient * (compressed_insulation_temperature - substrate_temperature))
+            else
+                (; compressed_insulation_temperature) = compressed_radiant_temperature(;
+                    body,
+                    insulation,
+                    insulation_pars,
+                    conductivities,
+                    side,
+                    conductance_coefficient,
+                    core_temperature,
+                    substrate_temperature,
+                )
+                sky_radiation_flow = 0.0u"W"
+                bush_radiation_flow = 0.0u"W"
+                vegetation_radiation_flow = 0.0u"W"
+                ground_radiation_flow = 0.0u"W"
+                longwave_flow = 0.0u"W"
+                convection_flow = 0.0u"W"
+                insulation_evaporation_heat_flow = 0.0u"W"
+                solar_flow = 0.0u"W"
+                conduction_flow = conductance_coefficient * (compressed_insulation_temperature - substrate_temperature)
+                insulation_temperature_calc = compressed_insulation_temperature
+            end
+            environment_flow = longwave_flow + convection_flow + conduction_flow + insulation_evaporation_heat_flow - solar_flow
+            skin_temperature_mean, skin_temperature_calc1 = mean_skin_temperature(;
+                body,
+                insulation,
+                insulation_pars,
+                conductivities,
+                conductances,
+                conduction_fraction,
+                environment_flow,
+                skin_evaporation_flow,
+                core_temperature,
+                calculated_insulation_temperature=insulation_temperature_calc,
+                compressed_insulation_temperature,
+                smoothing,
+            )
+
+            # Build flows (net_metabolic updated on success)
+            flows = HeatFlows(
+                convection_flow,
+                conduction_flow,
+                net_metabolic,  # placeholder, updated below
+                skin_evaporation_flow,
+                insulation_evaporation_heat_flow,
+                longwave_flow,
+                solar_flow,
+                sky_radiation_flow,
+                bush_radiation_flow,
+                vegetation_radiation_flow,
+                ground_radiation_flow,
+            )
+
+            Δinsulation_temperature = abs(insulation_temperature - insulation_temperature_calc)
+            Δskin_temperature = abs(skin_temperature - skin_temperature_mean)
+
+            # first convergence test (Δinsulation_temperature)
+            if Δinsulation_temperature < tolerance
+                # Next check skin_temperature convergence
+                if Δskin_temperature < tolerance
+                    net_metabolic = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature, smoothing)
+                    flows = setproperties(flows; net_metabolic)
+                    return (;
+                        insulation_temperature,
+                        skin_temperature=skin_temperature_mean,
+                        flows,
+                        insulation_conductivity,
+                        tolerance,
+                        success=true,
+                        ntry,
+                    )
+                else
+                    # Not converged, restart iteration
+                    if ntry < 20
+                        skin_temperature = skin_temperature_calc1
+                        continue
+                    else
+                        net_metabolic = net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature, smoothing)
+                        flows = setproperties(flows; net_metabolic)
+                        return (;
+                            insulation_temperature,
+                            skin_temperature=skin_temperature_mean,
+                            flows,
+                            insulation_conductivity,
+                            tolerance,
+                            success=false,
+                            ntry,
+                        )
+                    end
+                end
+
+            else
+                # No Δinsulation_temperature convergence → update insulation_temperature
+                insulation_temperature = update_insulation_temperature!(
+                    insulation_temperature, insulation_temperature_calc, Δinsulation_temperature, solution_procedure
+                )
+            end
+            # update skin_temperature
+            skin_temperature = skin_temperature_mean
+            solct += 1
+
+            # fallback if stuck
+            if solct ≥ 100
+                if solution_procedure != 3
+                    solct = 0
+                    solution_procedure += 1
+                else
+                    # Didn't converge → relax tolerance or fail
+                    if tolerance <= 0.001u"K"
+                        tolerance = 0.01u"K"
+                        solct = 0
+                        solution_procedure = 1
+                    else
+                        return (;
+                            insulation_temperature,
+                            skin_temperature,
+                            flows,
+                            insulation_conductivity,
+                            tolerance,
+                            success=false,
+                            ntry,
+                        )
+                    end
+                end
+            end
+        end
+    end
+    return (; insulation_temperature, skin_temperature, flows, insulation_conductivity, tolerance, success, ntry)
+end
+
+function update_insulation_temperature!(
+    insulation_temperature, insulation_temperature_calc, Δinsulation_temperature, solution_procedure
+)
+    if solution_procedure == 1
+        # first solution procedure: set insulation_temperature guess to the calculated insulation_temperature
+        insulation_temperature = insulation_temperature_calc
+
+    else
+        if solution_procedure == 2
+            # second solution procedure: set insulation_temperature to the average of previous and calculated
+            insulation_temperature = (insulation_temperature_calc + insulation_temperature) / 2
+
+        else
+            # final solution procedure: incrementally adjust insulation_temperature
+            if (insulation_temperature - insulation_temperature_calc) < 0.0u"K"
+                # insulation_temperature < insulation_temperature_calc → increase insulation_temperature
+                if Δinsulation_temperature > 3.5u"K"
+                    insulation_temperature = insulation_temperature + 0.5u"K"
+                end
+                if (Δinsulation_temperature > 1.0u"K") && (Δinsulation_temperature < 3.5u"K")
+                    insulation_temperature = insulation_temperature + 0.05u"K"
+                end
+                if (Δinsulation_temperature > 0.1u"K") && (Δinsulation_temperature < 1.0u"K")
+                    insulation_temperature = insulation_temperature + 0.05u"K"
+                end
+                if (Δinsulation_temperature > 0.01u"K") && (Δinsulation_temperature < 0.1u"K")
+                    insulation_temperature = insulation_temperature + 0.005u"K"
+                end
+                if (Δinsulation_temperature > 0.0u"K") && (Δinsulation_temperature < 0.01u"K")
+                    insulation_temperature = insulation_temperature + 0.0001u"K"
+                end
+                if (Δinsulation_temperature > 0.0u"K") && (Δinsulation_temperature < 0.001u"K")
+                    insulation_temperature = insulation_temperature + 0.00001u"K"
+                end
+
+            else
+                # insulation_temperature > insulation_temperature_calc → decrease insulation_temperature
+                if Δinsulation_temperature > 3.5u"K"
+                    insulation_temperature = insulation_temperature - 0.5u"K"
+                end
+                if (Δinsulation_temperature > 1.0u"K") && (Δinsulation_temperature < 3.5u"K")
+                    insulation_temperature = insulation_temperature - 0.05u"K"
+                end
+                if (Δinsulation_temperature > 0.1u"K") && (Δinsulation_temperature < 1.0u"K")
+                    insulation_temperature = insulation_temperature - 0.05u"K"
+                end
+                if (Δinsulation_temperature > 0.01u"K") && (Δinsulation_temperature < 0.1u"K")
+                    insulation_temperature = insulation_temperature - 0.005u"K"
+                end
+                if (Δinsulation_temperature > 0.001u"K") && (Δinsulation_temperature < 0.01u"K")
+                    insulation_temperature = insulation_temperature - 0.0001u"K"
+                end
+                if (Δinsulation_temperature > 0.0u"K") && (Δinsulation_temperature < 0.001u"K")
+                    insulation_temperature = insulation_temperature - 0.00001u"K"
+                end
+            end
+        end
+    end
+    return insulation_temperature
 end

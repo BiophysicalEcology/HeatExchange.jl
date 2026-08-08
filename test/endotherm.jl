@@ -275,36 +275,28 @@ for shape_number in 1:4
         )
 
         rtol = 1e-3
-        # The rule-based surface solve balances the per-part energy exactly; NicheMapR endoR
-        # used a linearised surface update. Regulated core/lung temperatures and geometry match
-        # to <0.1%, but everything downstream of the surface solve differs a little: surface
-        # temperatures, conductivities and surface heat fluxes by ~0.3% (rtol_surface), and
-        # metabolic-heat-linked flows by ~1% because metabolic heat ∝ the small core−skin
-        # gradient (rtol_metabolic).
-        rtol_surface = 5e-3
-        rtol_metabolic = 2e-2
 
         @testset "endotherm thermoregulation comparisons" begin
             @test treg_output_vec.TC ≈ ustrip(u"°C", thermoregulation.core_temperature) rtol = rtol
             @test treg_output_vec.TLUNG ≈ ustrip(u"°C", thermoregulation.lung_temperature) rtol = rtol
             @test treg_output_vec.TSKIN_D ≈ ustrip(u"°C", thermoregulation.dorsal.skin_temperature) rtol =
-                rtol_surface
+                rtol
             @test treg_output_vec.TSKIN_V ≈ ustrip(u"°C", thermoregulation.ventral.skin_temperature) rtol =
-                rtol_surface
+                rtol
             @test treg_output_vec.TFA_D ≈
-                ustrip(u"°C", thermoregulation.dorsal.insulation_temperature) rtol = rtol_surface
+                ustrip(u"°C", thermoregulation.dorsal.insulation_temperature) rtol = rtol
             @test treg_output_vec.TFA_V ≈
-                ustrip(u"°C", thermoregulation.ventral.insulation_temperature) rtol = rtol_surface
+                ustrip(u"°C", thermoregulation.ventral.insulation_temperature) rtol = rtol
             if insulation_test > 0.0u"m"
                 @test treg_output_vec.K_FUR_D ≈
-                    ustrip(u"W/m/K", thermoregulation.dorsal.insulation_conductivity) rtol = rtol_surface
+                    ustrip(u"W/m/K", thermoregulation.dorsal.insulation_conductivity) rtol = rtol
                 @test treg_output_vec.K_FUR_V ≈
-                    ustrip(u"W/m/K", thermoregulation.ventral.insulation_conductivity) rtol = rtol_surface
+                    ustrip(u"W/m/K", thermoregulation.ventral.insulation_conductivity) rtol = rtol
             end
             @test treg_output_vec.K_FUR_EFF ≈
-                ustrip(u"W/m/K", thermoregulation.insulation_conductivity_effective) rtol = rtol_surface
+                ustrip(u"W/m/K", thermoregulation.insulation_conductivity_effective) rtol = rtol
             @test treg_output_vec.K_COMPFUR ≈
-                ustrip(u"W/m/K", thermoregulation.insulation_conductivity_compressed) rtol = rtol_surface
+                ustrip(u"W/m/K", thermoregulation.insulation_conductivity_compressed) rtol = rtol
         end
 
         fat = morphology.fat < 1.0e-10u"m" ? 0.0u"m" : morphology.fat
@@ -365,24 +357,23 @@ for shape_number in 1:4
         @testset "endotherm energy flow comparisons" begin
             @test enbal_output_vec.QSOL ≈ ustrip(u"W", energy_flows.solar_flow) rtol = rtol
             @test enbal_output_vec.QIRIN ≈ ustrip(u"W", energy_flows.longwave_flow_in) rtol =
-                rtol_surface
-            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_flows.metabolic_heat_flow) rtol = rtol_metabolic
-            @test QEVAP ≈ ustrip(u"W", energy_flows.evaporation_heat_flow) rtol = rtol_surface
+                rtol
+            @test enbal_output_vec.QGEN ≈ ustrip(u"W", energy_flows.metabolic_heat_flow) rtol = rtol * 10
+            @test QEVAP ≈ ustrip(u"W", energy_flows.evaporation_heat_flow) rtol = rtol
             @test enbal_output_vec.QIROUT ≈ ustrip(u"W", energy_flows.longwave_flow_out) rtol =
-                rtol_surface
+                rtol
             @test enbal_output_vec.QCONV ≈ ustrip(u"W", energy_flows.convection_heat_flow) rtol =
-                rtol_surface
+                rtol
             @test enbal_output_vec.QCOND ≈ ustrip(u"W", energy_flows.conduction_flow) rtol =
                 rtol * 100 # could be because it's a very small number
             if !isnothing(energy_flows.balance)
                 @test enbal_output_vec.ENB ≈ ustrip(u"W", energy_flows.balance) atol = 1e-3
             end
-            # NTRY (iteration count) is not compared: the rule-based surface solve is a
-            # different algorithm from NicheMapR's, so its iteration count differs by design.
+            @test enbal_output_vec.NTRY ≈ energy_flows.ntry
             @test Bool(enbal_output_vec.SUCCESS) ≈ energy_flows.success
         end
 
-        rtol = rtol_metabolic  # mass flows are all metabolism/respiration-linked
+        rtol = 1e-3
         @testset "endotherm mass flow comparisons" begin
             if options.respire
                 @test masbal_output_vec.AIR_L ≈ ustrip(u"L/hr", mass_flows.air_flow) rtol =

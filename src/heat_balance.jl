@@ -414,7 +414,8 @@ function solve_part_heat_balance(
     (; total_area, area_evaporation) = geometry
     area_convection  = total_area * (1 - conduction_fraction)
     # Honour a caller-supplied characteristic dimension (a joined/elongated part sets
-    # its own), falling back to the body's default.
+    # its own), falling back to the body's default — the same value `solve_with_insulation!`
+    # passes to `convection`, so the residual twin can't silently diverge on it.
     characteristic_dim = get(geometry, :characteristic_dim, characteristic_dimension(VolumeCubeRoot(), body))
 
     # Recompute temperature-dependent insulation conductivity at current temperatures.
