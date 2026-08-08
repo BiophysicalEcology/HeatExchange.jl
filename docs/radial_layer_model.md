@@ -172,38 +172,45 @@ lateral:    ground-contact branch off the skin node (parallel path to substrate)
 
 ## 5a. Implementation status
 
-**Foundation done (`src/radial_layers.jl`, gated by `test/radial_layers.jl`).** The
-conduction chain is realised as an ordered stack of `GeneratingCore` (flesh, uniform
-volumetric generation) + `ConductiveShell` (fat/fur/…) layers, each contributing a
-shape-dispatched thermal resistance. `radial_net_metabolic_heat` sums the series and
-**reproduces `net_metabolic_heat` to `rtol < 1e-10`** for cylinders/slabs and spheres
-across 0.1–100 kg. This proves §1's central claim in running code: today's closed
-form *is* this radial network collapsed. Nothing is wired into the production heat
-balance — it is additive, so there is zero regression risk.
+**Core→skin conduction: done and wired into production.** The conduction chain is an
+ordered stack of `GeneratingCore` (flesh, uniform volumetric generation) + `ConductiveShell`
+(fat/fur/…) layers, each contributing a shape-dispatched thermal resistance
+(`src/radial_layers.jl`). `net_metabolic_heat` is now a thin wrapper over
+`radial_net_metabolic_heat`, and the shape-specific closed forms it replaced are deleted —
+so this is the production core→skin path, not an additive experiment. Cylinder, sphere,
+slab, and **ellipsoid** (via the equivalent-sphere approximation) are all implemented, and
+`ConductiveShell` carries any number of shells. `test/radial_layers.jl` pins the pre-refactor
+values (`rtol < 1e-10`) for every shape, with and without fat, so §1's claim is proven in
+running code: the old closed form *is* this radial network collapsed.
 
-**Remaining phases** (each additive, each gated on reproducing the existing numbers
-before it earns the right to extend):
+**Surface solve: unified; the iterative twin is retired.** The rule-based per-part surface
+solve for insulated parts now root-finds skin and insulation temperatures on the same
+residuals the multipart NLP uses (`surface_balance` + `residual_skin_temperature`), via the
+shared `solve_part_heat_balance` primitive (`_solve_temperatures_insulated`). The hand-rolled
+iterative `solve_with_insulation!` is gone; the rule-based and NLP paths share one
+surface-physics implementation. `solve_part_heat_balance` already *is* the "surface node" an
+earlier draft listed as a separate phase — a non-iterative per-part energy balance
+(convection + radiation + evaporation + conduction − solar) returning residuals — so no new
+node abstraction was needed. The bare-skin path (`solve_without_insulation!`) is kept: the
+insulated formulation's `log(r_insulation/r_skin)` conductance factors are singular at zero
+insulation. The unified solver balances surface energy exactly where NicheMapR endoR used a
+linearised update, so `test/endotherm.jl` agrees with it to ~0.3 % on surface quantities and
+~1 % on metabolic-heat-linked flows (regulated core/lung temperatures and geometry still
+match to <0.1 %).
 
-1. **Ellipsoid layers** — its shells are anisotropic (three semi-axes), so they are not
-   yet a clean `r_inner/r_outer` instance; reproduce the `ssqg`-based terms shape-
-   dispatched.
-2. **N-shell flesh discretisation** — split the generating core into concentric shells
-   with distributed generation; must reduce to the 1-shell `GeneratingCore` (the
-   "second flesh layer for a large animal").
-3. **Surface node + outer boundary** — add the skin and outer-surface nodes with
-   convection + radiation + evaporation − solar; reproduce `solve_part_heat_balance`'s
-   surface residual (the skin node's flux balance replaces the calc1/calc2 average,
-   which §4.1 measured as numerically identical).
-4. **Ground-contact branch** — the substrate node off the skin node (§4.2 measured it
-   at 8–45 % of loss); a lateral branch, the compartment-coupling idiom applied
-   radially.
-5. **Discretised radiative source** — radiation as a source term on interior fur
-   shell(s), superseding the singular closed form (§4.3); reproduces the default
-   surface-radiation case trivially.
-6. **NLP integration** — generalise the multipart NLP's hardcoded `{skin, insulation}`
-   variable structure to the N-node radial stack (Flatten already makes "N variables
-   from a structure" free), then retire `solve_without_insulation!` and the naked/
-   insulated branch once the general path reproduces both.
+**Remaining:**
+
+1. **N-shell generating flesh** — the "second flesh layer for a large animal". The layer
+   resistance is trivial (`(r_out²−r_in²)/(n·k·V)`, reducing to `GeneratingCore` at
+   `r_in = 0`), but the `Body`/geometry model has no representation of an internal flesh
+   boundary (only `flesh_radius` + fat) and nothing needs one yet — so it is blocked on a
+   BiophysicalGeometry change, not on this module.
+2. **Ground-contact branch** — the substrate node off the skin node (§4.2 measured it at
+   8–45 % of loss). Open design decision (§6): a topology change, not gateable by
+   reproduction alone.
+3. **Discretised radiative source** — radiation as a source term on interior fur shell(s)
+   (§4.3). Open design decision (§6): radiation-at-depth vs at the outer node changes the
+   physics.
 
 ## 6. Open design decisions (what the later phases must settle)
 
