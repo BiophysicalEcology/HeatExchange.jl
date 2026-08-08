@@ -310,3 +310,53 @@ function solve_core_temperatures(graph::CompartmentGraph{P,N,K}, conductance_ent
         SVector(ustrip.(u"W", coupling_heat_load))
     return (system \ load) .* u"K"
 end
+
+"""
+    solve_regulated_core_temperatures(graph, regulated, conductance_entries,
+        net_generation, flesh_conductance, flesh_weighted_skin, regulated_core;
+        coupling_heat_load = zeros) -> SVector{K}
+
+Solve the compartment core temperatures with compartment `regulated` *pinned* at
+`regulated_core`, and every other (floating) compartment's core solved from the
+same balance `solve_core_temperatures` uses.
+
+The regulated compartment is the thermoregulated one (it hosts the lung / setpoint):
+its core is held fixed and the metabolic heat it must generate is a downstream output
+(closed by the caller's respiration balance), *not* an input. So its
+`net_generation` entry is ignored here. The floating compartments produce their own
+`net_generation` (basal metabolic, no respiration) and float to whatever balances
+conduction to their own skins and to their neighbours — including the pinned
+regulated core, which enters their equations as a fixed boundary.
+
+Implemented by assembling the full `K×K` system `(L + diag(flesh_conductance))·core =
+net_generation + flesh_weighted_skin + coupling_heat_load` (identical to
+`solve_core_temperatures`) and applying a Dirichlet pin at `regulated`: its column is
+moved to the right-hand side of every other row, then its row is replaced by the
+identity `core_regulated = regulated_core`. The result is the `SVector{K}` of cores
+with `core[regulated] == regulated_core`.
+"""
+function solve_regulated_core_temperatures(graph::CompartmentGraph{P,N,K}, regulated::Integer,
+        conductance_entries, net_generation::NTuple{K}, flesh_conductance::NTuple{K},
+        flesh_weighted_skin::NTuple{K}, regulated_core;
+        coupling_heat_load::NTuple{K}=ntuple(_ -> 0.0u"W", Val(K))) where {P,N,K}
+    laplacian = build_conductance_matrix(graph, conductance_entries)
+    system = ustrip.(u"W/K", laplacian) + Diagonal(SVector(ustrip.(u"W/K", flesh_conductance)))
+    load = SVector(ustrip.(u"W", net_generation)) .+ SVector(ustrip.(u"W", flesh_weighted_skin)) .+
+        SVector(ustrip.(u"W", coupling_heat_load))
+    pinned = ustrip(u"K", regulated_core)
+    # Apply the Dirichlet pin at `regulated` on unit-stripped copies. K is a small
+    # compile-time constant, so the MMatrix/MVector scratch stays stack-resident.
+    A = MMatrix(system)
+    b = MVector(load)
+    z = zero(eltype(A))
+    for i in 1:K
+        i == regulated && continue
+        b[i] -= A[i, regulated] * pinned      # move the known column to the RHS
+        A[i, regulated] = z
+    end
+    for j in 1:K
+        A[regulated, j] = j == regulated ? one(eltype(A)) : z
+    end
+    b[regulated] = pinned
+    return (SMatrix(A) \ SVector(b)) .* u"K"
+end
