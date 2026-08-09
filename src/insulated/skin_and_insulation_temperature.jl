@@ -56,6 +56,54 @@ function _radiation_coefficients(area, view_factors, ϵ, σ, radiant_temperature
                     coeff(F.vegetation, T.vegetation), coeff(F.ground, T.ground))
 end
 
+# Inter-part (neighbour) surface exchange — the lumped radiative component of the
+# blocked-solid-angle term. A part whose hemisphere is partly occluded by a sibling
+# part exchanges longwave with that sibling's outer surface over the neighbour view
+# fraction, instead of with the sky/ground it can't see through the sibling. Same
+# linearised radiative-conductance form as `_radiation_coefficients`, with the
+# neighbour's surface temperature as the far side. The fractions come from
+# `view_partition`, where sky + ground + Σ neighbours = 1, so the blocked solid angle
+# (and hence its energy) is not lost — it becomes this term. `neighbours` is a tuple
+# of `(; fraction, temperature)`.
+#
+# Dispatched so the empty (free-standing / single-part) case is the *identity* on the
+# running radiation total: `radiation_heat_flow` then compiles to exactly the pre-
+# coupling expression, adding no new operations on the active/differentiated path
+# (the nested-Enzyme IPOPT Hessian is intolerant of even an added `+ zero`). Only a
+# part that genuinely has neighbours pays the extra term.
+@inline _add_neighbour_radiation(base, area, ::Tuple{}, ϵ, σ, radiant_temperature) = base
+@inline function _add_neighbour_radiation(base, area, neighbours::Tuple, ϵ, σ, radiant_temperature)
+    flow = base
+    for nb in neighbours
+        coeff = area * nb.fraction * 4 * ϵ * σ * ((radiant_temperature + nb.temperature) / 2)^3
+        flow += coeff * (radiant_temperature - nb.temperature)
+    end
+    return flow
+end
+
+# Neighbour exchange as a linear (coefficient, coefficient·temperature) pair, for the
+# bare-skin fixed-point that solves skin temperature as `(Σ cᵢTᵢ) / (Σ cᵢ)`. `csum`
+# folds into the denominator, `cTsum` into the numerator, exactly like the sky/ground
+# radiation coefficients on that path. Empty → exact zeros (the free-standing case).
+@inline _neighbour_coefficients(area, ::Tuple{}, ϵ, σ, surface_temperature) =
+    (; csum = zero(area * 4 * ϵ * σ * surface_temperature^3),
+       cTsum = zero(area * 4 * ϵ * σ * surface_temperature^3 * surface_temperature))
+@inline function _neighbour_coefficients(area, neighbours::Tuple, ϵ, σ, surface_temperature)
+    csum = zero(area * 4 * ϵ * σ * surface_temperature^3)
+    cTsum = zero(area * 4 * ϵ * σ * surface_temperature^3 * surface_temperature)
+    for nb in neighbours
+        c = area * nb.fraction * 4 * ϵ * σ * ((surface_temperature + nb.temperature) / 2)^3
+        csum += c
+        cTsum += c * nb.temperature
+    end
+    return (; csum, cTsum)
+end
+
+# Read the (possibly absent) neighbour exchange list from a packed `environment_vars`.
+# Callers that don't set it (every single-body path, the NLP path) get `()`.
+@inline _neighbours(environment_vars) =
+    hasproperty(environment_vars, :neighbours) ? environment_vars.neighbours : ()
+
 """
     solve_temperatures(; body, insulation_pars, insulation, geometry_vars, environment_vars, traits, temperature_tolerance, skin_temperature, insulation_temperature)
 
@@ -246,6 +294,7 @@ function solve_without_insulation!(
     T = temperature
     F = view_factors
     air_temperature = T.air
+    neighbours = _neighbours(environment_vars)
     (; relative_humidity, wind_speed, atmospheric_pressure) = atmos
     (; core_temperature, flesh_conductivity, ϵ_body, skin_wetness, bare_skin_fraction, eye_fraction) = traits
     tolerance = temperature_tolerance
@@ -301,19 +350,23 @@ function solve_without_insulation!(
             bush_radiation_coeff       = _rc.bush
             vegetation_radiation_coeff = _rc.vegetation
             ground_radiation_coeff     = _rc.ground
+            # Neighbour exchange as a linear (Σ cᵢ, Σ cᵢTᵢ) pair; zero when free-standing.
+            nb = _neighbour_coefficients(area_convection, neighbours, ϵ_body, σ, skin_temperature)
             skin_temperature1 =
                 ((4.0 * flesh_conductivity * volume) / (r_skin^2) * core_temperature) - skin_evaporation_flow +
                 heat_transfer_coefficient * area_convection * T.air +
                 solar_flow
             skin_temperature2 =
-                sky_radiation_coeff * T.sky + bush_radiation_coeff * T.bush + vegetation_radiation_coeff * T.vegetation + ground_radiation_coeff * T.ground
+                sky_radiation_coeff * T.sky + bush_radiation_coeff * T.bush + vegetation_radiation_coeff * T.vegetation + ground_radiation_coeff * T.ground +
+                nb.cTsum
             skin_temperature3 =
                 ((4.0 * flesh_conductivity * volume) / (r_skin^2)) +
                 heat_transfer_coefficient * area_convection +
                 sky_radiation_coeff +
                 bush_radiation_coeff +
                 vegetation_radiation_coeff +
-                ground_radiation_coeff
+                ground_radiation_coeff +
+                nb.csum
 
             skin_temperature_calc = (skin_temperature1 + skin_temperature2) / skin_temperature3
 
@@ -321,8 +374,9 @@ function solve_without_insulation!(
             bush_radiation_flow = bush_radiation_coeff * (skin_temperature_calc - T.bush)
             vegetation_radiation_flow = vegetation_radiation_coeff * (skin_temperature_calc - T.vegetation)
             ground_radiation_flow = ground_radiation_coeff * (skin_temperature_calc - T.ground)
+            neighbour_radiation_flow = nb.csum * skin_temperature_calc - nb.cTsum
 
-            longwave_flow = sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow
+            longwave_flow = sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow + neighbour_radiation_flow
             convection_flow = heat_transfer_coefficient * area_convection * (skin_temperature_calc - T.air)
 
             # Build flows (net_metabolic updated on success)
