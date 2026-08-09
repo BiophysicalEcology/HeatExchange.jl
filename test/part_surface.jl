@@ -171,6 +171,37 @@ end
     @test cold.net_metabolic > result.net_metabolic
 end
 
+@testset "solve_part_surface — neighbour exchange on the bare-skin path" begin
+    # A naked body with zero-depth insulation takes the `solve_without_insulation!`
+    # branch, where the neighbour term folds into the bare linear skin-temperature solve
+    # (Σcᵢ into the denominator, ΣcᵢTᵢ into the numerator) rather than the insulated
+    # radiation total. Same contract: empty / zero-fraction is a no-op, a hotter neighbour
+    # warms the skin, a colder one cools it.
+    naked = Body(Sphere(1.0u"kg", 1000.0u"kg/m^3"), Naked())
+    bare_fibres = FibreProperties(; diameter = 3e-5u"m", length = 0.0u"m", density = 0.0u"1/m^2",
+        depth = 0.0u"m", reflectance = 0.2, conductivity = 0.209u"W/m/K")
+    bare_ins_pars = InsulationParameters(; dorsal = bare_fibres, ventral = bare_fibres,
+        depth_compressed = 0.0u"m", longwave_depth_fraction = 1.0)
+    bare_traits = merge(traits, (; bare_skin_fraction = 1.0))
+    bare(nbrs) = solve_part_surface(;
+        body = naked, insulation_pars = bare_ins_pars, traits = bare_traits,
+        environment_vars = merge(packed_environment, (; neighbours = nbrs)),
+        conduction_fraction = 0.0, conductance_coefficient = 0.0u"W/K",
+        ventral_fraction = 0.5, longwave_depth_fraction = 1.0,
+        skin_temperature = core_temperature - 5u"K",
+        insulation_temperature = env_vars.air_temperature + 2u"K",
+        temperature_tolerance = 1e-3u"K")
+
+    base = bare(())
+    @test base.success
+    @test bare(((; fraction = 0.0, temperature = 400.0u"K"),)).skin_temperature ≈ base.skin_temperature
+    hot  = bare(((; fraction = 0.4, temperature = core_temperature),))
+    cold = bare(((; fraction = 0.4, temperature = env_vars.sky_temperature),))
+    @test hot.success && cold.success
+    @test hot.skin_temperature  > base.skin_temperature
+    @test cold.skin_temperature < base.skin_temperature
+end
+
 @testset "solve_part_surface — hotter core drives more heat out" begin
     hotter = solve_part_surface(;
         body = part_body,
