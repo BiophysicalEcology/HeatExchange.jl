@@ -400,6 +400,9 @@ function solve_part_heat_balance(
     (;
         temperature, view_factors, atmos, fluid, solar_flow, gas_fractions, convection_enhancement,
     ) = environment_vars
+    # Inter-part exchange list (a tuple of `(; fraction, temperature)`), empty for any
+    # single-body or free-standing part. See `_neighbour_radiation`.
+    neighbours = _neighbours(environment_vars)
     env_temps = temperature
     T = env_temps
     F = view_factors
@@ -496,8 +499,14 @@ function solve_part_heat_balance(
     bush_radiation_flow       = bush_radiation_coeff       * (radiant_temp - T.bush)
     vegetation_radiation_flow = vegetation_radiation_coeff * (radiant_temp - T.vegetation)
     ground_radiation_flow     = ground_radiation_coeff     * (radiant_temp - T.ground)
-    radiation_heat_flow =
-        sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow
+    # Add the longwave exchanged with sibling parts over the occluded solid angle. For a
+    # free-standing part (`neighbours` empty) this is the identity — `radiation_heat_flow`
+    # compiles to exactly the pre-coupling expression, so the differentiated NLP/Enzyme
+    # path is undisturbed. When neighbours are present the term flows into both the
+    # surface energy residual and the skin-temperature balance below.
+    radiation_heat_flow = _add_neighbour_radiation(
+        sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow,
+        area_convection, neighbours, ϵ_body, σ, radiant_temp)
 
     # -------------------------------------------------------------------------
     # Convection flow (at outer insulation surface)

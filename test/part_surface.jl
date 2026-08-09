@@ -136,6 +136,41 @@ end
     @test res2.surface_balance ≈ res.surface_balance atol=1e-8u"W"
 end
 
+@testset "solve_part_surface — inter-part neighbour exchange" begin
+    # The neighbour term is a longwave exchange with a sibling part's surface over a
+    # view fraction, carried in `environment_vars.neighbours` as `(; fraction,
+    # temperature)` entries. It must vanish for an empty / zero-fraction list and be
+    # correctly signed: a hotter neighbour warms this part's surface, a colder one cools it.
+    with_neighbours(nbrs) = solve_part_surface(;
+        body = part_body,
+        insulation_pars = part_insulation_pars,
+        traits,
+        environment_vars = merge(packed_environment, (; neighbours = nbrs)),
+        conduction_fraction = 0.0,
+        conductance_coefficient = 0.0u"W/K",
+        ventral_fraction = 0.5,
+        longwave_depth_fraction = 1.0,
+        skin_temperature = core_temperature - 5u"K",
+        insulation_temperature = env_vars.air_temperature + 2u"K",
+        temperature_tolerance = 1e-3u"K",
+    )
+
+    # No neighbours, or a zero-fraction neighbour, reproduces the base solve exactly.
+    @test with_neighbours(()).insulation_temperature ≈ result.insulation_temperature
+    @test with_neighbours(((; fraction = 0.0, temperature = 400.0u"K"),)).insulation_temperature ≈
+          result.insulation_temperature
+
+    # A neighbour hotter than the part's surface pushes heat in → warmer insulation
+    # surface and less core→skin flow; a cold neighbour does the opposite.
+    hot  = with_neighbours(((; fraction = 0.4, temperature = core_temperature),))
+    cold = with_neighbours(((; fraction = 0.4, temperature = env_vars.sky_temperature),))
+    @test hot.success && cold.success
+    @test hot.insulation_temperature  > result.insulation_temperature
+    @test cold.insulation_temperature < result.insulation_temperature
+    @test hot.net_metabolic < result.net_metabolic     # less internal heat needed to shed
+    @test cold.net_metabolic > result.net_metabolic
+end
+
 @testset "solve_part_surface — hotter core drives more heat out" begin
     hotter = solve_part_surface(;
         body = part_body,

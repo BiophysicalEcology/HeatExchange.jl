@@ -54,17 +54,28 @@ function solve_coupled_metabolic_rate(;
     metabolic_heat_flow_setpoint,
     resp_tolerance,
     extra_net_metabolic=zero(metabolic_heat_flow_setpoint),
+    neighbour_topology=nothing,
     smoothing::SmoothingStrategy=HardBound(),
 )
-    # 1. Per-part surface solve at the shared setpoint core.
-    parts = map(part_surface_setups) do setup
-        solve_part_surface(;
-            setup...,
-            skin_temperature,
-            insulation_temperature,
-            temperature_tolerance,
-            smoothing,
-        )
+    # 1. Per-part surface solve at the shared setpoint core. With no inter-part view
+    #    coupling (single part, or parts that don't occlude each other) every part is
+    #    solved once, independently — bit-identical to the pre-coupling path. When parts
+    #    do occlude each other, each part's surface balance exchanges longwave with its
+    #    neighbours' outer surfaces, so the surfaces are converged by a fixed point over
+    #    their temperatures (see `_solve_parts_coupled`).
+    parts = if neighbour_topology === nothing || !any(!isempty, neighbour_topology)
+        map(part_surface_setups) do setup
+            solve_part_surface(;
+                setup...,
+                skin_temperature,
+                insulation_temperature,
+                temperature_tolerance,
+                smoothing,
+            )
+        end
+    else
+        _solve_parts_coupled(part_surface_setups, neighbour_topology,
+            skin_temperature, insulation_temperature, temperature_tolerance, smoothing)
     end
 
     # 2. Internal heat that must be produced = plain sum of per-part core→skin flow,
@@ -120,4 +131,56 @@ function solve_coupled_metabolic_rate(;
         lung_temperature,
         respiration_out,
     )
+end
+
+# =============================================================================
+# Inter-part surface coupling (Phase 8).
+#
+# When sibling parts occlude one another (a two-half-cylinder body, a limbed
+# animal), the blocked solid angle of each part's hemisphere exchanges longwave
+# with the neighbour surface behind it rather than with the sky/ground — the
+# `neighbour_radiation_flow` term in `solve_part_heat_balance`, over the fractions
+# from `view_partition`. That far-side temperature is the neighbour part's own
+# outer (insulation) surface temperature, so the parts' surfaces are mutually
+# coupled and must be converged together by a fixed point: solve every part at the
+# current estimate of its neighbours' surface temperatures, update the estimates
+# from the results, and repeat until the surface temperatures stop moving.
+#
+# `neighbour_topology` is one entry per part (same order as `part_surface_setups`),
+# each a tuple of `(; index, fraction)` naming the sibling parts it exchanges with
+# (by position) and the view fraction of each. A part with an empty entry stands
+# free and is solved exactly as the uncoupled path would solve it.
+# =============================================================================
+function _solve_parts_coupled(setups, neighbour_topology,
+                              skin_temperature, insulation_temperature, temperature_tolerance, smoothing)
+    # Seed every neighbour's far-side temperature with the shared insulation estimate,
+    # then relax. The net inter-part flux is small (siblings sit at similar
+    # temperatures), so this converges in a handful of passes.
+    temps = map(_ -> insulation_temperature, setups)
+    parts = _coupled_pass(setups, neighbour_topology, temps,
+        skin_temperature, insulation_temperature, temperature_tolerance, smoothing)
+    for _ in 1:49
+        temps = map(part -> part.insulation_temperature, parts)
+        parts = _coupled_pass(setups, neighbour_topology, temps,
+            skin_temperature, insulation_temperature, temperature_tolerance, smoothing)
+        Δ = maximum(map((part, t) -> abs(part.insulation_temperature - t), parts, temps))
+        Δ < temperature_tolerance && break
+    end
+    return parts
+end
+
+# One relaxation pass: solve each part with its neighbours pinned at `temps`.
+function _coupled_pass(setups, neighbour_topology, temps,
+                       skin_temperature, insulation_temperature, temperature_tolerance, smoothing)
+    return map(setups, neighbour_topology) do setup, topo
+        neighbours = map(e -> (; e.fraction, temperature = temps[e.index]), topo)
+        coupled = merge(setup, (; environment_vars = merge(setup.environment_vars, (; neighbours))))
+        solve_part_surface(;
+            coupled...,
+            skin_temperature,
+            insulation_temperature,
+            temperature_tolerance,
+            smoothing,
+        )
+    end
 end
