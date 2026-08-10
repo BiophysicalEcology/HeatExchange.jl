@@ -113,7 +113,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e; smoothing::Smoo
     metab_pars = metabolism_pars(o)
 
     # metabolism
-    metabolic_heat_flow = metabolic_rate(metab_pars.model, o.body.shape.mass, core_temperature)
+    metabolic_heat_flow = metabolic_rate(metab_pars.model, mass(o.body.shape), core_temperature)
 
     # respiration
     rates = MetabolicRates(; metabolic=metabolic_heat_flow)
@@ -122,7 +122,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e; smoothing::Smoo
         rates,
         resp_pars,
         atmos,
-        o.body.shape.mass,
+        mass(o.body.shape),
         clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C")),
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions,
@@ -244,7 +244,7 @@ function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o:
     metab_pars = metabolism_pars(o)
 
     # metabolism (dark respiration or nothing)
-    metabolic_heat_flow = metabolic_rate(metab_pars.model, o.body.shape.mass, core_temperature)
+    metabolic_heat_flow = metabolic_rate(metab_pars.model, mass(o.body.shape), core_temperature)
 
     # net specific metabolic heat → surface temperature
     specific_metabolic_heat_production = metabolic_heat_flow / o.body.geometry.volume
@@ -559,7 +559,7 @@ function solve_part_heat_balance(
         MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = minimum_metabolic_heat),
         resp_pars_effective,
         atmos_local,
-        body.shape.mass,
+        mass(body.shape),
         lung_temperature,
         air_temperature;
         gas_fractions,
