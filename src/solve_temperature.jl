@@ -58,11 +58,11 @@ function solve_temperature(::MultiSided, organism, environment; temperature_brac
                         packed.temps_out[2].flows.net_metabolic * vmult
         skin_mean = (packed.temps_out[1].skin_temperature + packed.temps_out[2].skin_temperature) * 0.5
         lung_temperature = (core_temperature + skin_mean) * 0.5
-        metabolic_heat_flow = metabolic_rate(metab_pars.model, organism.body.shape.mass, core_temperature)
+        metabolic_heat_flow = metabolic_rate(metab_pars.model, mass(organism.body.shape), core_temperature)
         resp_atmos = AtmosphericConditions(environment_vars)
         respiration_heat_flow = respiration(
             MetabolicRates(; metabolic=metabolic_heat_flow, sum=metabolic_heat_flow, minimum=metabolic_heat_flow),
-            resp_pars, resp_atmos, organism.body.shape.mass, lung_temperature,
+            resp_pars, resp_atmos, mass(organism.body.shape), lung_temperature,
             environment_vars.air_temperature;
             gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(), smoothing,
         ).respiration_heat_flow
@@ -81,11 +81,11 @@ function solve_temperature(::MultiSided, organism, environment; temperature_brac
     vmult = 1 - dmult
     skin_mean = packed.temps_out[1].skin_temperature * dmult + packed.temps_out[2].skin_temperature * vmult
     lung_temperature = (equilibrium_temperature + skin_mean) * 0.5
-    metabolic_heat_flow = metabolic_rate(metab_pars.model, organism.body.shape.mass, equilibrium_temperature)
+    metabolic_heat_flow = metabolic_rate(metab_pars.model, mass(organism.body.shape), equilibrium_temperature)
     resp_atmos = AtmosphericConditions(environment_vars)
     respiration_out = respiration(
         MetabolicRates(; metabolic=metabolic_heat_flow, sum=metabolic_heat_flow, minimum=metabolic_heat_flow),
-        resp_pars, resp_atmos, organism.body.shape.mass, lung_temperature,
+        resp_pars, resp_atmos, mass(organism.body.shape), lung_temperature,
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(), smoothing,
     )

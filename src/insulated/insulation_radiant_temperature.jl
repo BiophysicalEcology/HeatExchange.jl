@@ -107,7 +107,8 @@ function insulation_radiant_temperature(
     length = body.geometry.length.length_skin
     # Match radiant_temperature: a joined part exposes only a fraction of the full
     # cylindrical shell, so halve the 2π (full-circumference) fur-conductance factor.
-    shell = _shell_angle_fraction(shape)
+    # body.shape is the original (Half or whole) even when a Half forwards as parent.
+    shell = _shell_angle_fraction(body.shape)
 
     r_radiation =
         r_skin +

@@ -314,7 +314,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
     )
     m_evap = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + m_sweat) : u"g/hr"(m_sweat)
 
-    fat_mass     = geometry_avg.shape.mass * fat.fraction
+    fat_mass     = mass(geometry_avg.shape) * fat.fraction
     volume       = geometry_avg.geometry.volume
     volume_flesh = flesh_volume(geometry_avg)
 

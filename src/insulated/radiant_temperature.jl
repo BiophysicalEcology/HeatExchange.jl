@@ -68,8 +68,7 @@ radiant-temperature formulas must be halved. Whole shapes are unaffected, so
 existing single-body numerics are unchanged.
 """
 _shell_angle_fraction(::AbstractShape) = 1.0
-_shell_angle_fraction(::HalfCylinder) = 0.5
-_shell_angle_fraction(::HalfEllipsoid) = 0.5
+_shell_angle_fraction(::Half) = 0.5
 
 function radiant_temperature(
     shape::Union{AbstractCylindrical,AbstractSlab},
@@ -99,7 +98,9 @@ function radiant_temperature(
     length = body.geometry.length.length_skin
     # A part joined at its flat face exposes only a fraction of the full closed
     # cylindrical shell; scale the 2π (full-circumference) fur-conductance factor.
-    shell = _shell_angle_fraction(shape)
+    # Read the body's shape: a Half forwards here as its parent, but body.shape
+    # is still the Half, so the halving survives the forward.
+    shell = _shell_angle_fraction(body.shape)
 
     compression_fraction =
         (conduction_fraction * 2 * π * shell * compressed_conductivity * length) / log(r_compressed / r_skin)
