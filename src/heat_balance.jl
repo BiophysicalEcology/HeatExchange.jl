@@ -28,7 +28,7 @@ function _radiative_convective_flows(surface_temperature, o::Organism, environme
     total_area = BiophysicalGeometry.total_area(o.body)
     convection_area = total_area * (1 - external_conduction.conduction_fraction)
     conduction_area = total_area * external_conduction.conduction_fraction
-    silhouette_area = BiophysicalGeometry.silhouette_area(o.body, rad_pars.solar_orientation, environment_vars.zenith_angle)
+    silhouette_area = BiophysicalGeometry.silhouette(o.body, rad_pars.solar_orientation, environment_vars.zenith_angle)
 
     absorptivities = Absorptivities(rad_pars, environment_pars)
     emissivities = Emissivities(rad_pars, environment_pars)
