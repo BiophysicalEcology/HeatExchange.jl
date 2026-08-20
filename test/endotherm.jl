@@ -144,7 +144,7 @@ for shape_number in 1:4
         )
 
         environment_pars = EnvironmentalPars(;
-            ground_albedo=endo_input.ABSSB,
+            ground_albedo=1 - endo_input.ABSSB,
             ground_emissivity=1.0,
             sky_emissivity=1.0,
             elevation=(endo_input.ELEV)u"m",

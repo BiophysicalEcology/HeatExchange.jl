@@ -3,7 +3,7 @@ using ModelParameters
 using Unitful
 
 environment_pars = EnvironmentalPars(;
-    ground_albedo=0.8,
+    ground_albedo=0.2,
     ground_emissivity=1.0,
     sky_emissivity=1.0,
     elevation=0.0u"m",
