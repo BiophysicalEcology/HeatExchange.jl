@@ -157,7 +157,8 @@ wind_speed = (ecto_input.VEL)u"m/s"
 fluid = ecto_input.fluid == 1 ? Water() : Air()
 zenith_angle = (ecto_input.Z)u"°"
 global_radiation = (ecto_input.QSOLR)u"W/m^2"
-ground_albedo = ecto_input.alpha_sub
+ground_absorptivity = ecto_input.alpha_sub
+ground_albedo = 1 - ground_absorptivity
 shade = ecto_input.SHADE / 100
 ground_emissivity = ecto_input.epsilon_sub
 sky_emissivity = ecto_input.epsilon_sky
@@ -283,7 +284,7 @@ skin_temperature = surface_temperature  # alias for later use
 diffuse_fraction = ecto_input.PDIF
 absorptivities = Absorptivities(;
     body=DorsalVentral(body_absorptivity_dorsal, body_absorptivity_ventral),
-    ground=ground_albedo,
+    ground=ground_absorptivity,
 )
 view_factors = ViewFactors(sky_view_factor, ground_view_factor, 0.0, 0.0)
 solar_conditions = SolarConditions(;

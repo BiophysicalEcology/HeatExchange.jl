@@ -403,7 +403,7 @@ end
 function Absorptivities(rad_pars::RadiationParameters, env::AbstractEnvironmentalPars)
     Absorptivities(;
         body=DorsalVentral(rad_pars.body_absorptivity_dorsal, rad_pars.body_absorptivity_ventral),
-        ground=env.ground_albedo,
+        ground=1 - env.ground_albedo,
     )
 end
 
