@@ -146,25 +146,42 @@ function insulation_properties(insulation::InsulationParameters, insulation_temp
 
     fibres = BodyRegionValues(avg_fibres, dorsal, ventral_adj)
 
-    # `insulation_test` is kept as a diagnostic field for callers that branch on
-    # bare-skin state themselves (`_pack_sides`, `_assemble_multisided_output`).
-    # Not branched on here: dispatch into this function already implies real
-    # insulation (bare skin is the separate `Naked` dispatch), and `depth` can be
-    # an active NLP variable, so a hard branch on it isn't Enzyme-differentiable.
-    avg  = insulation_thermal_conductivity(fibres.average, air_conductivity; smoothing)
-    dors = insulation_thermal_conductivity(fibres.dorsal,  air_conductivity; smoothing)
-    vent = insulation_thermal_conductivity(fibres.ventral, air_conductivity; smoothing)
-    vent_compressed = insulation_thermal_conductivity(fibres.ventral, air_conductivity, depth_compressed; smoothing)
-    conductivities = BodyRegionValues(
-        avg.effective_conductivity, dors.effective_conductivity, vent.effective_conductivity,
-    )
-    absorption_coefficients = BodyRegionValues(
-        avg.absorption_coefficient, dors.absorption_coefficient, vent.absorption_coefficient,
-    )
-    optical_thickness = BodyRegionValues(
-        avg.optical_thickness_factor, dors.optical_thickness_factor, vent.optical_thickness_factor,
-    )
-    conductivity_compressed = vent_compressed.effective_conductivity
+    # Bare-skin (zero density / depth / length) makes `insulation_thermal_conductivity`
+    # divide by zero, so we can't use a `mask * value` blend — IEEE keeps NaN through
+    # `0 * NaN`. We need a Union-free return type under AD (Dual through
+    # `air_conductivity` and `fibres`), so both branches must produce the same
+    # concrete component types. The bare-skin branch can't use literal `0.0u"..."`
+    # because the canonical-W/m/K branch's Unitful FreeUnits ordering differs from
+    # a literal's. We anchor the types by calling `insulation_thermal_conductivity`
+    # once on `fibres.average` (always defined), then `zero(...)` of its component
+    # fields gives the bare-skin values. `zero(NaN) == 0.0`, so the NaN-producing
+    # call on truly-bare-skin inputs is harmless: we consume the type, not the value.
+    if insulation_test > zero(insulation_test)
+        avg  = insulation_thermal_conductivity(fibres.average, air_conductivity; smoothing)
+        dors = insulation_thermal_conductivity(fibres.dorsal,  air_conductivity; smoothing)
+        vent = insulation_thermal_conductivity(fibres.ventral, air_conductivity; smoothing)
+        vent_compressed = insulation_thermal_conductivity(fibres.ventral, air_conductivity, depth_compressed; smoothing)
+        conductivities = BodyRegionValues(
+            avg.effective_conductivity, dors.effective_conductivity, vent.effective_conductivity,
+        )
+        absorption_coefficients = BodyRegionValues(
+            avg.absorption_coefficient, dors.absorption_coefficient, vent.absorption_coefficient,
+        )
+        optical_thickness = BodyRegionValues(
+            avg.optical_thickness_factor, dors.optical_thickness_factor, vent.optical_thickness_factor,
+        )
+        conductivity_compressed = vent_compressed.effective_conductivity
+    else
+        # Single anchor call for type-only consumption.
+        anchor = insulation_thermal_conductivity(fibres.average, air_conductivity; smoothing)
+        zk = zero(anchor.effective_conductivity)
+        za = zero(anchor.absorption_coefficient)
+        zo = zero(anchor.optical_thickness_factor)
+        conductivities          = BodyRegionValues(zk, zk, zk)
+        absorption_coefficients = BodyRegionValues(za, za, za)
+        optical_thickness       = BodyRegionValues(zo, zo, zo)
+        conductivity_compressed = zk
+    end
 
     return InsulationProperties(
         fibres,
