@@ -33,7 +33,7 @@ function respiration(
     (; metabolic, sum, minimum) = rates
     metabolic_heat_flow, heat_flow_sum, minimum_heat_flow = metabolic, sum, minimum
     (; oxygen_extraction_efficiency, pant, respiratory_quotient, exhaled_relative_humidity) = resp_pars
-    exit_air_temperature = lung_temperature
+    exit_air_temperature = min(air_temperature + exhaled_temperature_offset, lung_temperature)
     exhaled_rh = exhaled_relative_humidity[]
     (; relative_humidity, atmospheric_pressure) = atmos
     fO2 = gas_fractions.oxygen
