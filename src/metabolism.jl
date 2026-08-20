@@ -129,6 +129,16 @@ Returns zero metabolic heat production. Use `model = nothing` in
 """
 metabolic_rate(::Nothing, mass, body_temperature) = 0.0u"W"
 
+"""
+    metabolic_rate(f::Function, mass, core_temperature)
+
+Generic fallback: any callable `(mass, core_temperature) -> heat_flow` can be used
+directly as `MetabolismParameters.model` (untyped — accepts any callable, not just a
+`MetabolicRateEquation` subtype). Lets callers inject a fixed or externally-derived
+metabolic rate without defining a new `MetabolicRateEquation` subtype.
+"""
+metabolic_rate(f::Function, mass, core_temperature) = f(mass, core_temperature)
+
 # conversion from O2 consumption to Joules
 
 """

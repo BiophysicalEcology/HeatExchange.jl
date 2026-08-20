@@ -72,12 +72,16 @@ function example_conduction_pars_internal(;
     flesh_conductivity=0.9u"W/m/K",
     fat_conductivity=0.23u"W/m/K",
     fat_density=901.0u"kg/m^3",
+    flesh_specific_heat=3073.0u"J/kg/K",
+    fat_specific_heat=3073.0u"J/kg/K",
 )
     InternalConductionParameters(;
         fat_fraction,
         flesh_conductivity,
         fat_conductivity,
         fat_density,
+        flesh_specific_heat,
+        fat_specific_heat,
     )
 end
 

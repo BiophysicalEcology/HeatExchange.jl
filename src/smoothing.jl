@@ -104,6 +104,14 @@ safe_clamp(s::SmoothingStrategy, x, lo, hi; scale=oneunit(x)) =
     safe_max(s, lo, safe_min(s, hi, x; scale); scale)
 
 """
+    safe_pow_floor(s::SmoothingStrategy, x, floor; scale=oneunit(x))
+
+Floor `x` at `floor` before `x^p` (non-integer `p`), which needs `x >= 0`.
+Alias over `safe_max` naming the intent at the call site.
+"""
+safe_pow_floor(s::SmoothingStrategy, x, floor; scale=oneunit(x)) = safe_max(s, x, floor; scale)
+
+"""
     safe_gated_ratio(gate, num, den, fallback)
 
 `num / den` when `gate > 0`, else `fallback`. Keeps a `0/0` division out of the
