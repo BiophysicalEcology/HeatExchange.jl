@@ -4,7 +4,9 @@ using BiophysicalGeometry
 using ConstructionBase: getproperties, setproperties
 using FluidProperties
 using ModelParameters
+using LinearAlgebra: Diagonal
 using Roots
+using StaticArrays: SMatrix, MMatrix, SVector, MVector
 using Unitful
 using UnitfulMoles
 
@@ -56,22 +58,35 @@ export body,
 export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
-export heat_balance, solve_temperature, surface_and_lung_temperature
+export heat_balance, solve_part_heat_balance, solve_temperature, surface_and_lung_temperature
+
+export AbstractRadialLayer, GeneratingCore, ConductiveShell,
+    stack_resistance, core_to_skin_stack, radial_net_metabolic_heat
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
 export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
 
 export solve_metabolic_rate,
-    ellipsoid_endotherm,
-    solve_with_insulation!,
-    solve_without_insulation!
+    ellipsoid_endotherm
 
 export ThermoregulationOutput,
     ThermoregulationState,
     MorphologyState,
     EnergyFlowState,
     MassFlowState
+
+# CommonSolve interface for the heat-balance solve
+export HeatBalanceProblem, HeatBalanceSolver
+export init, solve!, solve, reinit!
+
+# Heat coupling + compartment partitioning
+export HeatCoupling, SharedCore, ConductiveCoupling
+export CompartmentGraph, compartment_graph, num_compartments,
+    compartment_part_names, compartment_of, parts_in_compartment
+export contribution_to_conductance, contribution_to_heat_load, build_conductance_matrix
+export solve_core_temperatures, solve_regulated_core_temperatures
+export solve_part_surface, part_surface_residuals, solve_coupled_metabolic_rate
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
@@ -113,9 +128,7 @@ export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
 export zbrac, zbrent
 
-export NLPStrategy, WeightedMeanNLP, MultiSidedNLP
-export WeightedMeanNLPPacked, MultiSidedNLPPacked
-export nlp_pack, nlp_residuals, nlp_assemble_output
+export NLPStrategy, nlp_pack
 
 export SmoothingStrategy, HardBound, SmoothBound
 export safe_abs, safe_relu, safe_step, safe_max, safe_min, safe_clamp
@@ -155,9 +168,15 @@ include("insulated/radiant_temperature.jl")
 include("insulated/insulation_radiant_temperature.jl")
 include("insulated/compressed_radiant_temperature.jl")
 include("insulated/mean_skin_temperature.jl")
+include("radial_layers.jl")
+include("half_shapes.jl")
 include("insulated/net_metabolic_heat.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
+include("compartments.jl")
+include("part_surface.jl")
+include("coupled_solve.jl")
+include("heat_balance_problem.jl")
 include("nlp_interface.jl")
 include("examples.jl")
 include("display.jl")

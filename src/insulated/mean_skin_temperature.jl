@@ -55,7 +55,7 @@ function mean_skin_temperature(;
     )
 end
 function mean_skin_temperature(
-    shape::Union{Cylinder,Plate},
+    shape::Union{AbstractCylindrical,AbstractSlab},
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -96,7 +96,7 @@ function mean_skin_temperature(
     return (; mean_skin_temperature, skin_temperature_calc1)
 end
 function mean_skin_temperature(
-    shape::Sphere,
+    shape::AbstractSpherical,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -138,7 +138,7 @@ function mean_skin_temperature(
     return (; mean_skin_temperature, skin_temperature_calc1)
 end
 function mean_skin_temperature(
-    shape::Ellipsoid,
+    shape::AbstractEllipsoidal,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,

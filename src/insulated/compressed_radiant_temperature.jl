@@ -37,7 +37,7 @@ function compressed_radiant_temperature(;
 end
 
 function compressed_radiant_temperature(
-    shape::Union{Cylinder,Plate},
+    shape::Union{AbstractCylindrical,AbstractSlab},
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -65,7 +65,7 @@ function compressed_radiant_temperature(
 end
 
 function compressed_radiant_temperature(
-    shape::Sphere,
+    shape::AbstractSpherical,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -93,7 +93,7 @@ function compressed_radiant_temperature(
 end
 
 function compressed_radiant_temperature(
-    shape::Ellipsoid,
+    shape::AbstractEllipsoidal,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,

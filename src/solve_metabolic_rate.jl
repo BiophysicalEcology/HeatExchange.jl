@@ -109,7 +109,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             MetabolicRates(; metabolic=x * u"W", sum=flow_sum, minimum=minimum_flow),
             resp_pars,
             resp_atmos,
-            side_bodies[2].shape.mass,
+            mass(side_bodies[2].shape),
             lung_temperature,
             environment_vars.air_temperature;
             gas_fractions=environment_pars.gas_fractions,
@@ -128,7 +128,7 @@ function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_tempe
             MetabolicRates(; metabolic=metabolic_heat_flow, sum=flow_sum, minimum=minimum_flow),
             resp_pars,
             resp_atmos,
-            side_bodies[2].shape.mass,
+            mass(side_bodies[2].shape),
             lung_temperature,
             environment_vars.air_temperature;
             gas_fractions=environment_pars.gas_fractions,

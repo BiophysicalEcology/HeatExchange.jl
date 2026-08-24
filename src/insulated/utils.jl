@@ -1,5 +1,5 @@
 # Unpack a respiration result (or nothing) into a flat NamedTuple of scalar fields.
-# Used by _assemble_multisided_output and nlp_assemble_output(::MultiSidedNLPPacked).
+# Used by _assemble_multisided_output.
 function _unpack_respiration(resp_out)
     isnothing(resp_out) && return (;
         balance               = nothing,
@@ -97,7 +97,7 @@ function _pack_sides(o::Organism, e, core_temperature, skin_temperature, insulat
     sky_factor = rad_pars.sky_view_factor - vegetation_factor
     ground_factor = 1 - sky_factor - vegetation_factor
 
-    area_silhouette = silhouette_area(o.body, rad_pars.solar_orientation)
+    area_silhouette = silhouette(o.body, rad_pars.solar_orientation)
     total_area = BiophysicalGeometry.total_area(o.body)
     area_conduction = total_area * external_conduction.conduction_fraction
     area_evaporation = evaporation_area(o.body)
@@ -314,7 +314,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
     )
     m_evap = !isnothing(respiration_mass_flow) ? u"g/hr"(respiration_mass_flow + m_sweat) : u"g/hr"(m_sweat)
 
-    fat_mass     = geometry_avg.shape.mass * fat.fraction
+    fat_mass     = mass(geometry_avg.shape) * fat.fraction
     volume       = geometry_avg.geometry.volume
     volume_flesh = flesh_volume(geometry_avg)
 
@@ -366,7 +366,7 @@ function _assemble_multisided_output(o, e, core_temperature, metabolic_heat_flow
         area_evaporation,
         area_convection,
         area_conduction    = BiophysicalGeometry.total_area(side_bodies[2]) * external_conduction.conduction_fraction,
-        area_silhouette    = silhouette_area(geometry_avg, rad_pars.solar_orientation),
+        area_silhouette    = silhouette(geometry_avg, rad_pars.solar_orientation),
         sky_view_factor    = sky_factor_ref,
         ground_view_factor = ground_factor_ref,
         volume,

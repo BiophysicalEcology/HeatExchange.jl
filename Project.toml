@@ -5,28 +5,34 @@ authors = ["Michael Kearney, Urtzi Enriquez Urzelai and Rafael Schouten"]
 
 [deps]
 BiophysicalGeometry = "06c61620-4f66-4020-a018-07befe374221"
+CommonSolve = "38540f10-b2f7-11e9-35d8-d573e4eb0ff2"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 FluidProperties = "d16f1b92-71d3-42f3-aafa-43e5bb0efda8"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulMoles = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
 
 [sources]
-BiophysicalGeometry = {rev = "main", url = "https://github.com/BiophysicalEcology/BiophysicalGeometry.jl"}
+BiophysicalGeometry = {path = "/Users/rafaelschouten/.julia/dev/BiophysicalGeometry"}
 FluidProperties = {rev = "main", url = "https://github.com/BiophysicalEcology/FluidProperties.jl"}
 
 [compat]
 Aqua = "0.8"
 BiophysicalGeometry = "0.1"
 CSV = "0.10.15"
+CommonSolve = "0.2.12"
 ConstructionBase = "1"
 DataFrames = "1"
 DataStructures = "0.18, 0.19"
 FluidProperties = "0.1.0"
+LinearAlgebra = "1"
 ModelParameters = "0.4"
-Roots = "2.2.7"
+Roots = "2.2.7, 3"
 SafeTestsets = "0.1"
+StaticArrays = "1.9.18"
 Test = "1"
 Unitful = "1"
 UnitfulMoles = "0.1.1"

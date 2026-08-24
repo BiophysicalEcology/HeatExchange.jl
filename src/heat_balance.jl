@@ -28,7 +28,7 @@ function _radiative_convective_flows(surface_temperature, o::Organism, environme
     total_area = BiophysicalGeometry.total_area(o.body)
     convection_area = total_area * (1 - external_conduction.conduction_fraction)
     conduction_area = total_area * external_conduction.conduction_fraction
-    silhouette_area = BiophysicalGeometry.silhouette_area(o.body, rad_pars.solar_orientation, environment_vars.zenith_angle)
+    silhouette_area = BiophysicalGeometry.silhouette(o.body, rad_pars.solar_orientation, environment_vars.zenith_angle)
 
     absorptivities = Absorptivities(rad_pars, environment_pars)
     emissivities = Emissivities(rad_pars, environment_pars)
@@ -113,7 +113,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e; smoothing::Smoo
     metab_pars = metabolism_pars(o)
 
     # metabolism
-    metabolic_heat_flow = metabolic_rate(metab_pars.model, o.body.shape.mass, core_temperature)
+    metabolic_heat_flow = metabolic_rate(metab_pars.model, mass(o.body.shape), core_temperature)
 
     # respiration
     rates = MetabolicRates(; metabolic=metabolic_heat_flow)
@@ -122,7 +122,7 @@ function heat_balance(core_temperature, ::Naked, o::Organism, e; smoothing::Smoo
         rates,
         resp_pars,
         atmos,
-        o.body.shape.mass,
+        mass(o.body.shape),
         clamp(core_temperature, u"K"(1.0u"°C"), u"K"(50.0u"°C")),
         environment_vars.air_temperature;
         gas_fractions=environment_pars.gas_fractions,
@@ -244,7 +244,7 @@ function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o:
     metab_pars = metabolism_pars(o)
 
     # metabolism (dark respiration or nothing)
-    metabolic_heat_flow = metabolic_rate(metab_pars.model, o.body.shape.mass, core_temperature)
+    metabolic_heat_flow = metabolic_rate(metab_pars.model, mass(o.body.shape), core_temperature)
 
     # net specific metabolic heat → surface temperature
     specific_metabolic_heat_production = metabolic_heat_flow / o.body.geometry.volume
@@ -306,26 +306,45 @@ function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o:
 end
 
 # ---------------------------------------------------------------------------
-# Per-side insulated heat balance (4-arg, non-iterative)
-# Takes explicit core/skin/insulation temperatures and metabolic_heat_flow; pre-packed per-side structures.
+# Per-part insulated heat balance (`solve_part_heat_balance`, non-iterative)
+# Takes explicit core/skin/insulation temperatures and metabolic_heat_flow; pre-packed per-part structures.
 # Suitable as an NLP constraint function (differentiable via ForwardDiff).
+# This is the per-part physics primitive: the dorsal/ventral MultiSided path calls
+# it per side, and the multi-part compartment solver calls it per part.
 # ---------------------------------------------------------------------------
 
 """
-    heat_balance(core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow; ...)
+    _part_geometry(body) -> (; total_area, area_evaporation, characteristic_dim)
 
-Compute endotherm heat budget residuals at explicitly given temperatures and metabolic rate.
+Precompute the body-derived scalar areas the per-part heat balance needs. Called once
+per part (outside the hot loop) so `solve_part_heat_balance` never touches
+`BiophysicalGeometry` on the differentiable / iterated path.
+"""
+_part_geometry(body::AbstractBody) = (;
+    total_area         = BiophysicalGeometry.total_area(body),
+    area_evaporation   = evaporation_area(body),
+    characteristic_dim = characteristic_dimension(VolumeCubeRoot(), body),
+)
+
+# Backwards-compatible name: the per-part primitive used to be a 4-arg `heat_balance`
+# method. Callers may still reach it either way.
+heat_balance(core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow; kw...) =
+    solve_part_heat_balance(core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow; kw...)
+
+"""
+    solve_part_heat_balance(core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow; ...)
+
+Compute one part's heat budget residuals at explicitly given temperatures and metabolic rate.
 
 Non-iterative: all state variables are explicit inputs. Returns three residuals that
 equal zero at a valid steady-state heat balance, making this function suitable as an
 IPOPT/NLP constraint function differentiable via ForwardDiff.
 
-This extends the existing `heat_balance(body_temperature, organism, e)` ectotherm dispatch with
-a multi-argument endotherm method. Decision variables are positional arguments; fixed
-parameters come from keyword arguments.
-
-Designed to work per body side (`:dorsal` or `:ventral`) using the same pre-packed
-`geometry_vars` and `environment_vars` structures that `solve_temperatures` accepts.
+This is the per-part scalar-in/scalar-out physics primitive. Decision variables are
+positional arguments; fixed parameters come from keyword arguments. The dorsal/ventral
+`MultiSided` path calls it per body side; the multi-part compartment solver calls it
+per part. Geometry is decoupled: the body-derived areas arrive precomputed through the
+`geometry` keyword, so nothing on this path calls `BiophysicalGeometry` in the hot loop.
 
 # Arguments
 - `core_temperature`: Core body temperature (K) — setpoint or decision variable
@@ -334,7 +353,11 @@ Designed to work per body side (`:dorsal` or `:ventral`) using the same pre-pack
 - `metabolic_heat_flow`: Metabolic heat generation rate (W) — decision variable (replaces zbrent)
 
 # Keywords
-- `body::AbstractBody`: Body geometry (shape + composite insulation)
+- `body::AbstractBody`: Body geometry (shape + composite insulation); used for shape-dispatched
+  conduction/radiant-temperature physics, not for the scalar areas
+- `geometry`: Precomputed `(; total_area, area_evaporation, characteristic_dim)` for this
+  part; defaults to `_part_geometry(body)`. `characteristic_dim` is optional and falls back
+  to the body's `VolumeCubeRoot` value.
 - `insulation_pars::InsulationParameters`: Insulation parameters (fibre properties, depths)
 - `insulation::InsulationProperties`: Precomputed insulation properties; temperature-sensitive
   conductivities are recomputed internally from `skin_temperature` and `insulation_temperature`
@@ -357,9 +380,10 @@ NamedTuple with heat fluxes and three residuals:
 - `residual_internal_conduction` (W): (metabolic − resp) − net_metabolic_heat_internal = 0
 - `residual_skin_temperature` (K): skin_temperature − skin_temperature_from_heat_balance = 0
 """
-function heat_balance(
+function solve_part_heat_balance(
     core_temperature, skin_temperature, insulation_temperature, metabolic_heat_flow;
     body::AbstractBody,
+    geometry = _part_geometry(body),
     insulation_pars::InsulationParameters,
     insulation::InsulationProperties,
     geometry_vars::GeometryVariables,
@@ -376,6 +400,9 @@ function heat_balance(
     (;
         temperature, view_factors, atmos, fluid, solar_flow, gas_fractions, convection_enhancement,
     ) = environment_vars
+    # Inter-part exchange list (a tuple of `(; fraction, temperature)`), empty for any
+    # single-body or free-standing part. See `_neighbour_radiation`.
+    neighbours = _neighbours(environment_vars)
     env_temps = temperature
     T = env_temps
     F = view_factors
@@ -386,10 +413,12 @@ function heat_balance(
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
 
-    # Body areas
-    total_area      = BiophysicalGeometry.total_area(body)
-    area_evaporation = evaporation_area(body)
+    # Body areas (precomputed once per part, outside the hot loop)
+    (; total_area, area_evaporation) = geometry
     area_convection  = total_area * (1 - conduction_fraction)
+    # Honour a caller-supplied characteristic dimension (a joined/elongated part sets
+    # its own), falling back to the body's default.
+    characteristic_dim = get(geometry, :characteristic_dim, characteristic_dimension(VolumeCubeRoot(), body))
 
     # Recompute temperature-dependent insulation conductivity at current temperatures.
     (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
@@ -410,6 +439,7 @@ function heat_balance(
         fluid,
         gas_fractions,
         convection_enhancement,
+        characteristic_dim,
         smoothing,
     )
     heat_transfer_coefficient = conv.heat_transfer_coefficient.combined
@@ -469,8 +499,14 @@ function heat_balance(
     bush_radiation_flow       = bush_radiation_coeff       * (radiant_temp - T.bush)
     vegetation_radiation_flow = vegetation_radiation_coeff * (radiant_temp - T.vegetation)
     ground_radiation_flow     = ground_radiation_coeff     * (radiant_temp - T.ground)
-    radiation_heat_flow =
-        sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow
+    # Add the longwave exchanged with sibling parts over the occluded solid angle. For a
+    # free-standing part (`neighbours` empty) this is the identity — `radiation_heat_flow`
+    # compiles to exactly the pre-coupling expression, so the differentiated NLP/Enzyme
+    # path is undisturbed. When neighbours are present the term flows into both the
+    # surface energy residual and the skin-temperature balance below.
+    radiation_heat_flow = _add_neighbour_radiation(
+        sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow,
+        area_convection, neighbours, ϵ_body, σ, radiant_temp)
 
     # -------------------------------------------------------------------------
     # Convection flow (at outer insulation surface)
@@ -523,7 +559,7 @@ function heat_balance(
         MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = minimum_metabolic_heat),
         resp_pars_effective,
         atmos_local,
-        body.shape.mass,
+        mass(body.shape),
         lung_temperature,
         air_temperature;
         gas_fractions,

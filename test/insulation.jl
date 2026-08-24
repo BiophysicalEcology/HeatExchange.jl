@@ -47,7 +47,7 @@ body = Body(shape, CompositeInsulation(fur, fat))
 body_geometry = geometry(shape, fur)
 
 θ = 90u"°"
-silhouette = silhouette_area(body, θ)
+area_silhouette = silhouette(body, θ)
 
 shape = Sphere(mass, density) # define shape as a Cylinder struct of type 'Shape' and give it required values
 fat_fraction = 0.2
