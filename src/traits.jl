@@ -73,6 +73,39 @@ characteristic_dimension(::VolumeCubeRoot, body) =
 characteristic_dimension(sd::ScaledDimension, body) =
     sd.factor * getproperty(body.geometry.length, sd.dimension)
 
+# Convection correlation
+
+"""
+    ConvectionCorrelation
+
+Abstract supertype selecting which Nusselt-number correlation `convection()`
+uses for `nusselt_free`/`nusselt_forced`.
+"""
+abstract type ConvectionCorrelation end
+
+"""
+    ShapeCorrelation <: ConvectionCorrelation
+
+Dispatch `nusselt_free`/`nusselt_forced` on `body.shape` (default).
+"""
+struct ShapeCorrelation <: ConvectionCorrelation end
+
+"""
+    SimpleForcedCorrelation <: ConvectionCorrelation
+
+Forced convection only: `Nu = 0.6·√Re`, Pr-independent, no free-convection
+term (`nusselt_free` returns zero), no shape dependence. Cheaper and less
+complete than `ShapeCorrelation`, not more accurate.
+"""
+struct SimpleForcedCorrelation <: ConvectionCorrelation end
+
+nusselt_free(::ShapeCorrelation, shape, grashof_number, prandtl_number) =
+    nusselt_free(shape, grashof_number, prandtl_number)
+nusselt_forced(::ShapeCorrelation, shape, reynolds_number) =
+    nusselt_forced(shape, reynolds_number)
+nusselt_free(::SimpleForcedCorrelation, shape, grashof_number, prandtl_number) = zero(grashof_number)
+nusselt_forced(::SimpleForcedCorrelation, shape, reynolds_number) = 0.6 * sqrt(reynolds_number)
+
 """
     ExternalConductionParameters <: AbstractMorphologyParameters
 
@@ -89,20 +122,23 @@ end
 """
     InternalConductionParameters <: AbstractPhysiologyParameters
 
-Morphological parameters relating to conductive heat flow within the organism.
+Morphological parameters relating to conductive heat flow and storage within the organism.
 
 # Parameters
 - `fat_fraction` — Fraction of body mass that is fat (0–1).
 - `flesh_conductivity::K` — Thermal conductivity of lean tissue (W/m/K).
 - `fat_conductivity::K` — Thermal conductivity of fat tissue (W/m/K).
 - `fat_density` — Density of fat tissue (kg/m³).
-
+- `flesh_specific_heat` — Specific heat of lean tissue (J/kg/K).
+- `fat_specific_heat` — Specific heat of fat tissue (J/kg/K).
 """
-Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF} <: AbstractPhysiologyParameters
+Base.@kwdef struct InternalConductionParameters{FF,FL,FA,DF,SH,SF} <: AbstractPhysiologyParameters
     fat_fraction::FF = Param(0.0, bounds=(0.0, 1.0))
     flesh_conductivity::FL = Param(0.9u"W/m/K")
     fat_conductivity::FA = Param(0.230u"W/m/K")
     fat_density::DF = Param(901.0u"kg/m^3")
+    flesh_specific_heat::SH = Param(3073.0u"J/kg/K")
+    fat_specific_heat::SF = Param(3073.0u"J/kg/K")
 end
 
 """
@@ -285,9 +321,9 @@ A collection of physiological parameters relating to metabolic rate.
 - `metabolic_heat_flow::B` — Metabolic heat generation rate (W)
 - `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
 """
-Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysiologyParameters
+Base.@kwdef struct MetabolismParameters{TC,QM,QT,M} <: AbstractPhysiologyParameters
     core_temperature::TC = Param(u"K"(37u"°C"))
     metabolic_heat_flow::QM = Param(0.0u"W")
     q10::QT = Param(2.0)
-    model = AndrewsPough2()
+    model::M = AndrewsPough2()
 end

@@ -205,6 +205,7 @@ Calculate combined free and forced convective heat transfer for an organism.
 - `fluid::Fluid`: Fluid singleton (`Air()` or `Water()`)
 - `gas_fractions::GasFractions`: Gas fractions for air properties (default: `GasFractions()`)
 - `convection_enhancement`: Enhancement factor for forced convection (default: 1.0)
+- `correlation::ConvectionCorrelation`: Nusselt-number correlation to use (default: `ShapeCorrelation()`)
 
 # Returns
 NamedTuple with:
@@ -224,6 +225,7 @@ function convection(;
     convection_enhancement=1.0,
     characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
     smoothing::SmoothingStrategy=HardBound(),
+    correlation::ConvectionCorrelation=ShapeCorrelation(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
     characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
@@ -262,13 +264,18 @@ function convection(;
     # The 1e-6 K floor is well below the smallest meaningful temperature
     # difference (millikelvin level even in tight thermoregulation work),
     # so the primal stays bit-identical away from ΔT = 0.
-    # TODO: if a third call site needs this pattern (`^p` of a quantity that
-    # can hit zero) consider hoisting into a `safe_pow_floor` helper alongside
-    # `safe_abs` in `smoothing.jl`.
-    temperature_difference = max(temperature_difference, 1.0e-6u"K")
+    temperature_difference = safe_pow_floor(smoothing, temperature_difference, 1.0e-6u"K")
     grashof_number = ((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2)
-    reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
-    free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)
+    # other factors (fluid_density, thermal_expansion_coefficient, ...) can
+    # still push this negative even with ΔT floored -- Grashof can't be
+    # negative physically, so floor it the same AD-safe way before `^(1/4)`.
+    grashof_number = safe_pow_floor(smoothing, grashof_number, zero(grashof_number))
+    # |wind_speed|: Reynolds number is a speed-magnitude quantity regardless
+    # of flow direction, and nusselt_forced raises it to a fractional power
+    # (0.6 for Ellipsoid/Sphere) -- same AD-kink-at-zero reasoning as ΔT above.
+    wind_speed_magnitude = safe_abs(smoothing, wind_speed; scale=1.0u"m/s")
+    reynolds_number = fluid_density * wind_speed_magnitude * characteristic_dim / dynamic_viscosity
+    free_nusselt_number = nusselt_free(correlation, body.shape, grashof_number, prandtl_number)
     free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
@@ -277,7 +284,7 @@ function convection(;
     free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, free
     free_convection_flow = free_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # free convective heat loss at surface
     # forced convection
-    forced_nusselt_number = nusselt_forced(body.shape, reynolds_number) * convection_enhancement
+    forced_nusselt_number = nusselt_forced(correlation, body.shape, reynolds_number) * convection_enhancement
     # forced convection for object
     forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dim # heat transfer coefficient, forced
     forced_sherwood_number = forced_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, forced

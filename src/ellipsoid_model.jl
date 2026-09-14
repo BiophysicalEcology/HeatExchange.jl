@@ -132,9 +132,7 @@ function ellipsoid_endotherm(
     a = b * posture
 
     body_conductivity = (0.5 + (6.14 * ustrip(u"m", b)) + 0.439)u"W/m/K" # thermal conductivity of body
-    numerator = a^2 * b^2 * c^2
-    denominator = a^2 * b^2 + a^2 * c^2 + b^2 * c^2
-    S2 = numerator / denominator # Eq. 5
+    S2 = ellipsoid_shape_factor(a, b, c) # Eq. 5
     R_b = S2 / (2 * body_conductivity * V) # resistance of body
 
     a_o = b * posture + insulation_depth

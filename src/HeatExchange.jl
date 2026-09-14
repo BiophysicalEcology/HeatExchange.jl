@@ -57,6 +57,8 @@ export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
 export heat_balance, solve_temperature, surface_and_lung_temperature
+export ellipsoid_shape_factor, internal_gradient_shape_factor
+export onelump, twolump, SurfaceSolveStrategy, LinearizedSurface, RootFindSurface
 
 export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
 
@@ -106,6 +108,7 @@ export ConductanceCoeffs,
     Water
 
 export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
+export ConvectionCorrelation, ShapeCorrelation, SimpleForcedCorrelation
 
 export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, PlantDarkRespiration
 
@@ -158,6 +161,7 @@ include("insulated/mean_skin_temperature.jl")
 include("insulated/net_metabolic_heat.jl")
 include("insulated/skin_and_insulation_temperature.jl")
 include("solve_metabolic_rate.jl")
+include("transient.jl")
 include("nlp_interface.jl")
 include("examples.jl")
 include("display.jl")
