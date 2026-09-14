@@ -329,7 +329,10 @@ function solve_with_insulation!(
     solution_procedure = 1
     success = true
     net_metabolic = 0.0u"W"
-
+    flows = HeatFlows(
+        0.0u"W", 0.0u"W", net_metabolic, 0.0u"W", 0.0u"W",
+        0.0u"W", 0.0u"W", 0.0u"W", 0.0u"W", 0.0u"W", 0.0u"W",
+    )
     while ntry < 20
         ntry += 1
         for i in 1:20
