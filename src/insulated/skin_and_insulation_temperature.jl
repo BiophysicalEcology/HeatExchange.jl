@@ -333,6 +333,7 @@ function solve_with_insulation!(
         0.0u"W", 0.0u"W", net_metabolic, 0.0u"W", 0.0u"W",
         0.0u"W", 0.0u"W", 0.0u"W", 0.0u"W", 0.0u"W", 0.0u"W",
     )
+    insulation_conductivity = nothing
 
     while ntry < 20
         ntry += 1
