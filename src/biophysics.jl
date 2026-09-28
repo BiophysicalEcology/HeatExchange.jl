@@ -205,6 +205,7 @@ Calculate combined free and forced convective heat transfer for an organism.
 - `fluid::Fluid`: Fluid singleton (`Air()` or `Water()`)
 - `gas_fractions::GasFractions`: Gas fractions for air properties (default: `GasFractions()`)
 - `convection_enhancement`: Enhancement factor for forced convection (default: 1.0)
+- `correlation::ConvectionCorrelation`: Nusselt-number correlation to use (default: `ShapeCorrelation()`)
 
 # Returns
 NamedTuple with:
@@ -224,6 +225,7 @@ function convection(;
     convection_enhancement=1.0,
     characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
     smoothing::SmoothingStrategy=HardBound(),
+    correlation::ConvectionCorrelation=ShapeCorrelation(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
     characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
@@ -268,7 +270,7 @@ function convection(;
     temperature_difference = max(temperature_difference, 1.0e-6u"K")
     grashof_number = ((fluid_density^2) * thermal_expansion_coefficient * Unitful.gn * (characteristic_dim^3) * temperature_difference) / (dynamic_viscosity^2)
     reynolds_number = fluid_density * wind_speed * characteristic_dim /dynamic_viscosity
-    free_nusselt_number = nusselt_free(body.shape, grashof_number, prandtl_number)
+    free_nusselt_number = nusselt_free(correlation, body.shape, grashof_number, prandtl_number)
     free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
@@ -277,7 +279,7 @@ function convection(;
     free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, free
     free_convection_flow = free_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # free convective heat loss at surface
     # forced convection
-    forced_nusselt_number = nusselt_forced(body.shape, reynolds_number) * convection_enhancement
+    forced_nusselt_number = nusselt_forced(correlation, body.shape, reynolds_number) * convection_enhancement
     # forced convection for object
     forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dim # heat transfer coefficient, forced
     forced_sherwood_number = forced_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, forced
