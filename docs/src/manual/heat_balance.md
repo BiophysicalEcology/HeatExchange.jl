@@ -139,7 +139,7 @@ layer_budget_diagram() # hide
 There are now three temperatures: the core temperature ``T_c``, the skin temperature ``T_s`` under the fur, and
 the temperature of the outer surface of the fur, the fur–air interface, ``T_{fa}``. In the code these are
 `core_temperature`, `skin_temperature` and `insulation_temperature`. Convection and radiation act on
-``T_{fa}``, evaporation of sweat on ``T_s``, and conduction through the flesh and fat on ``T_c - T_s``.
+``T_{fa}``, evaporation from skin (e.g., sweat) on ``T_s``, and conduction through the flesh and fat on ``T_c - T_s``.
 
 Heat moves through fur by conduction along the fibres and through the air between them, and by radiation from
 fibre to fibre. Both depend on the temperatures in the fur, so the conductivity of the fur is itself part of the
@@ -257,7 +257,14 @@ A body can instead be given real parts, each with its own surface solve, see
 
 All of the above is for steady state. The residual of [`heat_balance`](@ref) at a temperature that is not the
 solution is the rate of heat storage at that temperature, so the same function gives the rate of change of body
-temperature when divided by the heat capacity of the body. Transient heat budgets built in this way are in
+temperature when divided by the heat capacity of the body.
+
+Transient heat budgets are built in this way, and belong to this package. They are to be added to it as a
+calculation on the code described here: the residual of the heat balance is tracked through time and turned
+into a change of body temperature by the heat capacity of the body, in an environment that may vary. That is the
+equivalent of `onelump_var` of NicheMapR. It is not yet in the version that this documentation describes. What
+an organism does while its temperature
+changes, shuttling between sun and shade or between activity and rest, is for
 [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl).
 
 ## Residuals for other solvers

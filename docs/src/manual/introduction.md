@@ -139,5 +139,5 @@ Kearney et al. (2021) found that the endotherm model, unlike the ectotherm model
 changes to suit a species, and so presented it as modules to be combined, and sketched how it could be extended to
 several body parts. This package takes that further. The two models are one set of heat-flow functions and two
 solvers. Layers of tissue and insulation are a list. A body can have any number of parts. And thermoregulation is
-left to another package, which can apply it by rules or by optimisation. See
-[For NicheMapR users](nichemapr.md).
+is now the domain of [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), 
+which can apply it by rules or by optimisation. See [For NicheMapR users](nichemapr.md).

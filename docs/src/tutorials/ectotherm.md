@@ -194,7 +194,8 @@ fig
 
 In still air a large lizard in the sun runs far hotter than a small one, and wind cools them all towards the air.
 A steady state is a fair description of a 40 g lizard, which comes to a new temperature in minutes. A 4 kg lizard
-takes much longer, and a transient heat budget, which BiophysicalBehaviour.jl provides, is then needed.
+takes much longer, and a transient heat budget is then needed, see
+[Solving a heat balance](../manual/heat_balance.md#Steady-state-and-storage).
 
 ## Wet skin
 

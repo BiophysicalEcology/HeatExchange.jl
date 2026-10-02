@@ -95,8 +95,9 @@ changes either a resistance to a flow of heat or the gradient that drives it, se
 | sweat, lick | `skin_wetness` in [`AnimalEvaporationParameters`](@ref) |
 | let the core temperature rise | `core_temperature` in [`MetabolismParameters`](@ref) |
 
-BiophysicalBehaviour.jl also integrates the heat budget through time, for an animal too large to be at steady
-state, and assembles the heat budgets of bodies with several parts. See
+BiophysicalBehaviour.jl also assembles the heat budgets of bodies with several parts, and decides what an animal
+does while its body temperature is changing. The transient heat budget itself, for an animal too large to be at
+steady state, belongs to this package, see [Solving a heat balance](heat_balance.md#Steady-state-and-storage). See
 [Differentiability and the NLP interface](autodiff.md) for how this package is written to be driven in that way.
 
 ## The packages

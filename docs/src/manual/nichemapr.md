@@ -51,7 +51,7 @@ where NicheMapR has two of each.
 | the empirical surface areas in `GEOM` and `GEOM_ENDO`: the desert iguana and leopard frog, and the bird and mammal options of `SAMODE` | [BiologicalScaling.jl](https://github.com/BiophysicalEcology/BiologicalScaling.jl), which already has the bird and mammal surface areas (`surface_area(EutherianMammal(), mass)`). These are allometric relations, not geometry. `DesertIguana` and `LeopardFrog` are still in BiophysicalGeometry.jl in this version, and are to be removed from it in favour of BiologicalScaling.jl |
 | `DRYAIR`, `WETAIR`, `VAPPRS`, `WATER` | [FluidProperties.jl](https://github.com/BiophysicalEcology/FluidProperties.jl) |
 | the thermoregulation loops of `ectotherm` (shade, posture, burrow, climb) and of `endoR` (uncurl, vasodilate, raise core temperature, pant, sweat) | [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl) |
-| transient heat budgets: `onelump`, `onelump_var`, `twolump`, `trans_behav`, and the transient option of `ectotherm` | BiophysicalBehaviour.jl, which integrates [`heat_balance`](@ref) through time |
+| transient heat budgets: `onelump`, `onelump_var`, `twolump`, `trans_behav`, and the transient option of `ectotherm` | to be added to this package: the residual of [`heat_balance`](@ref) tracked through time, in a varying environment, and turned into body temperature by the heat capacity. `trans_behav` and the behaviour of the transient `ectotherm` are for BiophysicalBehaviour.jl |
 | the Dynamic Energy Budget model of `ectotherm` | not in this package |
 | `micro_global` and the other microclimate functions | [Microclimate.jl](https://github.com/BiophysicalEcology/Microclimate.jl) and [SolarRadiation.jl](https://github.com/BiophysicalEcology/SolarRadiation.jl) |
 
@@ -64,11 +64,12 @@ budget, and it is the layer that the behaviour and life-cycle packages call. It 
 ## There is no separate transient program
 
 The transient functions of NicheMapR are separate analytical or numerical solutions for a lump of tissue with heat
-storage, written apart from the steady-state code. Here a transient calculation needs nothing new from this package.
+storage, written apart from the steady-state code. Here a transient calculation needs no new physics.
 [`heat_balance`](@ref) returns the net heat flow of an organism at a given temperature, which is the rate of heat
 storage. A steady state is where that is zero. A transient is its integral through time, divided by the heat
-capacity, and BiophysicalBehaviour.jl does that integration with the same function that the steady-state solve
-uses.
+capacity. The transient calculation of this package is to be exactly that: the residuals of the code described
+here, tracked through time in an environment that may vary, as in `onelump_var`, with no second set of equations.
+It is not yet in the version that this documentation describes.
 
 ## Dorsal and ventral
 
