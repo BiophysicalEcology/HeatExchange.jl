@@ -1,10 +1,10 @@
 # A leaf
 
-A leaf has a heat budget like that of any other organism. It absorbs sunlight and longwave radiation, loses heat
-by longwave radiation and convection, and cools itself by evaporating water. What differs is how the water
-leaves: through stomata that open and close, on a surface that is otherwise nearly sealed. NicheMapR treats a
-leaf as an option of its ectotherm model (`leaf = 1`). Here a leaf is an [`Organism`](@ref) whose evaporation
-parameters are [`LeafEvaporationParameters`](@ref), and everything else is shared with animals.
+A leaf has a heat budget like any other organism. It absorbs sunlight and longwave radiation, loses heat by
+longwave radiation and convection, and cools itself by evaporating water. What differs is how the water leaves:
+through stomata that open and close, on a surface otherwise nearly sealed. NicheMapR treats a leaf as an option
+of its ectotherm model (`leaf = 1`). Here a leaf is an [`Organism`](@ref) whose evaporation parameters are
+[`LeafEvaporationParameters`](@ref), and everything else is shared with animals.
 
 ```@setup leaf
 using Main.FigureHelpers
@@ -58,10 +58,10 @@ Four choices make this a leaf:
 
 | Choice | Reason |
 |:--|:--|
-| [`LeafEvaporationParameters`](@ref) | water leaves through stomata, with a vapour conductance for the lower (abaxial) and upper (adaxial) surface and a small conductance of the cuticle that remains when they are closed |
-| [`ScaledDimension`](@ref)`(0.7, :width_skin)` | the boundary layer of a flat leaf is set by 0.7 of its width (Campbell and Norman 1998), not by the cube root of its volume |
+| [`LeafEvaporationParameters`](@ref) | water leaves through stomata, with a vapour conductance for the lower (abaxial) and upper (adaxial) surface, and a small cuticular conductance that remains when they are closed, see [Evaporation and respiration](../manual/evaporation_respiration.md#From-a-leaf) |
+| [`ScaledDimension`](@ref)`(0.7, :width_skin)` | the boundary layer of a flat leaf is set by 0.7 of its width (Campbell and Norman 1998), not by the cube root of its volume, see [Convection and conduction](../manual/convection_conduction.md#Size) |
 | a very high `flesh_conductivity` | a leaf is too thin to have a temperature difference between its inside and its surface |
-| [`PlantDarkRespiration`](@ref) | the metabolic heat of a leaf is its dark respiration, which is negligible in the heat budget |
+| [`PlantDarkRespiration`](@ref) | the metabolic heat of a leaf is its dark respiration, negligible in the heat budget |
 
 ## Leaf temperature
 
@@ -84,8 +84,8 @@ u"°C"(out.core_temperature)
 flow_table(out.energy_balance) # hide
 ```
 
-Evaporation, here transpiration, is a large term for a leaf, as it never is for a lizard. The water transpired is
-in the mass balance:
+Evaporation, here transpiration, is a large term for a leaf, as it never is for a lizard. The water transpired
+is in the mass balance:
 
 ```@example leaf
 uconvert(u"mmol/m^2/s", out.mass_balance.transpiration_mass / 18.0u"g/mol" / total_area(body))
@@ -109,20 +109,24 @@ lines!(ax2, conductances, [ustrip(u"mmol/m^2/s", r.mass_balance.transpiration_ma
 fig
 ```
 
-The dashed line is the air temperature. Transpiration does not rise in proportion to the stomatal conductance,
-for two reasons that the heat budget supplies. The stomata are in series with the boundary layer of the leaf,
-which limits the flow when they are wide open. And a leaf that transpires more is cooler, which lowers the
-vapour density at its surface. This feedback between leaf temperature and transpiration is why the two must be
-solved together.
+The dashed line is the air temperature. Transpiration does not rise in proportion to stomatal conductance, for
+two reasons that the heat budget supplies:
 
-A plant under water stress closes its stomata, and the effect on leaf temperature is one of the ways that drought
-harms it. The stomatal conductance is an input here. A model of how stomata respond to light, humidity and soil
+- the stomata are in series with the boundary layer, which limits the flow when they are wide open;
+- a leaf that transpires more is cooler, which lowers the vapour density at its surface.
+
+This feedback between leaf temperature and transpiration is why the two must be solved together. In the terms
+of [Gradients, resistances and flows](../manual/gradients.md), the stomata are a resistor that the plant
+controls.
+
+A plant under water stress closes its stomata, and the effect on leaf temperature is one of the ways drought
+harms it. Stomatal conductance is an input here. A model of how stomata respond to light, humidity and soil
 water supplies it, and the leaf temperature found here feeds back to that model.
 
 ## Wind and leaf size
 
-The boundary layer is thinner on a small leaf and in a strong wind, and a leaf with a thin boundary layer is held
-close to air temperature:
+The boundary layer is thinner on a small leaf and in a strong wind, and a leaf with a thin boundary layer is
+held close to air temperature:
 
 ```@example leaf
 wind_speeds = 10 .^ range(-1, 1; length = 30)
@@ -144,16 +148,15 @@ axislegend(ax; position = :rt)
 fig
 ```
 
-Large leaves in still air run well above air temperature in the sun, which is one reason that the leaves of
-plants of hot, dry places are small.
+Large leaves in still air run well above air temperature in the sun, one reason that the leaves of plants of
+hot, dry places are small.
 
 ## Thick leaves and stems
 
-The same organism with a realistic conductivity of its tissue, and a shape with some depth, is a succulent leaf
-or a cactus stem, in which the surface in the sun is hotter than the inside. Nothing else needs to change.
+The same organism with a realistic tissue conductivity and a shape with some depth is a succulent leaf or a
+cactus stem, in which the surface in the sun is hotter than the inside. Nothing else needs to change.
 
 ## Other leaf models
 
 The leaf temperature vignette of NicheMapR compares this calculation with other leaf energy balance models, and
-couples it to a model of photosynthesis and stomatal conductance. Those comparisons, and the coupling to
-photosynthesis, are outside this package.
+couples it to a model of photosynthesis and stomatal conductance. Those are outside this package.

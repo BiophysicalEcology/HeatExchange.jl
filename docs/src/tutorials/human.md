@@ -1,11 +1,12 @@
 # A human of many parts
 
-HomoTherm (Kearney et al. 2026) is the human model of NicheMapR. It represents a person as an ellipsoidal head
-and a cylindrical trunk, arms and legs, solves the endotherm model for each part, and adds the parts together.
-This tutorial builds the same person with the functions of [Bodies of many parts](../manual/multipart.md) and
-compares the result with HomoTherm, without thermoregulation: the person here does not vasodilate, sweat or let
-the core temperature rise. Those responses are in
-[BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl).
+HomoTherm (Kearney et al. 2026) is the human model of NicheMapR: an ellipsoidal head and a cylindrical trunk,
+arms and legs, with the endotherm model solved for each part and the parts added together. This tutorial builds
+the same person with the functions of [Bodies of many parts](../manual/multipart.md) and compares the result
+with HomoTherm, without thermoregulation: the person here does not vasodilate, sweat or let the core
+temperature rise. Those responses are added in
+[A human that thermoregulates](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/tutorials/human)
+in the documentation of BiophysicalBehaviour.jl.
 
 The geometry of this person is built and checked against NicheMapR in the tutorial
 [A human: comparison with NicheMapR](https://github.com/BiophysicalEcology/BiophysicalGeometry.jl) of
@@ -20,8 +21,8 @@ using CairoMakie
 ## The person
 
 The proportions are those of HomoTherm, held in
-[BiologicalScaling.jl](https://github.com/BiophysicalEcology/BiologicalScaling.jl): the fraction of the body mass
-in each part, and the ratio of length to width of each. The person is 70 kg, with a density of 1050 kg/m³:
+[BiologicalScaling.jl](https://github.com/BiophysicalEcology/BiologicalScaling.jl): the fraction of the body
+mass in each part, and the ratio of length to width of each. The person is 70 kg, with a density of 1050 kg/m³:
 
 ```@example human
 using HeatExchange, BiophysicalGeometry, Unitful
@@ -39,9 +40,8 @@ shape(part) = part == :head ? Ellipsoid(mass[part], density, ratio[part], ratio[
 nothing # hide
 ```
 
-Each part has its own physiology. These are the defaults of HomoTherm for a resting person. The limbs have a lower
-flesh conductivity than the head and trunk, which stands for less blood flow to them, and a slightly lower core
-temperature:
+Each part has its own physiology, the defaults of HomoTherm for a resting person. The limbs have a lower flesh
+conductivity than the head and trunk, standing for less blood flow, and a slightly lower core temperature:
 
 ```@example human
 core_temperature = map(T -> u"K"(T * u"°C"), (head = 36.8, trunk = 36.8, arm = 36.5, leg = 36.7))
@@ -72,8 +72,8 @@ nothing # hide
 ## One description for each part
 
 The surface of each part is solved from a description of that part in its surroundings, see
-[Bodies of many parts](../manual/multipart.md). The room has still air at 50 % relative humidity, with its walls
-at air temperature:
+[Bodies of many parts](../manual/multipart.md#Describing-a-part). The room has still air at 50 % relative
+humidity, with its walls at air temperature:
 
 ```@example human
 atmosphere = AtmosphericConditions(0.5, 0.1u"m/s", 101325.0u"Pa")   # relative humidity, wind speed, pressure
@@ -100,17 +100,17 @@ end
 nothing # hide
 ```
 
-The area of each part that is hidden in its joins with the others exchanges no heat with the room. For now it is
-the fixed fraction that HomoTherm uses.
+The area of each part hidden in its joins exchanges no heat with the room. For now it is the fixed fraction
+that HomoTherm uses.
 
 ## Solving the person
 
-[`solve_coupled_metabolic_rate`](@ref) solves the surface of each part at that part's core temperature, adds up
-the heat that each must be supplied with, and finds the metabolic rate that supplies it after the heat lost in
+[`solve_coupled_metabolic_rate`](@ref) solves the surface of each part at that part's core temperature, adds
+up the heat each must be supplied with, and finds the metabolic rate that supplies it after the heat lost in
 breathing. This is what HomoTherm does: it calls `endoR` for each part with thermoregulation and respiration
-turned off, sums the heat generation over the parts, and closes the respiration balance once with
-`ZBRENT_ENDO`. The arms and legs are entered twice. The oxygen extraction efficiency and the humidity of exhaled
-air are those of HomoTherm, and the resting metabolic rate is 105 W:
+off, sums the heat generation, and closes the respiration balance once with `ZBRENT_ENDO`. The arms and legs
+are entered twice. The oxygen extraction efficiency and the humidity of exhaled air are those of HomoTherm,
+and the resting metabolic rate is 105 W:
 
 ```@example human
 import ModelParameters: stripparams
@@ -134,8 +134,8 @@ cold = person(u"K"(10.0u"°C"))
 cold.metabolic_heat_flow
 ```
 
-At 10 °C in light clothing this person must produce about one and a half times the resting rate to hold the core
-temperatures. Each part contributes its own share, at its own skin and clothing temperature:
+At 10 °C in light clothing this person must produce about one and a half times the resting rate. Each part
+contributes its own share, at its own skin and clothing temperature:
 
 ```@example human
 part_of(result) = (head = result.parts[1], trunk = result.parts[2], arm = result.parts[3], leg = result.parts[5])
@@ -145,14 +145,15 @@ markdown_table(["Part", "Core", "Skin", "Clothing or hair surface", "Heat conduc
       p.net_metabolic) for (name, p) in pairs(parts)]) # hide
 ```
 
-The arms are thin, and lose the most heat for their mass. Their skin is nonetheless the warmest, because their core
-is close beneath it. The trunk has the coolest skin, under its thick layer of fat.
+The arms are thin, and lose the most heat for their mass. Their skin is nonetheless the warmest, because their
+core is close beneath it. The trunk has the coolest skin, under its thick layer of fat.
 
 ## Through the layers of the trunk
 
 The temperature at each boundary within a part follows from the heat flowing through its layers, see
-[Layers as a radial graph](../manual/radial_layers.md). For the trunk, from the core through the flesh and the fat
-to the skin, and through the clothing to its surface (compare Fig. 3 of Kearney et al. 2026):
+[Layers as a radial graph](../manual/radial_layers.md#The-temperature-through-the-layers). For the trunk, from
+the core through flesh and fat to the skin, and through the clothing to its surface (compare Fig. 3 of Kearney
+et al. 2026):
 
 ```@example human
 import HeatExchange: ThermalConductivities
@@ -170,9 +171,9 @@ Fat and clothing each hold a large part of the difference between the core and t
 
 ## Compared with HomoTherm
 
-The reference values were written by the script `docs/src/data/nichemapr_reference.R`, which runs `HomoTherm` of
-NicheMapR 3.3.3 with its defaults at a series of air temperatures, with a wind speed of 0.1 m/s and a relative
-humidity of 50 %:
+The reference values were written by `docs/src/data/nichemapr_reference.R`, which runs `HomoTherm` of NicheMapR
+3.3.3 with its defaults at a series of air temperatures, with a wind speed of 0.1 m/s and 50 % relative
+humidity:
 
 ```@example human
 using DelimitedFiles
@@ -198,11 +199,11 @@ fig
 ```
 
 The dashed line is the resting metabolic rate. Below about 19 °C the person is below the lower critical
-temperature, and must raise the metabolic rate to stay warm. Above it, the rate required falls below what the
-person produces at rest, and HomoTherm begins to dilate the blood vessels of the skin, and then to sweat, to
-lose the excess. That is where this tutorial stops.
+temperature, and must raise the metabolic rate to stay warm. Above it, the rate required falls below the
+resting rate, and HomoTherm begins to dilate the blood vessels of the skin, and then to sweat. That is where
+this tutorial stops.
 
-The two agree to within about 1 % for the whole person:
+The two agree to about 1 % for the whole person:
 
 ```@example human
 maximum(abs.(rates ./ reference_rate[cold_range] .- 1))
@@ -223,19 +224,19 @@ markdown_table(["Part", "Heat, here", "Heat, HomoTherm", "Skin, here", "Skin, Ho
 The differences have known causes:
 
 - **Joins.** HomoTherm removes the joined area of a part by treating it as lying on a substrate at core
-  temperature. Here the joined area is taken out of the area that exchanges heat. The trunk, which has the most
-  joined area, differs the most.
-- **Sides.** HomoTherm solves each part as a dorsal and a ventral side and averages them, so that the top of the
-  head has hair and the face has none. Here each part has one surface, and the head has a coat of the mean depth.
-- **Breathing.** HomoTherm takes the lung temperature from the temperature profile of the trunk, and exhales air
-  at a temperature that depends on the air temperature. Here the lung temperature is the mean of the core
-  temperature and the mean skin temperature, and air is exhaled at it.
+  temperature. Here it is taken out of the area that exchanges heat. The trunk, with the most joined area,
+  differs the most.
+- **Sides.** HomoTherm solves each part as a dorsal and a ventral side and averages them, so the top of the
+  head has hair and the face none. Here each part has one surface, and the head a coat of the mean depth.
+- **Breathing.** HomoTherm takes the lung temperature from the temperature profile of the trunk, and exhales
+  air at a temperature that depends on the air temperature. Here the lung temperature is the mean of the core
+  and mean skin temperatures, and air is exhaled at it.
 
 ## A person with a place in space
 
-In HomoTherm the parts have no positions. The fraction of each part that is joined, and the fraction of its view
-that is sky and ground, are numbers given to the model. With a `CompositeBody` of BiophysicalGeometry.jl the parts
-are joined at named places, and those numbers follow from where the parts are:
+In HomoTherm the parts have no positions. The fraction of each part that is joined, and the fraction of its
+view that is sky and ground, are numbers given to the model. With a `CompositeBody` of BiophysicalGeometry.jl
+the parts are joined at named places, and those numbers follow from where the parts are:
 
 ```@example human
 trunk, head, arm, leg = body(:trunk), body(:head), body(:arm), body(:leg)
@@ -277,7 +278,7 @@ end
 map(area -> uconvert(u"cm^2", area), NamedTuple{names}(covered))
 ```
 
-and each part's view of the sky, of the ground and of each other part comes from `silhouette_factors`:
+and each part's view of the sky, the ground and each other part comes from `silhouette_factors`:
 
 ```@example human
 views = silhouette_factors(human, Sky(0.5))
@@ -285,9 +286,10 @@ markdown_table(["Part", "Sky", "Ground", "Other parts"], # hide
                [(string(name), v.sky, v.ground, sum(v.neighbours)) for (name, v) in pairs(views)]) # hide
 ```
 
-A fifth of what an arm sees is the trunk beside it. That part of its view exchanges longwave radiation with the
-clothing of the trunk, which is warmer than the walls of the room. The `neighbour_topology` gives, for each part,
-the parts it sees and how much of its view each takes:
+A fifth of what an arm sees is the trunk beside it. That part of its view exchanges longwave radiation with
+the clothing of the trunk, which is warmer than the walls. The `neighbour_topology` gives, for each part, the
+parts it sees and how much of its view each takes, see
+[Bodies of many parts](../manual/multipart.md#Parts-that-see-each-other):
 
 ```@example human
 index = NamedTuple{names}(Tuple(1:length(names)))
@@ -332,18 +334,24 @@ fig
 ```
 
 The joins made here hide less area than the fractions of HomoTherm, which were chosen so that the share of the
-whole area in each part matches that measured on people. And the parts now face each other in place of the walls
-over part of their view. The two changes work in opposite directions, and in this room they nearly cancel.
+whole area in each part matches that measured on people. And the parts now face each other in place of the
+walls over part of their view. The two changes work in opposite directions, and in this room they nearly
+cancel.
 
-The value of placing the parts is not in this comparison, in a room with walls at one temperature. It is that the
-same description can be turned. With the arms held out, or the person curled up, or the sun to one side, the
+The value of placing the parts is not in this comparison, in a room with walls at one temperature. It is that
+the same description can be turned. With the arms held out, the person curled up, or the sun to one side, the
 joined areas, the views and the shade of one part on another all change, and HomoTherm has no way to know it.
 
 ## What is left out
 
-This person holds every core temperature fixed and has one state. A real person in the cold constricts the blood
-vessels of the limbs and lets them cool, and in the heat dilates them, sweats, and lets the core temperature rise,
-and HomoTherm does all of these (Kearney et al. 2026). With the functions of this package, cooler limbs are a
-change of `core_temperature` and `flesh_conductivity` for those parts, or a limb that is its own compartment
-joined to the trunk, see [Bodies of many parts](../manual/multipart.md). Sweating is a change of `skin_wetness`.
-Choosing those changes, hour by hour, is the work of BiophysicalBehaviour.jl.
+This person holds every core temperature fixed and has one state. A real person in the cold constricts the
+blood vessels of the limbs and lets them cool, and in the heat dilates them, sweats, and lets the core
+temperature rise, and HomoTherm does all of these (Kearney et al. 2026). With the functions of this package:
+
+- cooler limbs are a change of `core_temperature` and `flesh_conductivity` for those parts, or a limb that is
+  its own compartment joined to the trunk, see
+  [Bodies of many parts](../manual/multipart.md#A-torso-and-four-legs);
+- sweating is a change of `skin_wetness`.
+
+Choosing those changes is the work of BiophysicalBehaviour.jl, see
+[A human that thermoregulates](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/tutorials/human).

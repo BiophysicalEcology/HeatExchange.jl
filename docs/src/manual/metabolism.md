@@ -1,8 +1,8 @@
 # Metabolism
 
 Metabolic heat is the one term of the heat budget that the organism generates. For an ectotherm it is small and
-follows from body temperature. For an endotherm it is large, and is the quantity that the organism adjusts to
-hold its temperature.
+follows from body temperature. For an endotherm it is large, and is what the organism adjusts to hold its
+temperature.
 
 ```@setup metabolism
 using Main.FigureHelpers
@@ -10,13 +10,12 @@ using CairoMakie
 ```
 
 !!! note "Moving to BiologicalScaling.jl"
-    The metabolic rate equations on this page are defined in HeatExchange.jl in this version. They are allometric
-    equations, and their home is [BiologicalScaling.jl](https://github.com/BiophysicalEcology/BiologicalScaling.jl),
-    which already has a wider set (for example `standard_metabolic_rate(Squamate(), mass, temperature)`). A coming
-    version of this package will take its metabolic rates from there, and the types below will be replaced by
-    those of BiologicalScaling.jl. The role of metabolism in the heat budget, described here, will not change.
-    These equations are descriptive and not physical, and `allometric` is there to mark that, see
-    [Units, dimensions and functional traits](units_traits.md).
+    The metabolic rate equations on this page are allometric, and their home is
+    [BiologicalScaling.jl](https://github.com/BiophysicalEcology/BiologicalScaling.jl), which already has a
+    wider set (for example `standard_metabolic_rate(Squamate(), mass, temperature)`). A coming version of this
+    package will take its metabolic rates from there, and the types below will be replaced. The role of
+    metabolism in the heat budget will not change. These equations are descriptive, not physical, and
+    `allometric` marks that, see [Units, dimensions and functional traits](units_traits.md).
 
 ## The parameters
 
@@ -29,11 +28,11 @@ using CairoMakie
 | `metabolic_heat_flow` | the minimum metabolic rate, basal or resting | solving for metabolic rate |
 | `q10` | the factor by which the metabolic rate changes for 10 °C of core temperature | by thermoregulation, when the core temperature is allowed to rise |
 
-When the temperature is the unknown, [`solve_temperature`](@ref) calls
-[`metabolic_rate`](@ref)`(model, mass, core_temperature)` at each trial temperature. When the metabolic rate is the
-unknown, no equation is used for it. `metabolic_heat_flow` is then the floor below which a solution means that the
-animal cannot lose its heat, and the rate at which it still breathes, see
-[Temperature or metabolic rate](solvers.md).
+When temperature is the unknown, [`solve_temperature`](@ref) calls
+[`metabolic_rate`](@ref)`(model, mass, core_temperature)` at each trial temperature. When metabolic rate is the
+unknown, no equation is used for it: `metabolic_heat_flow` is the floor below which a solution means the animal
+cannot lose its heat, and the rate at which it still breathes, see
+[Temperature or metabolic rate](solvers.md#A-result-below-the-minimum).
 
 ## The equations
 
@@ -54,7 +53,7 @@ metabolic_rate(Kleiber(), 65.0u"kg"), metabolic_rate(McKechnieWolf(), 30.0u"g"),
 metabolic_rate(AndrewsPough2(), 40.0u"g", u"K"(30.0u"°C"))
 ```
 
-The rate of an ectotherm is far below that of an endotherm of the same mass, and it rises steeply with
+The rate of an ectotherm is far below that of an endotherm of the same mass, and rises steeply with
 temperature:
 
 ```@example metabolism
@@ -76,14 +75,13 @@ The equation of Andrews and Pough is
 ```
 
 in ml of oxygen per hour, with mass ``m`` in g and body temperature ``T_b`` in °C, held between 1 and 50 °C.
-The four constants are the fields `mass_normalisation`, `mass_exponent`, `thermal_sensitivity` and
-`metabolic_state` of [`AndrewsPough2`](@ref), with a `metabolic_state` of 0 for the standard rate and 1 for the
-resting rate. Another equation is added by defining a subtype of [`MetabolicRateEquation`](@ref) and a method of
-[`metabolic_rate`](@ref) for it.
+The constants are the fields `mass_normalisation`, `mass_exponent`, `thermal_sensitivity` and `metabolic_state`
+of [`AndrewsPough2`](@ref), with `metabolic_state` 0 for the standard rate and 1 for the resting rate. To add an
+equation, define a subtype of [`MetabolicRateEquation`](@ref) and a method of [`metabolic_rate`](@ref).
 
 ## Oxygen and heat
 
-Metabolic rate is measured as oxygen consumed and is needed here as heat produced. [`O2_to_Joules`](@ref) and
+Metabolic rate is measured as oxygen consumed and needed here as heat produced. [`O2_to_Joules`](@ref) and
 [`Joules_to_O2`](@ref) convert between them with an [`OxygenJoulesConversion`](@ref):
 
 | Conversion | Energy per volume of oxygen |
@@ -97,12 +95,18 @@ uconvert(u"ml/hr", oxygen), uconvert(u"ml/hr", Joules_to_O2(Kleiber1961(), 100.0
 ```
 
 The oxygen consumed sets the air breathed, and so the heat and water lost in respiration, see
-[Evaporation and respiration](evaporation_respiration.md).
+[Evaporation and respiration](evaporation_respiration.md). This ratio is one of the three places where the
+budgets of heat and mass are coupled, see [Flows of mass](gradients.md#Flows-of-mass).
 
 ## Metabolism and temperature
 
-The relation of metabolic rate to temperature can be given in more detail than a single equation allows, with
-thermal performance curves that fall away at high temperature, from
-[ThermalPhysiology.jl](https://github.com/BiophysicalEcology/ThermalPhysiology.jl). And the metabolic rate of an
-animal over its life, as it grows and reproduces, is the subject of Dynamic Energy Budget theory, which the
-ectotherm model of NicheMapR includes (Kearney and Porter 2020) and which is outside this package.
+Thermal performance curves that fall away at high temperature give the relation of metabolic rate to
+temperature in more detail, from
+[ThermalPhysiology.jl](https://github.com/BiophysicalEcology/ThermalPhysiology.jl).
+
+The metabolic rate of an animal over its life, as it grows and reproduces, is the subject of Dynamic Energy
+Budget theory, which the ectotherm model of NicheMapR includes (Kearney and Porter 2020). It is outside this
+package, and is to enter the ecosystem through
+[AnimalMapper.jl](https://github.com/BiophysicalEcology/AnimalMapper.jl), by way of
+[DEBtool_J.jl](https://github.com/add-my-pet/DEBtool_J.jl), where it will couple the flows of mass and give heat
+production from first principles, see [Flows of mass](gradients.md#Flows-of-mass).

@@ -1,9 +1,9 @@
 # An ectotherm: body temperature
 
-The body temperature of an ectotherm is set by the heat that it exchanges with its surroundings. This tutorial
+The body temperature of an ectotherm is set by the heat it exchanges with its surroundings. This tutorial
 computes the steady-state body temperature and water loss of a lizard, takes its heat budget apart, compares it
-with the ectotherm model of NicheMapR (Kearney and Porter 2020), and then asks how the answer changes with the
-sun, the wind, the size of the animal and the way it holds itself.
+with the ectotherm model of NicheMapR (Kearney and Porter 2020), and asks how the answer changes with sun,
+wind, size and posture.
 
 ```@setup ectotherm
 using Main.FigureHelpers
@@ -12,8 +12,8 @@ using CairoMakie
 
 ## The lizard
 
-The animal is the default of the NicheMapR function `ectoR_devel`: a 40 g lizard with the shape of a desert iguana
-(Porter et al. 1973), whose surface area follows a relation measured for that species:
+The animal is the default of the NicheMapR function `ectoR_devel`: a 40 g lizard with the shape of a desert
+iguana (Porter et al. 1973), whose surface area follows a relation measured for that species:
 
 ```@example ectotherm
 using HeatExchange, BiophysicalGeometry, Unitful
@@ -24,10 +24,13 @@ uconvert(u"cm^2", total_area(body)), uconvert(u"cm^2", silhouette(shape, NormalT
 uconvert(u"cm^2", silhouette(shape, ParallelToSun()))
 ```
 
-`DesertIguana` is an empirical relation of area to mass, not a geometric shape, and it and `LeopardFrog` are to
-move from BiophysicalGeometry.jl to BiologicalScaling.jl. The last two are the area that intercepts the direct beam of the sun when the lizard is side-on to it and when it
-points at it. Its traits are those of [`example_ectotherm_heat_exchange_traits`](@ref), with the lizard side-on to
-the sun and its eyes closed:
+The last two values are the area that intercepts the direct beam when the lizard is side-on to the sun and when
+it points at it. `DesertIguana` is an empirical relation of area to mass, not a geometric shape, and it and
+`LeopardFrog` are to move from BiophysicalGeometry.jl to BiologicalScaling.jl, see
+[Units, dimensions and functional traits](../manual/units_traits.md).
+
+Its traits are those of [`example_ectotherm_heat_exchange_traits`](@ref), with the lizard side-on to the sun
+and its eyes closed:
 
 ```@example ectotherm
 lizard_traits(; shape = shape, orientation = NormalToSun(), skin_wetness = 0.001) = example_ectotherm_heat_exchange_traits(;
@@ -53,8 +56,7 @@ nothing # hide
 
 ## The environment
 
-The lizard is on warm ground under a clear sky in strong sun, with a light breeze and very dry air, in light
-shade:
+Warm ground, a clear sky, strong sun, a light breeze, very dry air and light shade:
 
 ```@example ectotherm
 import HeatExchange: GasFractions
@@ -86,7 +88,8 @@ u"°C"(out.core_temperature), u"°C"(out.surface_temperature), u"°C"(out.lung_t
 ```
 
 The lizard settles 11 °C above the air. Its core is a twentieth of a degree warmer than its skin, as its
-metabolic heat is small. The terms of the heat budget, `out.energy_balance`, are the `enbal` table of NicheMapR:
+metabolic heat is small. The terms of the heat budget, `out.energy_balance`, are the `enbal` table of
+NicheMapR:
 
 ```@example ectotherm
 flow_table(out.energy_balance) # hide
@@ -101,11 +104,13 @@ budget_bars(["Solar" => (b.solar_flow, FLOW_COLOURS.solar), "Longwave in" => (b.
              "Respiration" => (b.respiration_heat_flow, FLOW_COLOURS.respiration)]) # hide
 ```
 
-Radiation dominates. The lizard absorbs sunlight and longwave radiation, and loses heat as longwave radiation and
-by convection to the cooler air. Conduction to the ground is small, as the ground is close to the temperature of the lizard. Metabolism is a few hundredths of a watt. The heat budget of a small ectotherm in the sun is, to a
-close approximation, a balance between radiation and convection.
+Radiation dominates. The lizard absorbs sunlight and longwave radiation, and loses heat as longwave radiation
+and by convection to the cooler air. Conduction is small, as the ground is close to the temperature of the
+lizard. Metabolism is a few hundredths of a watt. The heat budget of a small ectotherm in the sun is, closely, a
+balance between radiation and convection, see [Radiation](../manual/radiation.md) and
+[Convection and conduction](../manual/convection_conduction.md).
 
-The water lost and the oxygen used are in `out.mass_balance`, the `masbal` table of NicheMapR:
+The water lost and oxygen used are in `out.mass_balance`, the `masbal` table of NicheMapR:
 
 ```@example ectotherm
 m = out.mass_balance
@@ -114,8 +119,8 @@ uconvert(u"ml/hr", m.oxygen_flow), uconvert(u"mg/hr", m.respiration_mass), uconv
 
 ## Compared with NicheMapR
 
-The same animal and environment were given to `ectoR_devel` of NicheMapR, and its output is kept with the tests
-of this package:
+The same animal and environment were given to `ectoR_devel`, and its output is kept with the tests of this
+package:
 
 ```@example ectotherm
 using DelimitedFiles
@@ -145,8 +150,8 @@ markdown_table(["Quantity", "HeatExchange.jl", "NicheMapR"], [ # hide
 
 ## Sun and shade
 
-Shade is the main thing that a lizard can change. Here the same lizard is solved from full sun to full shade.
-In this simple case only the sunlight is shaded, and the temperatures of the air and ground are left as they were:
+Shade is the main thing a lizard can change. Here the same lizard is solved from full sun to full shade. Only
+the sunlight is shaded, and the temperatures of the air and ground are left as they were:
 
 ```@example ectotherm
 with(; kw...) = (; environment_pars, environment_vars = EnvironmentalVars(; (; (name => getfield(environment_vars, name)
@@ -166,16 +171,17 @@ fig
 ```
 
 The dashed line is the air temperature. In full shade the lizard is close to it, a little below because it
-faces a cold sky. In the sun it can change its temperature by several degrees by turning. These are the
-choices that the thermoregulation routines of NicheMapR make in a fixed order: change posture, seek shade, climb,
-and go underground (Kearney and Porter 2020). They are made here by
+faces a cold sky. In the sun it can change its temperature by several degrees by turning. These are the choices
+that the thermoregulation routines of NicheMapR make in a fixed order: change posture, seek shade, climb, go
+underground (Kearney and Porter 2020). They are made here by
 [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), which calls
-[`solve_temperature`](@ref) as this loop does.
+[`solve_temperature`](@ref) as this loop does, see
+[Ectotherm thermoregulation](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/ectotherm)
+in its documentation.
 
 ## Wind and size
 
-Convection ties the body to the air temperature, and how strongly depends on the wind and on the size of the
-animal:
+Convection ties the body to the air temperature, and how strongly depends on wind and size:
 
 ```@example ectotherm
 wind_speeds = 10 .^ range(-1, 1; length = 30)
@@ -192,14 +198,14 @@ axislegend(ax; position = :rt)
 fig
 ```
 
-In still air a large lizard in the sun runs far hotter than a small one, and wind cools them all towards the air.
-A steady state is a fair description of a 40 g lizard, which comes to a new temperature in minutes. A 4 kg lizard
-takes much longer, and a transient heat budget is then needed, see
+In still air a large lizard in the sun runs far hotter than a small one, and wind cools them all towards the
+air. A steady state is a fair description of a 40 g lizard, which reaches a new temperature in minutes. A 4 kg
+lizard takes much longer, and a transient heat budget is then needed, see
 [Solving a heat balance](../manual/heat_balance.md#Steady-state-and-storage).
 
 ## Wet skin
 
-A frog, with a skin that is wet all over, loses heat by evaporation that a lizard does not:
+A frog, with skin wet all over, loses heat by evaporation that a lizard does not:
 
 ```@example ectotherm
 wetness = 10 .^ range(-3, 0; length = 30)
@@ -213,15 +219,15 @@ lines!(ax2, wetness, [ustrip(u"g/hr", r.mass_balance.cutaneous_mass) for r in re
 fig
 ```
 
-A wet-skinned animal of this size in this sun and dry air is many degrees cooler than a dry one, and pays for it
-with a water loss of a large part of its mass each hour. The heat budget and the water budget cannot be
-separated (Tracy 1976).
+A wet-skinned animal of this size in this sun and dry air is many degrees cooler than a dry one, and pays with
+a water loss of a large part of its mass each hour. The heat budget and the water budget cannot be separated
+(Tracy 1976), see [Flows of mass](../manual/gradients.md#Flows-of-mass).
 
 ## Beyond the heat budget
 
-The NicheMapR ectotherm model does much more than this: it runs through a year of microclimates, chooses where
-the animal is and what it is doing each hour, and can grow the animal with a Dynamic Energy Budget model. Here
-those are separate. The microclimate is from
-[Microclimate.jl](https://github.com/BiophysicalEcology/Microclimate.jl), see
-[Environments and the ecosystem](../manual/ecosystem.md), and the behaviour from BiophysicalBehaviour.jl. This
-package is the calculation at the centre of each hour.
+The NicheMapR ectotherm model does much more: it runs through a year of microclimates, chooses where the animal
+is and what it is doing each hour, and can grow the animal with a Dynamic Energy Budget model. Here those are
+separate. The microclimate is from [Microclimate.jl](https://github.com/BiophysicalEcology/Microclimate.jl),
+see [Environments and the ecosystem](../manual/ecosystem.md), and the behaviour from BiophysicalBehaviour.jl,
+see [A lizard's day](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/tutorials/lizard) for
+this same lizard through a year. This package is the calculation at the centre of each hour.

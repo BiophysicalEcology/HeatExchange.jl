@@ -1,36 +1,35 @@
 # For NicheMapR users
 
-HeatExchange.jl descends from the heat budget code of [NicheMapR](https://github.com/mrke/NicheMapR): the ectotherm
-model (Kearney and Porter 2020), the endotherm model (Kearney et al. 2021) and its human extension, HomoTherm
-(Kearney et al. 2026). The physics is the same. The structure is not, and this page explains what moved where.
+HeatExchange.jl descends from the heat budget code of [NicheMapR](https://github.com/mrke/NicheMapR): the
+ectotherm model (Kearney and Porter 2020), the endotherm model (Kearney et al. 2021) and its human extension,
+HomoTherm (Kearney et al. 2026). The physics is the same. The structure is not, and this page says what moved
+where.
 
 ## Two programs become one question with two answers
 
 NicheMapR is organised by kind of organism. The ectotherm model finds the body temperature at which the heat
-budget balances, for an animal with bare skin whose metabolic heat is small. The endotherm model does the reverse:
-it holds the core temperature at a set value and finds the metabolic rate that balances the budget, for an animal
-that may have fur and fat. Each has its own Fortran library, with its own routines for geometry, solar radiation,
-convection and evaporation, and its own R interface.
+budget balances, for bare skin and small metabolic heat. The endotherm model holds the core temperature and
+finds the metabolic rate, for an animal that may have fur and fat. Each has its own Fortran library and R
+interface.
 
 Kearney et al. (2021) noted that this split reflects a real biological difference, the far greater energetic
-intensity of endotherms, but the split is not a physical one. Both programs solve the same steady-state heat budget.
+intensity of endotherms, but it is not a physical one. Both programs solve the same steady-state heat budget.
 They differ in two things only:
 
-- **which quantity is unknown**: the core temperature, or the rate of metabolic heat production, and
-- **what the surface is**: bare skin, or skin under a layer of fur or feathers.
+- **which quantity is unknown**: the core temperature, or the rate of metabolic heat production;
+- **what the surface is**: bare skin, or skin under fur or feathers.
 
-HeatExchange.jl is organised by those two things, and any combination of them can be solved:
+HeatExchange.jl is organised by those two things, and any combination can be solved:
 
 | | Bare skin | Insulated |
 |:--|:--|:--|
 | **Solve for temperature** | the NicheMapR ectotherm model, and leaves | *new*: a torpid or dead endotherm, a furred insect, a chick before it can thermoregulate |
 | **Solve for metabolic rate** | *new*: a naked endotherm, a thermogenic flower | the NicheMapR endotherm model |
 
-The first row is [`solve_temperature`](@ref) and the second is [`solve_metabolic_rate`](@ref). Which column applies
-is decided by the body: a `Body` with `Naked()` insulation takes the bare-skin
-path and one with a fibrous layer takes the insulated path, see [Temperature or metabolic rate](solvers.md). The
-heat-flow functions underneath are shared, so there is one `convection`, one `evaporation` and one `respiration`
-where NicheMapR has two of each.
+The first row is [`solve_temperature`](@ref) and the second [`solve_metabolic_rate`](@ref). The column is
+decided by the body: `Naked()` takes the bare-skin path and a fibrous layer the insulated path, see
+[Temperature or metabolic rate](solvers.md). The heat-flow functions underneath are shared, so there is one
+`convection`, one `evaporation` and one `respiration` where NicheMapR has two of each.
 
 ## What moved where
 
@@ -48,66 +47,59 @@ where NicheMapR has two of each.
 | `leaf = 1` in `ectotherm` | [`LeafEvaporationParameters`](@ref) in place of [`AnimalEvaporationParameters`](@ref) |
 | `HomoTherm`: `endoR` once per body part, summed | [`solve_coupled_metabolic_rate`](@ref) over the parts of a body, see [Bodies of many parts](multipart.md) |
 | `GEOM`, `GEOM_ENDO`, the geometric shape codes | [BiophysicalGeometry.jl](https://github.com/BiophysicalEcology/BiophysicalGeometry.jl): `Cylinder`, `Sphere`, `Plate`, `Ellipsoid` |
-| the empirical surface areas in `GEOM` and `GEOM_ENDO`: the desert iguana and leopard frog, and the bird and mammal options of `SAMODE` | [BiologicalScaling.jl](https://github.com/BiophysicalEcology/BiologicalScaling.jl), which already has the bird and mammal surface areas (`surface_area(EutherianMammal(), mass)`). These are allometric relations, not geometry. `DesertIguana` and `LeopardFrog` are still in BiophysicalGeometry.jl in this version, and are to be removed from it in favour of BiologicalScaling.jl |
+| the empirical surface areas in `GEOM` and `GEOM_ENDO`: the desert iguana and leopard frog, and the bird and mammal options of `SAMODE` | [BiologicalScaling.jl](https://github.com/BiophysicalEcology/BiologicalScaling.jl), which already has the bird and mammal surface areas (`surface_area(EutherianMammal(), mass)`). These are allometric relations, not geometry. `DesertIguana` and `LeopardFrog` are still in BiophysicalGeometry.jl in this version, and are to move |
 | `DRYAIR`, `WETAIR`, `VAPPRS`, `WATER` | [FluidProperties.jl](https://github.com/BiophysicalEcology/FluidProperties.jl) |
-| the thermoregulation loops of `ectotherm` (shade, posture, burrow, climb) and of `endoR` (uncurl, vasodilate, raise core temperature, pant, sweat) | [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl) |
+| the thermoregulation loops of `ectotherm` (shade, posture, burrow, climb) and of `endoR` (uncurl, vasodilate, raise core temperature, pant, sweat) | [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), see [For NicheMapR users](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/nichemapr) in its documentation |
 | transient heat budgets: `onelump`, `onelump_var`, `twolump`, `trans_behav`, and the transient option of `ectotherm` | to be added to this package: the residual of [`heat_balance`](@ref) tracked through time, in a varying environment, and turned into body temperature by the heat capacity. `trans_behav` and the behaviour of the transient `ectotherm` are for BiophysicalBehaviour.jl |
-| the Dynamic Energy Budget model of `ectotherm` | not in this package |
+| the Dynamic Energy Budget model of `ectotherm` | not in this package: to come through AnimalMapper.jl, by way of DEBtool_J.jl, see [Flows of mass](gradients.md#Flows-of-mass) |
 | `micro_global` and the other microclimate functions | [Microclimate.jl](https://github.com/BiophysicalEcology/Microclimate.jl) and [SolarRadiation.jl](https://github.com/BiophysicalEcology/SolarRadiation.jl) |
 
 The last four rows are the largest change in scope. `ectotherm` is a whole simulation: it reads a year of
 microclimate, chooses where the animal is each hour, and can run an energy budget alongside. `endoR` includes a
-thermoregulatory sequence. This package does neither. It takes one organism in one environment and solves its heat
-budget, and it is the layer that the behaviour and life-cycle packages call. It corresponds most closely to
-`ectoR_devel`, and to `endoR_devel` with `THERMOREG = 0`.
+thermoregulatory sequence. This package does neither. It solves the heat budget of one organism in one
+environment, and is the layer that the behaviour and life-cycle packages call, see
+[Environments and the ecosystem](ecosystem.md). It corresponds most closely to `ectoR_devel`, and to
+`endoR_devel` with `THERMOREG = 0`.
 
 ## There is no separate transient program
 
-The transient functions of NicheMapR are separate analytical or numerical solutions for a lump of tissue with heat
-storage, written apart from the steady-state code. Here a transient calculation needs no new physics.
-[`heat_balance`](@ref) returns the net heat flow of an organism at a given temperature, which is the rate of heat
-storage. A steady state is where that is zero. A transient is its integral through time, divided by the heat
-capacity. The transient calculation of this package is to be exactly that: the residuals of the code described
-here, tracked through time in an environment that may vary, as in `onelump_var`, with no second set of equations.
-It is not yet in the version that this documentation describes.
+The transient functions of NicheMapR are separate solutions for a lump of tissue with heat storage, written
+apart from the steady-state code. Here a transient calculation needs no new physics. [`heat_balance`](@ref)
+returns the net heat flow at a given temperature, which is the rate of heat storage. A steady state is where
+that is zero. A transient is its integral through time, divided by the heat capacity. The transient calculation
+of this package is to be exactly that, in an environment that may vary, as in `onelump_var`. It is not yet in
+the version documented here, see [Solving a heat balance](heat_balance.md#Steady-state-and-storage).
 
 ## Dorsal and ventral
 
-The fur and the surroundings of an animal differ between its back and its belly. `endoR` deals with this by
-calling `SIMULSOL` twice, once for a whole animal covered in dorsal fur and facing the sky, and once for a whole
-animal covered in ventral fur and facing the ground, and taking a weighted mean of the two heat flows. This is
-kept, as the [`MultiSided`](@ref) strategy, and it reproduces `endoR`.
+`endoR` calls `SIMULSOL` twice, for a whole animal in dorsal fur facing the sky and a whole animal in ventral
+fur facing the ground, and takes a weighted mean of the two heat flows. This is kept, as the
+[`MultiSided`](@ref) strategy, and reproduces `endoR`.
 
 It is also now a special case. A body can be two real halves joined at a shared core, each with its own coat,
-area and view, exchanging heat with each other. The tutorial [Back and belly: two halves](../tutorials/two_parts.md)
-compares the two.
+area and view, see [Back and belly: two halves](../tutorials/two_parts.md).
 
 ## Layers
 
-`endoR` has one layer of flesh, an optional layer of fat set by `FATPCT`, and one layer of fur, and the heat flow
-through them is written out for each shape. Here the core-to-skin conduction is an ordered list of layers, each
-with a resistance that depends on its shape, added in series. One flesh layer and one fat layer reproduce
-`endoR` to machine precision. See [Layers as a radial graph](radial_layers.md) for what this makes possible.
+`endoR` has one layer of flesh, an optional layer of fat set by `FATPCT`, and one of fur, with the heat flow
+written out for each shape. Here the core-to-skin conduction is an ordered list of layers, each with a
+resistance that depends on its shape, added in series. One flesh layer and one fat layer reproduce `endoR` to
+machine precision. See [Layers as a radial graph](radial_layers.md).
 
 ## Many parts
 
-`HomoTherm` showed how to build an animal from several parts: run the endotherm model for each part without
-respiration, add up the heat that each part must be supplied with, and close the respiration balance once for the
-whole animal. Each part gives up a fixed fraction of its area, `PJOINs`, to its joins with the others. That scheme
-is [`solve_coupled_metabolic_rate`](@ref). The parts are those of a
-`CompositeBody`, so the hidden areas and the view that each part has
-of the sky, the ground and the other parts come from where the parts are. Parts can also hold different core
-temperatures and conduct heat to each other, which `HomoTherm` does not do. The tutorial
-[A human of many parts](../tutorials/human.md) rebuilds the `HomoTherm` human.
+`HomoTherm` builds an animal from several parts: run the endotherm model for each part without respiration, add
+up the heat each must be supplied with, and close the respiration balance once. Each part gives up a fixed
+fraction of its area, `PJOINs`, to its joins. That scheme is [`solve_coupled_metabolic_rate`](@ref). Here the
+parts are those of a `CompositeBody`, so the hidden areas and the view each part has of the sky, the ground and
+the other parts come from where the parts are. Parts can also hold different core temperatures and conduct heat
+to each other. [A human of many parts](../tutorials/human.md) rebuilds the `HomoTherm` human.
 
-The body itself is built with BiophysicalGeometry.jl. Each part is a `Body`, a shape with its own layers, and
-the parts are joined at named surfaces into a `CompositeBody`, with a `Join` for each connection that says where
-on each part the join is and how large it is. The package then gives the area that each join hides, each part's
-silhouette with the shade of the other parts on it, and each part's view of the sky, the ground and the other
-parts, which are the inputs that the heat budget of a part needs. Its documentation has tutorials that build a
-dog, a cow and this human, and an interactive page,
-[Build an animal](https://biophysicalecology.github.io/BiophysicalGeometry.jl/dev/builder), on which an animal is
-assembled with sliders and the code that builds it can be copied.
+The body is built with BiophysicalGeometry.jl: each part a `Body`, joined at named surfaces by a `Join` that
+says where on each part the join is and how large. Its documentation has tutorials that build a dog, a cow and
+this human, and an interactive page,
+[Build an animal](https://biophysicalecology.github.io/BiophysicalGeometry.jl/dev/builder), where an animal is
+assembled with sliders and the code can be copied.
 
 ## Parameter names
 
@@ -170,15 +162,17 @@ Percentages in NicheMapR are fractions here, and temperatures in °C are
 
 ## How closely the numbers agree
 
-The tests of the package compare it with output saved from NicheMapR, and the tutorials show the comparisons.
+The tests compare the package with output saved from NicheMapR, and the tutorials show the comparisons, see
+[An ectotherm: body temperature](../tutorials/ectotherm.md) and
+[An endotherm: metabolic rate](../tutorials/endotherm.md).
 
-For a bare-skinned ectotherm the body temperature and every heat and mass flow agree with `ectoR_devel` to within
-one part in ten thousand, and the geometry to within rounding.
+**Ectotherm.** Body temperature and every heat and mass flow agree with `ectoR_devel` to one part in ten
+thousand, and the geometry to rounding.
 
-For an endotherm, the geometry agrees with `endoR_devel` to within rounding and the core and lung temperatures to
-within 0.1 %. The skin and fur temperatures, the fur conductivity and the surface heat flows agree to within about
-0.3 %, and the metabolic rate to within about 1 %. The difference has a known cause. `SIMULSOL` updates the
-fur surface temperature with a linearised form of the surface heat balance and stops when successive guesses agree
-within `DIFTOL`. Here the two surface temperatures are found by a Newton iteration that balances the surface energy
-budget to within 10⁻⁹. The metabolic rate depends on the small difference between the core and skin temperatures,
-so a small change in skin temperature is a larger relative change in metabolic rate.
+**Endotherm.** Geometry agrees with `endoR_devel` to rounding, and core and lung temperatures to 0.1 %. Skin
+and fur temperatures, fur conductivity and surface heat flows agree to about 0.3 %, and metabolic rate to about
+1 %. The cause is known. `SIMULSOL` updates the fur surface temperature with a linearised surface balance and
+stops when successive guesses agree within `DIFTOL`. Here the two surface temperatures are found by a Newton
+iteration that balances the surface energy budget to 10⁻⁹. Metabolic rate depends on the small difference
+between core and skin temperatures, so a small change in skin temperature is a larger relative change in
+metabolic rate.

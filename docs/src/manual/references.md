@@ -9,8 +9,18 @@ Brent, R. (2002). *Algorithms for Minimization Without Derivatives*. Dover Publi
 
 Campbell, G. S. and Norman, J. M. (1998). *An Introduction to Environmental Biophysics*, 2nd edn. Springer, New York.
 
+Cannon, W. B. (1932). *The Wisdom of the Body*. W. W. Norton, New York.
+
 Conley, K. E. and Porter, W. P. (1986). Heat loss from deer mice (*Peromyscus*): evaluation of seasonal limits to
 thermoregulation. *Journal of Experimental Biology* 126: 249–269.
+
+Forrest, J., Rajagopal, V., Stumpf, M. P. H. and Pan, M. (2023). BondGraphs.jl: composable energy-based modelling in
+systems biology. *Bioinformatics* 39: btad578.
+
+Friston, K. (2010). The free-energy principle: a unified brain theory? *Nature Reviews Neuroscience* 11: 127–138.
+
+Gawthrop, P. J. and Crampin, E. J. (2014). Energy-based analysis of biochemical cycles using bond graphs.
+*Proceedings of the Royal Society A* 470: 20140459.
 
 Gates, D. M. (1980). *Biophysical Ecology*. Springer, New York.
 
@@ -61,6 +71,8 @@ data. *Physiological and Biochemical Zoology* 77: 502–521.
 
 Mitchell, J. W. (1976). Heat transfer from spheres and other animal forms. *Biophysical Journal* 16: 561–569.
 
+Paynter, H. M. (1961). *Analysis and Design of Engineering Systems*. MIT Press, Cambridge, Massachusetts.
+
 Porter, W. P. and Gates, D. M. (1969). Thermodynamic equilibria of animals with environment. *Ecological Monographs*
 39: 227–244.
 
@@ -75,6 +87,8 @@ scalable individual-based model to ecological applications. *Australian Journal 
 
 Reich, P. B., Tjoelker, M. G., Machado, J.-L. and Oleksyn, J. (2006). Universal scaling of respiratory metabolism,
 size and nitrogen in plants. *Nature* 439: 457–461.
+
+Sterling, P. (2012). Allostasis: a model of predictive regulation. *Physiology & Behavior* 106: 5–15.
 
 Tracy, C. R. (1976). A model of the dynamic exchanges of water and energy between a terrestrial amphibian and its
 environment. *Ecological Monographs* 46: 293–326.

@@ -1,9 +1,9 @@
 # Layers as a radial graph
 
-Heat made in the core of an animal is conducted outwards through a series of shells: flesh, then fat, then skin,
-then fur. NicheMapR holds this as a formula for each shape, with one layer of each kind. Here it is held as what it
-is, a chain of nodes joined by thermal resistances, so that the number and kind of layers is data and not code.
-This page describes that chain, how far it has been taken, and where it is going.
+Heat made in the core of an animal is conducted outwards through shells: flesh, fat, skin, fur. NicheMapR holds
+this as a formula for each shape, with one layer of each kind. Here it is a chain of nodes joined by thermal
+resistances, so that the number and kind of layers is data, not code. This page describes that chain, how far it
+has been taken, and where it is going.
 
 ```@setup layers
 using Main.FigureHelpers
@@ -20,8 +20,9 @@ heat entering or leaving at each node:
 radial_network_diagram() # hide
 ```
 
-The closed-form equations of the endotherm model are this network already solved. Writing it out shows what is
-in it.
+The closed-form equations of the endotherm model are this network already solved. In bond-graph terms the nodes
+are 0-junctions, the layers resistors in series, and the heat entering at a node a source of flow, see
+[Gradients, resistances and flows](gradients.md#The-budget-as-a-network).
 
 **Nodes**
 
@@ -31,7 +32,7 @@ in it.
 | boundary of flesh and fat | none | eliminated: the two resistances are added |
 | skin | `skin_temperature` | solved for |
 | outer surface of the fur | `insulation_temperature` | solved for |
-| depth in the fur at which longwave radiation is exchanged | `radiant_temperature` | derived. It is the outer surface by default |
+| depth in the fur at which longwave radiation is exchanged | `radiant_temperature` | derived. The outer surface by default |
 | compressed fur against the ground | `compressed_insulation_temperature` | derived, where the body touches the ground |
 
 **Resistances**
@@ -49,18 +50,17 @@ in it.
 | Node | Heat |
 |:--|:--|
 | core | metabolic heat generated, less the heat lost in breathing |
-| flesh | the generation is spread through its volume, which is what gives the core its form of resistance |
+| flesh | the generation is spread through its volume, which gives the core its form of resistance |
 | skin | less evaporation from the skin |
 | fur surface | plus sunlight absorbed, less evaporation from wet fur, less convection and radiation |
 
-The part of this network from the core to the skin is a simple chain, and is the subject of the rest of this
-page. The part beyond the skin is not, for the three reasons given [at the end](#Where-the-chain-is-not-a-chain).
+From the core to the skin the network is a simple chain, the subject of the rest of this page. Beyond the skin
+it is not, for three reasons given [at the end](#Where-the-chain-is-not-a-chain).
 
 ## Resistances in series
 
-By analogy with Ohm's law, the heat that flows between two temperatures is their difference divided by a thermal
-resistance, in K/W, and resistances in series add. Temperature is the potential and heat is what flows, see
-[Gradients, resistances and flows](gradients.md). For an animal with its core at ``T_c`` and its skin at ``T_s``:
+The heat that flows between two temperatures is their difference divided by a thermal resistance, in K/W, and
+resistances in series add. For an animal with its core at ``T_c`` and its skin at ``T_s``:
 
 ```math
 Q_{gen,net} = \frac{T_c - T_s}{R_{flesh} + R_{fat}}
@@ -68,16 +68,16 @@ Q_{gen,net} = \frac{T_c - T_s}{R_{flesh} + R_{fat}}
 
 The two resistances are of different kinds.
 
-Fat is a passive shell. For a cylinder of length ``L``, the resistance of a shell of conductivity ``k`` between
-radii ``r_{in}`` and ``r_{out}`` is
+Fat is a passive shell. For a cylinder of length ``L``, a shell of conductivity ``k`` between radii ``r_{in}``
+and ``r_{out}`` has
 
 ```math
 R_{shell} = \frac{\ln(r_{out} / r_{in})}{2 \pi k L}
 ```
 
-Flesh is not a plain resistor, because the heat is produced throughout it. With heat generated evenly through a
-cylinder of radius ``R`` and volume ``V``, the temperature falls as a parabola from the centre, and the resistance
-from the centre to the surface is (Porter and Kearney 2009)
+Flesh is not a plain resistor, because heat is produced throughout it. With heat generated evenly through a
+cylinder of radius ``R`` and volume ``V``, the temperature falls as a parabola from the centre, and the
+resistance from centre to surface is (Porter and Kearney 2009)
 
 ```math
 R_{core} = \frac{R^2}{4 k V}
@@ -87,16 +87,15 @@ For a sphere the 4 becomes a 6.
 
 ## Layers
 
-These two kinds are the two types of [`AbstractRadialLayer`](@ref):
+These are the two types of [`AbstractRadialLayer`](@ref):
 
 | Type | Layer | Resistance |
 |:--|:--|:--|
 | [`GeneratingCore`](@ref)`(conductivity)` | flesh, making heat evenly through its volume | from the centre to its surface |
 | [`ConductiveShell`](@ref)`(conductivity, r_inner, r_outer)` | fat, and any other passive layer | from its inner to its outer radius |
 
-A *stack* is a tuple of layers from the centre outwards, and [`stack_resistance`](@ref) adds their resistances,
-each found by a method for the family of the shape. [`core_to_skin_stack`](@ref) builds the stack of a body from
-its radii:
+A *stack* is a tuple of layers from the centre outwards. [`stack_resistance`](@ref) adds their resistances, each
+by a method for the family of the shape. [`core_to_skin_stack`](@ref) builds the stack of a body from its radii:
 
 ```@example layers
 using HeatExchange, BiophysicalGeometry, Unitful
@@ -121,9 +120,8 @@ The body, with its fur and fat cut away:
 shape_gallery("" => body; size = (420, 300)) # hide
 ```
 
-The heat conducted from the core to the skin is then the temperature difference over that resistance,
-[`radial_net_metabolic_heat`](@ref), and this is the function that the solvers use, through
-[`net_metabolic_heat`](@ref):
+The heat conducted from core to skin is the temperature difference over that resistance,
+[`radial_net_metabolic_heat`](@ref). The solvers use it through [`net_metabolic_heat`](@ref):
 
 ```@example layers
 core_temperature, skin_temperature = u"K"(37.0u"°C"), u"K"(32.0u"°C")
@@ -131,13 +129,14 @@ radial_net_metabolic_heat(body, conductivities, core_temperature, skin_temperatu
 net_metabolic_heat(; body, conductivities, core_temperature, skin_temperature)
 ```
 
-The stack of one core and one shell gives the same numbers as the closed forms of NicheMapR, which it replaced, to
-within rounding error for every shape. The tests of the package hold it to that.
+The stack of one core and one shell gives the same numbers as the closed forms of NicheMapR, which it replaced,
+to rounding error for every shape. The tests of the package hold it to that.
 
 ## The temperature through the layers
 
-With a resistance for each layer, the temperature at each boundary follows from the heat flowing through it. Here
-the fat, though much the thinner layer, accounts for about two fifths of the difference between core and skin:
+With a resistance for each layer, the temperature at each boundary follows from the heat flowing through it.
+Here the fat, though much the thinner layer, accounts for about two fifths of the difference between core and
+skin:
 
 ```@example layers
 flesh, fat_shell = stack
@@ -150,12 +149,12 @@ radial_stack_diagram(["flesh", "fat", "fur"], # hide
     [core_temperature, boundary_temperature, skin_temperature, surface_temperature]) # hide
 ```
 
-Within the flesh the temperature in fact follows a parabola, and within each shell a logarithm. The straight
-lines join the values at the boundaries.
+Within the flesh the temperature follows a parabola, and within each shell a logarithm. The straight lines join
+the values at the boundaries.
 
 ## Shapes
 
-The resistance of a layer depends on the family of the shape of the body:
+The resistance of a layer depends on the family of the shape:
 
 | Family | Core | Shell |
 |:--|:--|:--|
@@ -171,19 +170,18 @@ layer_sections("Cylinder" => Body(Cylinder(10.0u"kg", 1000.0u"kg/m^3", 3.0), lay
 ```
 
 where ``R`` is the radius of the flesh, ``V`` its volume, and ``S^2 = a^2 b^2 c^2 / (a^2 b^2 + a^2 c^2 + b^2 c^2)``
-for the semi-axes ``a``, ``b``, ``c`` of the flesh (Porter and Kearney 2009). Concentric ellipsoidal shells have no
-exact solution of this kind, and the equivalent sphere is an approximation that is exact for a sphere. The half
+for the semi-axes ``a``, ``b``, ``c`` of the flesh (Porter and Kearney 2009). Concentric ellipsoidal shells have
+no exact solution of this kind, and the equivalent sphere is an approximation, exact for a sphere. The half
 shapes of BiophysicalGeometry.jl use the methods of the whole shape.
 
 ## What a list of layers allows
 
-Because the layers are a list, a change in the structure of the animal is a change to the list:
+A change in the structure of the animal is a change to the list:
 
 - **No fat** is a shell of zero thickness, with zero resistance.
-- **More layers** are more entries. A second shell of a different conductivity can stand for a layer of blubber
-  under a layer of muscle, or for clothing, or for snow on the back of an animal.
-- **A large animal** can have its flesh divided into shells, each making heat, to represent a warm core inside
-  cooler outer tissue.
+- **More layers** are more entries: blubber under muscle, clothing, snow on the back of an animal.
+- **A large animal** can have its flesh divided into shells, each making heat, for a warm core inside cooler
+  outer tissue.
 
 ```@example layers
 clothed = (stack..., ConductiveShell(0.04u"W/m/K", skin_radius(body), skin_radius(body) + 5.0u"mm"))
@@ -192,38 +190,36 @@ uconvert(u"K/W", stack_resistance(clothed, body))
 
 ## Where this stands
 
-The chain from the core to the skin is in use: every solver in the package conducts heat through it. The rest of
-the path, from the skin through the fur to the environment, is not yet a list of layers. It is the surface solve of
-[`solve_part_heat_balance`](@ref), which has one layer of fur, see [Insulation](insulation.md). So, in this
-version:
+The chain from core to skin is in use: every solver conducts heat through it. From the skin through the fur to
+the environment is not yet a list of layers. It is the surface solve of [`solve_part_heat_balance`](@ref), with
+one layer of fur, see [Insulation](insulation.md).
 
 | | State |
 |:--|:--|
 | One layer of flesh and one of fat, all shapes | in use, and reproduces NicheMapR |
-| Any number of passive shells between the core and the skin | available through [`stack_resistance`](@ref); the solvers build the stack of flesh and fat |
+| Any number of passive shells between core and skin | available through [`stack_resistance`](@ref); the solvers build the stack of flesh and fat |
 | One layer of fur, by the surface solve | in use |
 | Several shells of heat-generating flesh | planned. It needs the body to describe a boundary within the flesh |
 | Several layers of fur or clothing | planned |
 | Contact with the ground as a branch from the skin node | present in the surface solve, to become a branch of the graph |
 | Longwave radiation exchanged at a depth within the fur | planned as a source at a node within the fur, in place of `longwave_depth_fraction` |
+| Heat capacity at each node, for transients | planned, see [Solving a heat balance](heat_balance.md#Steady-state-and-storage) |
 
 ## Where the chain is not a chain
 
 Three features of the heat balance beyond the skin are not resistances in series. Each was measured in the
 current code before deciding what to do about it.
 
-**The skin temperature is written as the mean of two estimates.** One estimate comes from the core side, the
-core temperature less the heat flow times the resistance of flesh and fat. The other comes from the
-environment side, the fur surface temperature plus the heat flow times the resistance of the fur. The
-`residual_skin_temperature` of [`solve_part_heat_balance`](@ref) is the difference between the skin temperature
-and their mean. In a network the skin node is fixed by one condition, that the heat arriving equals the heat
-leaving. The two are the same thing: at a solution the two estimates agree to about 10⁻¹³ K, for bodies from
-0.1 to 100 kg, with and without contact with the ground and with wet skin. The mean is an unusual way of writing
-continuity of heat flow at the skin, and a node balance gives the same numbers.
+**The skin temperature is written as the mean of two estimates.** One comes from the core side: core
+temperature less heat flow times the resistance of flesh and fat. The other from the environment side: fur
+surface temperature plus heat flow times the resistance of the fur. `residual_skin_temperature` is the
+difference between the skin temperature and their mean. In a network the skin node is fixed by one condition,
+that heat arriving equals heat leaving. The two are the same: at a solution the estimates agree to about
+10⁻¹³ K, for bodies from 0.1 to 100 kg, with and without ground contact and wet skin.
 
-**Contact with the ground is a branch.** Heat leaves the skin by two paths side by side, through the free fur to
-the air and through the compressed fur to the substrate, as in the diagram above. It is not a small term. For a
-1 kg cylinder under a sky at −10 °C on a substrate at 27 °C:
+**Contact with the ground is a branch.** Heat leaves the skin by two paths side by side: through the free fur
+to the air, and through the compressed fur to the substrate. It is not a small term. For a 1 kg cylinder under
+a sky at −10 °C on a substrate at 27 °C:
 
 | Fraction of the surface on the ground | Share of the heat exchanged, other than by evaporation, that passes through the ground |
 |:--|:--|
@@ -232,15 +228,15 @@ the air and through the compressed fur to the substrate, as in the diagram above
 | 0.5 | 45 % |
 
 with the compressed fur a little under 1 K warmer than the free fur surface. So the structure must be a graph,
-with a node for the substrate reached from the skin, and not a list.
+with a node for the substrate reached from the skin, not a list.
 
 **Radiation can act within the fur.** `longwave_depth_fraction` places the exchange of longwave radiation at a
-depth in the coat, and the closed form then solves conduction and radiation at that depth together. Every
-example and test uses a fraction of 1, the outer surface, where this coupling does nothing. For other values
-the closed form divides by ``\ln(R_{fa} / R_{rad})``, which goes to zero as the depth approaches the surface, and
-for thin fur the solution runs away. So radiation at depth is off by default and not usable when on. With the fur
-divided into shells, radiation at a depth becomes heat entering at a node inside the fur, with nothing to divide
-by. The same holds for sunlight, which in a deep or sparse coat is absorbed below the surface.
+depth in the coat, and the closed form solves conduction and radiation at that depth together. Every example and
+test uses a fraction of 1, the outer surface, where this coupling does nothing. For other values the closed
+form divides by ``\ln(R_{fa} / R_{rad})``, which goes to zero as the depth approaches the surface, and for thin
+fur the solution runs away. So radiation at depth is off by default and not usable when on. With the fur
+divided into shells, it becomes heat entering at a node inside the fur, with nothing to divide by. The same
+holds for sunlight, which in a deep or sparse coat is absorbed below the surface.
 
 ## Where this is going
 
@@ -256,9 +252,8 @@ The target is one small graph for each part of a body:
 
 Bare skin is then a graph with no shells of fur, a large animal one with several shells of flesh, and clothing
 or snow more shells outside. The solution is that of a chain of linear conduction with one nonlinear boundary.
-For an optimiser, each node temperature is a variable with one residual, which generalises the two variables,
-skin and fur surface, that each part has now.
+For an optimiser, each node temperature is a variable with one residual, which generalises the two variables
+each part has now, see [Differentiability and the NLP interface](autodiff.md).
 
-The same idea, nodes joined by conductances with a source of heat at each node, is applied sideways between the
-parts of a body in [Bodies of many parts](multipart.md). The radial direction and the lateral one are two uses of
-one structure.
+The same structure, nodes joined by conductances with a source at each node, is applied sideways between the
+parts of a body in [Bodies of many parts](multipart.md).

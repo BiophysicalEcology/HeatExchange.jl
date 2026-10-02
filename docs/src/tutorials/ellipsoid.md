@@ -1,9 +1,9 @@
 # The ellipsoid model
 
-Before the full endotherm model there was a simpler one, of an animal as a furred ellipsoid in an environment
-where the air, the ground and the sky are at one temperature and there is no sun (Porter and Kearney 2009).
-Under those conditions the heat budget has a solution in closed form, with no iteration, and it shows how size,
-shape and fur set the range of temperatures in which an endotherm can live. It is `ellipsoid_endo` in NicheMapR and
+Before the full endotherm model there was a simpler one: an animal as a furred ellipsoid in an environment
+where air, ground and sky are at one temperature and there is no sun (Porter and Kearney 2009). The heat budget
+then has a closed-form solution, with no iteration, and shows how size, shape and fur set the range of
+temperatures in which an endotherm can live. It is `ellipsoid_endo` in NicheMapR and
 [`ellipsoid_endotherm`](@ref) here.
 
 ```@setup ellipsoid
@@ -14,15 +14,18 @@ using CairoMakie
 
 ## The model
 
-Heat made evenly through an ellipsoid of flesh passes through four resistances in turn: the flesh itself, the
-fur, and then convection and radiation side by side at the outer surface:
+Heat made evenly through an ellipsoid of flesh passes through four resistances: the flesh, the fur, and then
+convection and radiation side by side at the outer surface:
 
 ```math
 Q_{gen} = \frac{T_c - T_a}{R_{flesh} + R_{fur} + \dfrac{R_{conv} \, R_{rad}}{R_{conv} + R_{rad}}}
 ```
 
-The fur has a fixed conductivity. The animal's shape is a prolate ellipsoid whose long axis is `posture` times its
-short axes, so that a posture of 1 is a ball and a larger posture is an animal stretched out.
+This is the network of [Gradients, resistances and flows](../manual/gradients.md#The-budget-as-a-network) at
+its simplest: resistors in series and in parallel, one source of flow and one source of effort.
+
+The fur has a fixed conductivity. The shape is a prolate ellipsoid whose long axis is `posture` times its short
+axes: a posture of 1 is a ball, and a larger one an animal stretched out.
 
 ```@example ellipsoid
 using BiophysicalGeometry, Unitful # hide
@@ -61,14 +64,14 @@ which is estimated from its mass by the equation of Kleiber (1947) unless `minim
 
 ## The thermoneutral zone
 
-Because the heat required is the temperature difference over a fixed resistance, the air temperature at which it
-equals the basal rate can be written down directly. That is the *lower critical temperature*:
+Because the heat required is the temperature difference over a fixed resistance, the air temperature at which
+it equals the basal rate can be written down directly. That is the *lower critical temperature*:
 
 ```@example ellipsoid
 out.lower_critical_air_temperature, out.upper_critical_air_temperature
 ```
 
-Above it the animal makes more heat than it loses and must get rid of the rest by evaporating water. The *upper
+Above it the animal makes more heat than it loses and must lose the rest by evaporating water. The *upper
 critical temperature* is defined here as the air temperature at which the heat to be lost reaches a fraction,
 `stress_factor`, of the basal rate. Between the two is the thermoneutral zone.
 
@@ -88,13 +91,12 @@ axislegend(ax2; position = :lt)
 fig
 ```
 
-`final_metabolic_heat_production` is the heat required, or the basal rate where that is higher. The water loss is
-a rough estimate: the heat that must be lost above the lower critical temperature, as water evaporated.
+`final_metabolic_heat_production` is the heat required, or the basal rate where that is higher. The water loss
+is a rough estimate: the heat that must be lost above the lower critical temperature, as water evaporated.
 
 ## Size, shape and fur
 
-The critical temperatures depend on the three things the model has: the size of the animal, its posture and its
-fur.
+The critical temperatures depend on the three things the model has: size, posture and fur.
 
 ```@example ellipsoid
 masses = 10 .^ range(-2, 3; length = 40)   # kg
@@ -114,10 +116,10 @@ axislegend(ax2; position = :lb)
 fig
 ```
 
-A large animal has less surface for its mass and holds its heat. With the same depth of fur, its lower critical
-temperature is far below that of a small one, and a small animal can only match it with fur that it could not
-carry. Curling up lowers the critical temperature by a few degrees at any size. These are the patterns from which
-Porter and Kearney (2009) drew general conclusions about the thermal niches of endotherms.
+A large animal has less surface for its mass and holds its heat. With the same depth of fur, its lower
+critical temperature is far below that of a small one, and a small animal can only match it with fur it could
+not carry. Curling up lowers the critical temperature by a few degrees at any size. These are the patterns from
+which Porter and Kearney (2009) drew general conclusions about the thermal niches of endotherms.
 
 ## Compared with NicheMapR
 
@@ -140,9 +142,12 @@ rounding.
 
 ## The ellipsoid model and the full model
 
-The ellipsoid model leaves out what makes the full model hard: fur whose conductivity depends on its temperature,
-radiation within the fur, sunlight, a sky and ground at different temperatures, a coat that differs between back
-and belly, contact with the ground, and evaporation from the skin as part of the balance. With all of those
-absent or constant, the full model of [the endotherm tutorial](endotherm.md) reduces to nearly the same thing.
+The ellipsoid model leaves out what makes the full model hard: fur whose conductivity depends on its
+temperature, radiation within the fur, sunlight, a sky and ground at different temperatures, a coat that
+differs between back and belly, contact with the ground, and evaporation from the skin as part of the balance.
+With those absent or constant, the full model of [the endotherm tutorial](endotherm.md) reduces to nearly the
+same thing. Its fixed conductivities are descriptive where the full model is mechanistic, see
+[Units, dimensions and functional traits](../manual/units_traits.md#Processes-and-sub-processes).
+
 The ellipsoid model is useful as a first estimate, for broad comparisons across many species, and for teaching.
 [`solve_metabolic_rate`](@ref) is for anything in a real environment.

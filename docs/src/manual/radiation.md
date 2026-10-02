@@ -1,9 +1,8 @@
 # Radiation
 
-An organism absorbs shortwave radiation from the sun, directly and after it has been scattered by the sky and
-reflected by the ground. It absorbs longwave radiation emitted by the sky, the ground and the vegetation around it,
-and emits longwave radiation from its own surface. Outdoors by day these are usually the largest terms of the heat
-budget.
+An organism absorbs shortwave radiation from the sun, directly, scattered by the sky and reflected by the
+ground. It absorbs longwave radiation from the sky, the ground and vegetation, and emits it from its own
+surface. Outdoors by day these are usually the largest terms of the heat budget.
 
 ```@setup radiation
 using Main.FigureHelpers
@@ -30,13 +29,13 @@ Q_{sol,ground} &= \alpha_v \, F_{ground} \, (A - A_{cond}) \, \rho_g \, Q_{globa
 | ``z`` | zenith angle of the sun | `zenith_angle` |
 | ``s`` | shade | `shade` |
 | ``\rho_g`` | fraction of sunlight reflected by the ground | `ground_albedo` in [`EnvironmentalPars`](@ref) |
-| ``\alpha_d``, ``\alpha_v`` | solar absorptivity of the dorsal and ventral surface | `body_absorptivity_dorsal`, `body_absorptivity_ventral` in [`RadiationParameters`](@ref) |
-| ``F_{sky}``, ``F_{ground}`` | fraction of the surface that faces the sky and the ground | `sky_view_factor`, `ground_view_factor` |
+| ``\alpha_d``, ``\alpha_v`` | solar absorptivity, dorsal and ventral | `body_absorptivity_dorsal`, `body_absorptivity_ventral` in [`RadiationParameters`](@ref) |
+| ``F_{sky}``, ``F_{ground}`` | fraction of the surface facing sky and ground | `sky_view_factor`, `ground_view_factor` |
 | ``A``, ``A_{cond}`` | total area, and area in contact with the ground | the body, and `conduction_fraction` |
-| ``A_{sil}`` | silhouette area, the area of the shadow cast on a plane normal to the beam | the body, and `solar_orientation` |
+| ``A_{sil}`` | silhouette area: the shadow cast on a plane normal to the beam | the body, and `solar_orientation` |
 
 The direct beam is measured on a horizontal surface, and dividing by ``\cos z`` gives its strength on a surface
-that faces the sun. The silhouette area is from BiophysicalGeometry.jl, and depends on how the body is turned:
+facing the sun. The silhouette area is from BiophysicalGeometry.jl, and depends on how the body is turned:
 
 ```@example radiation
 using HeatExchange, BiophysicalGeometry, Unitful
@@ -63,8 +62,8 @@ end # hide
 fig # hide
 ```
 
-A lizard that turns its side to the sun on a cold morning, and its head to the sun at midday, moves between the
-first and the last of these. With the structs that hold the inputs:
+A lizard that turns its side to the sun on a cold morning and its head to the sun at midday moves between the
+first and the last. With the structs that hold the inputs:
 
 ```@example radiation
 absorptivities = Absorptivities(; body = DorsalVentral(0.85, 0.85), ground = 0.8)
@@ -81,13 +80,16 @@ markdown_table(["Orientation", "Direct", "From the sky", "From the ground", "Tot
 
 Here `ground` in `Absorptivities` is the solar absorptivity of the ground, one less its albedo.
 
-Shade reduces all three parts in proportion. In the insulated solvers it also turns the shaded fraction of the
-view of the sky into a view of vegetation, which changes the longwave radiation received, see below.
+Shade reduces all three parts in proportion. In the insulated solvers it also turns the shaded part of the view
+of the sky into a view of vegetation, which changes the longwave radiation received, see below.
+
+Solar radiation is a source, not a flow down a gradient, see
+[Gradients, resistances and flows](gradients.md#Sources-and-storage).
 
 ## Longwave radiation
 
-Every surface emits radiation in proportion to the fourth power of its absolute temperature. The organism receives
-it from the sky and the ground, [`radiation_in`](@ref):
+Every surface emits radiation in proportion to the fourth power of its absolute temperature. The organism
+receives it from the sky and the ground, [`radiation_in`](@ref):
 
 ```math
 Q_{IR,in} = \epsilon_d \, F_{sky} \, A \, \epsilon_{sky} \, \sigma T_{sky}^4
@@ -100,10 +102,9 @@ and emits it from its own surface, [`radiation_out`](@ref):
 Q_{IR,out} = \epsilon_d \, F_{sky} \, A \, \sigma T_{s}^4 + \epsilon_v \, F_{ground} \, (A - A_{cond}) \, \sigma T_{s}^4
 ```
 
-where ``\epsilon`` are emissivities, ``\sigma`` is the Stefan–Boltzmann constant and ``T_s`` is the temperature
-of the surface. The sky temperature is the temperature of a black body that would emit what the sky does. Under a
-clear sky it is well below air temperature, and this is why animals and leaves in the open at night are colder
-than the air.
+where ``\epsilon`` are emissivities, ``\sigma`` the Stefan–Boltzmann constant and ``T_s`` the surface
+temperature. The sky temperature is that of a black body emitting what the sky does. Under a clear sky it is
+well below air temperature, which is why animals and leaves in the open at night are colder than the air.
 
 ```@example radiation
 import HeatExchange: Emissivities, EnvironmentTemperatures
@@ -121,8 +122,8 @@ A lizard at air temperature under this sky loses more longwave radiation than it
 
 ## View factors
 
-A view factor is the fraction of the radiation leaving a surface that reaches another. For an animal in the open,
-about half of its surface faces the sky and half the ground. For a single body they are given in
+A view factor is the fraction of the radiation leaving a surface that reaches another. For an animal in the
+open, about half its surface faces the sky and half the ground. For a single body they are in
 [`RadiationParameters`](@ref):
 
 | Field | Faces | At temperature |
@@ -132,21 +133,21 @@ about half of its surface faces the sky and half the ground. For a single body t
 | `bush_view_factor` | vegetation beside and below the organism | `bush_temperature` |
 | `vegetation_view_factor` | vegetation overhead | `vegetation_temperature` |
 
-For a body of several parts they are computed for each part from the positions of the parts, by
-`silhouette_factors` of BiophysicalGeometry.jl, and the part of a view that is taken up by another part exchanges
-radiation with that part, see [Bodies of many parts](multipart.md).
+For a body of several parts they are computed for each part by `silhouette_factors` of BiophysicalGeometry.jl,
+and the part of a view taken up by another part exchanges radiation with it, see
+[Bodies of many parts](multipart.md#Parts-that-see-each-other).
 
 ## Through fur
 
 With bare skin, radiation is absorbed and emitted at the skin. With fur or feathers, sunlight is absorbed at the
-outer surface of the coat, with an absorptivity of one less the `reflectance` of the fibres. Longwave radiation is
-exchanged at the outer surface too by default, and is written in a linear form,
+outer surface of the coat, with an absorptivity of one less the `reflectance` of the fibres. Longwave radiation
+is exchanged there too by default, in a linear form,
 
 ```math
 Q_{rad} = \sum_i 4 \, \epsilon \, \sigma \, F_i \, A \left(\frac{T_{rad} + T_i}{2}\right)^3 (T_{rad} - T_i)
 ```
 
-summed over the sky, the ground, bushes and overhead vegetation, so that it can be solved together with
-conduction through the coat. This is within about 1 % of the fourth-power form for the temperature differences
-that occur (Kearney et al. 2021). Radiation also carries heat within the coat, from fibre to fibre, which is
-included as part of the conductivity of the fur, see [Insulation](insulation.md).
+summed over sky, ground, bushes and overhead vegetation, so that it can be solved together with conduction
+through the coat. This is within about 1 % of the fourth-power form for the temperature differences that occur
+(Kearney et al. 2021). Radiation also carries heat from fibre to fibre within the coat, as part of the
+conductivity of the fur, see [Insulation](insulation.md).

@@ -1,8 +1,8 @@
 # An endotherm: metabolic rate
 
-An endotherm holds its core temperature, and the question for its heat budget is what that costs: the metabolic
-rate, and the water, needed in a given environment. This tutorial follows the example of the NicheMapR endotherm
-model (Kearney et al. 2021), with its default animal, and compares the results with `endoR_devel`.
+An endotherm holds its core temperature, and the question for its heat budget is what that costs: the
+metabolic rate and the water needed in a given environment. This tutorial follows the example of the NicheMapR
+endotherm model (Kearney et al. 2021), with its default animal, and compares the results with `endoR_devel`.
 
 ```@setup endotherm
 using Main.FigureHelpers
@@ -12,10 +12,10 @@ using CairoMakie
 
 ## The animal
 
-The default settings of `endoR_devel` are for a 65 kg ellipsoid with a pelt 2 mm deep and no layer of fat,
-holding a core temperature of 37 °C. Its long axis is 1.1 times its short axes, so it is nearly a sphere, a
-curled-up posture that conserves heat. It roughly approximates a typical-sized, lightly clothed, resting human
-(Kearney et al. 2021). The same defaults are in the `example_` functions:
+The defaults of `endoR_devel` are a 65 kg ellipsoid with a pelt 2 mm deep and no fat, holding a core
+temperature of 37 °C. Its long axis is 1.1 times its short axes, nearly a sphere, a curled-up posture that
+conserves heat. It roughly approximates a typical-sized, lightly clothed, resting human (Kearney et al. 2021).
+The same defaults are in the `example_` functions:
 
 ```@example endotherm
 using HeatExchange, BiophysicalGeometry, Unitful
@@ -37,8 +37,8 @@ basal = metabolism_pars(mammal).metabolic_heat_flow
 
 The minimum metabolic rate is the basal rate of a mammal of this mass, ``3.39 \, M^{0.75}`` (Kleiber 1947).
 
-The environment is the default as well: the ground and sky at air temperature, a wind of 0.1 m/s, a relative
-humidity of 5 % and no sun. It is an indoor environment, or a metabolic chamber:
+The environment is the default too: ground and sky at air temperature, a wind of 0.1 m/s, 5 % relative
+humidity and no sun. An indoor environment, or a metabolic chamber:
 
 ```@example endotherm
 chamber(air_temperature) = (; environment_pars = example_environment_pars(),
@@ -57,7 +57,7 @@ out.energy_flows.metabolic_heat_flow, out.energy_flows.metabolic_heat_flow / bas
 ```
 
 The animal must produce about 1.4 times its basal rate to hold 37 °C. The output has four groups, see
-[Temperature or metabolic rate](../manual/solvers.md).
+[Temperature or metabolic rate](../manual/solvers.md#The-output).
 
 `energy_flows` has the components of the energy balance, in W, the `enbal` table of NicheMapR:
 
@@ -67,8 +67,8 @@ e = out.energy_flows
    e.metabolic_heat_flow)
 ```
 
-`thermoregulation` has the temperatures, the `treg` table. The lung temperature is the mean of the core and skin
-temperatures:
+`thermoregulation` has the temperatures, the `treg` table. The lung temperature is the mean of the core and
+skin temperatures:
 
 ```@example endotherm
 t = out.thermoregulation
@@ -80,10 +80,10 @@ t.insulation_conductivity_effective, t.dorsal.insulation_conductivity
 ```
 
 The skin is at about 20 °C and the outer surface of the fur at 13 °C. The second conductivity includes the
-radiation within the fur, see [Insulation](../manual/insulation.md).
+radiation within the fur, see [Insulation](../manual/insulation.md#Radiation-within-the-coat).
 
 `mass_flows` has the mass balance, the `masbal` table: the air and oxygen passing through the lungs, and the
-water lost in the breath and from the skin:
+water lost in the breath and from the skin, see [Flows of mass](../manual/gradients.md#Flows-of-mass):
 
 ```@example endotherm
 m = out.mass_flows
@@ -97,8 +97,8 @@ g = out.morphology
 g.area_skin, g.total_area, g.area_evaporation, g.characteristic_dimension
 ```
 
-The skin area is 0.783 m². After taking away the area covered by the bases of the hairs, the area that can
-evaporate water is 0.766 m², and with a skin wetness of 0.5 % only 0.0038 m² of it acts as a free water surface.
+The skin area is 0.783 m². Less the area covered by the bases of the hairs, the area that can evaporate water
+is 0.766 m², and with a skin wetness of 0.5 % only 0.0038 m² of it acts as a free water surface.
 
 ## Across air temperatures
 
@@ -121,29 +121,30 @@ hidexdecorations!(ax1; grid = false)
 fig
 ```
 
-The metabolic rate required falls in a nearly straight line as the air warms, as Scholander's classic picture of
-an endotherm has it, and crosses the basal rate, the dashed line, at the *lower critical temperature*:
+The metabolic rate required falls in a nearly straight line as the air warms, as in Scholander's classic
+picture of an endotherm, and crosses the basal rate, the dashed line, at the *lower critical temperature*:
 
 ```@example endotherm
 lower_critical = air_temperatures[findfirst(<(ustrip(u"W", basal)), rates)]
 ```
 
-Below it the animal is spending energy to keep warm. Above it the result is below the basal rate, which no animal
+Below it the animal spends energy to keep warm. Above it the result is below the basal rate, which no animal
 can achieve: it makes at least its basal heat, and cannot lose it all in this state. The line above the lower
-critical temperature is therefore not a prediction of what the animal does. It is a statement that the animal must
-change.
+critical temperature is not a prediction of what the animal does. It says the animal must change.
 
 ## What the animal does next
 
-In `endoR_devel` a sequence of responses follows, each tried until it is used up (Kearney et al. 2021): the
-animal uncurls, which raises its surface area; it sends more blood to the skin, which raises the conductivity of
-the flesh; it lets its core temperature rise; it pants; and it sweats. Each is a change to a trait followed by
-another solve of the heat budget, and they are in
-[BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), by rules as in NicheMapR
-or by optimisation. The effect of each on the heat budget can be seen here by making the change by hand.
+In `endoR_devel` a sequence of responses follows, each tried until used up (Kearney et al. 2021): the animal
+uncurls, sends more blood to the skin, lets its core temperature rise, pants, and sweats. Each is a change to a
+trait followed by another solve. They are in
+[BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), by rules as in
+NicheMapR or by optimisation. Its tutorial
+[A mammal across air temperatures](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/tutorials/mammal)
+carries this animal on through the thermoneutral zone and into the heat. The effect of each change on the heat
+budget can be seen here by making it by hand.
 
-**Posture.** The default animal is curled into a ball. Stretched out, with its long axis 4 times its short axes,
-it has more surface, and must produce more heat in the cold. Its lower critical temperature is higher:
+**Posture.** The default animal is curled into a ball. Stretched out, with its long axis 4 times its short
+axes, it has more surface and must produce more heat in the cold. Its lower critical temperature is higher:
 
 ```@example endotherm
 shape_gallery(("axis ratio $ratio" => body(animal(; axis_ratio = ratio, fur_depth = 20.0u"mm")) for ratio in (1.1, 2.0, 4.0))...) # hide
@@ -192,10 +193,13 @@ axislegend(ax; position = :rt)
 fig
 ```
 
+The lower critical temperature moves with each of these. It is an output, not a trait, see
+[Units, dimensions and functional traits](../manual/units_traits.md#Four-kinds-of-functional-trait).
+
 ## Compared with NicheMapR
 
 The reference values are from `endoR_devel` of NicheMapR 3.3.3 with thermoregulation turned off
-(`THERMOREG = 0`), written by the script `docs/src/data/nichemapr_reference.R`:
+(`THERMOREG = 0`), written by `docs/src/data/nichemapr_reference.R`:
 
 ```@example endotherm
 using DelimitedFiles
@@ -234,23 +238,23 @@ markdown_table(["At 0 °C", "HeatExchange.jl", "NicheMapR, exhaled at lung tempe
 
 Two things are to be seen.
 
-With air exhaled at lung temperature in both, the metabolic rate agrees to within about 1 %, and the surface
-temperatures to within a quarter of a degree. The remaining difference is in the solution of the surface: this
-package balances the surface energy budget to convergence, where `SIMULSOL` of NicheMapR stops when successive
-guesses of the temperatures agree within a tolerance, see [For NicheMapR users](../manual/nichemapr.md).
+**With air exhaled at lung temperature in both**, the metabolic rate agrees to about 1 % and the surface
+temperatures to a quarter of a degree. The remaining difference is in the solution of the surface: this package
+balances the surface energy budget to convergence, where `SIMULSOL` stops when successive guesses agree within
+a tolerance, see [For NicheMapR users](../manual/nichemapr.md#How-closely-the-numbers-agree).
 
-The default of NicheMapR gives a lower metabolic rate in the cold, the 101.9 W at 0 °C quoted by Kearney et al.
-(2021). In NicheMapR air leaves the nose at the air temperature plus an offset, `DELTAR`, zero by default, and so
-gives back most of its heat and water on the way out. This package exhales air at lung temperature in this
-version, and the animal at 0 °C then loses about eight times as much water, and 10 W more heat, in its breath, see
-[Evaporation and respiration](../manual/evaporation_respiration.md). Longwave radiation absorbed and emitted are
-also reported differently by the two, though their difference, the net loss, is the same.
+**The default of NicheMapR gives a lower metabolic rate in the cold**, the 101.9 W at 0 °C quoted by Kearney et
+al. (2021). In NicheMapR air leaves the nose at air temperature plus an offset, `DELTAR`, zero by default, and
+so gives back most of its heat and water on the way out. This package exhales air at lung temperature in this
+version, and the animal at 0 °C loses about eight times as much water, and 10 W more heat, in its breath, see
+[Evaporation and respiration](../manual/evaporation_respiration.md#From-the-lungs). Longwave radiation absorbed
+and emitted are also reported differently by the two, though the net loss is the same.
 
 ## In a natural environment
 
-Outdoors the sky, the ground and the air are at different temperatures, the wind is stronger and there is sun. All
-of these are fields of [`EnvironmentalVars`](@ref), and the animal can have a different coat on its back and its
-belly. Here is the default animal on a clear, cold night and on a sunny day:
+Outdoors the sky, the ground and the air are at different temperatures, the wind is stronger and there is sun.
+All are fields of [`EnvironmentalVars`](@ref), and the animal can have a different coat on its back and belly.
+Here is the default animal on a clear, cold night and on a sunny day:
 
 ```@example endotherm
 night = example_environment_vars(; air_temperature = u"K"(0.0u"°C"), wind_speed = 2.0u"m/s", relative_humidity = 0.6)
@@ -272,8 +276,10 @@ markdown_table(["", "Cold night", "Sunny day"], [ # hide
 ]) # hide
 ```
 
-On the cold night the back, facing the sky, is colder than the belly. In the sun it is much the warmer, and the
-animal is given more heat than it can use. Hourly conditions like these for a whole year come from
+On the cold night the back, facing the sky, is colder than the belly. In the sun it is much the warmer, and
+the animal is given more heat than it can use. Hourly conditions like these for a whole year come from
 [Microclimate.jl](https://github.com/BiophysicalEcology/Microclimate.jl), see
-[Environments and the ecosystem](../manual/ecosystem.md), and Kearney et al. (2021) show the result for an animal
-in central Australia.
+[Environments and the ecosystem](../manual/ecosystem.md). Kearney et al. (2021) show the result for an animal
+in central Australia, and
+[A desert mammal through the year](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/tutorials/endotherm_year)
+does the same with thermoregulation.

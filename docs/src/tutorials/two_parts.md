@@ -1,11 +1,12 @@
 # Back and belly: two halves
 
-The back of an animal faces the sun and the sky, and its belly faces the ground, often with thinner fur. There
-are two ways to put this into a heat budget. The solvers of this package, like NicheMapR, solve one body twice,
-as if it were all back and then all belly, and average the results. Or the body can be two real halves, each
-with its own coat and its own surroundings, that share one core. This tutorial does both and compares them. It is
-the companion of the tutorial of the same name in
-[BiophysicalGeometry.jl](https://github.com/BiophysicalEcology/BiophysicalGeometry.jl), which builds the halves.
+The back of an animal faces the sun and sky, and its belly the ground, often with thinner fur. There are two
+ways to put this into a heat budget. The solvers of this package, like NicheMapR, solve one body twice, as if
+it were all back and then all belly, and average. Or the body can be two real halves, each with its own coat
+and surroundings, sharing one core. This tutorial does both and compares them. It is the companion of the
+tutorial of the same name in
+[BiophysicalGeometry.jl](https://github.com/BiophysicalEcology/BiophysicalGeometry.jl), which builds the
+halves.
 
 ```@setup two
 using Main.FigureHelpers
@@ -16,7 +17,8 @@ using CairoMakie
 ## One body, two sides
 
 The animal is a furred cylinder of 1 kg. With [`solve_metabolic_rate`](@ref) it is one body, and the dorsal and
-ventral coats are the two [`FibreProperties`](@ref) of its [`InsulationParameters`](@ref):
+ventral coats are the two [`FibreProperties`](@ref) of its [`InsulationParameters`](@ref), see
+[Insulation](../manual/insulation.md#Back-and-belly):
 
 ```@example two
 using HeatExchange, BiophysicalGeometry, Unitful
@@ -45,9 +47,9 @@ nothing # hide
 ## Two halves, one core
 
 As two parts, the animal is two `HalfCylinder`s of half the mass. Each has the radius and length of the whole
-cylinder and half of its volume and curved surface. The flat face of each is against the other, and is its
-`covered_area`. The halves have the outline of the whole cylinder, so the length that governs convection is that
-of the whole:
+cylinder and half its volume and curved surface. The flat face of each is against the other, and is its
+`covered_area`. The halves have the outline of the whole cylinder, so the length that governs convection is
+that of the whole:
 
 ```@example two
 function half(fibres, view_factors, solar_flow, environment)
@@ -71,9 +73,9 @@ end
 nothing # hide
 ```
 
-The dorsal half sees only the sky and the ventral half only the ground. Sunlight is divided in the same way:
-the direct beam and the light scattered from the sky fall on the back, and the light reflected from the ground on
-the belly:
+The dorsal half sees only sky and the ventral half only ground. Sunlight is divided the same way: the direct
+beam and the light scattered from the sky fall on the back, and the light reflected from the ground on the
+belly:
 
 ```@example two
 function two_halves(back, belly, environment)
@@ -93,14 +95,14 @@ end
 nothing # hide
 ```
 
-The two halves are one compartment: they are joined by a [`SharedCore`](@ref), and the heat that the core must
-supply is the plain sum of what each half conducts to its skin, see
-[Bodies of many parts](../manual/multipart.md).
+The two halves are one compartment: they are joined by a [`SharedCore`](@ref), and the heat the core must
+supply is the sum of what each half conducts to its skin, see
+[Bodies of many parts](../manual/multipart.md#Compartments-and-couplings).
 
 ## The symmetric case
 
-With the same coat on both halves, the sky and ground at air temperature and no sun, nothing distinguishes the
-back from the belly, and the two formulations must agree:
+With the same coat on both halves, sky and ground at air temperature and no sun, nothing distinguishes back
+from belly, and the two formulations must agree:
 
 ```@example two
 indoors = (; environment_pars = example_environment_pars(), environment_vars = example_environment_vars())
@@ -114,14 +116,14 @@ a.energy_flows.metabolic_heat_flow, b.metabolic_heat_flow
 b.metabolic_heat_flow / a.energy_flows.metabolic_heat_flow - 1
 ```
 
-This agreement is a test of the package. It holds because a half cylinder is treated exactly as half of a whole
-one: its exposed area leaves out the flat face, its fur covers half of the shell, and its convection is that of
-the whole outline.
+This agreement is a test of the package. It holds because a half cylinder is treated exactly as half of a
+whole one: its exposed area leaves out the flat face, its fur covers half of the shell, and its convection is
+that of the whole outline.
 
 ## Different coats, different surroundings
 
-Now the back has 10 mm of fur and the belly 3 mm, and the animal is outdoors on a clear, cold night, and then in
-the sun:
+Now the back has 10 mm of fur and the belly 3 mm, and the animal is outdoors on a clear, cold night, and then
+in the sun:
 
 ```@example two
 function outdoors(; air = 5.0u"°C", sky = -20.0u"°C", ground = 2.0u"°C", sun = 0.0u"W/m^2")
@@ -147,15 +149,15 @@ markdown_table(["", "Metabolic rate, two sides", "two halves", "Back surface, tw
                 "Belly surface, two sides", "two halves"], collect(compared)) # hide
 ```
 
-The two agree in every case, to within a tenth of a percent, with different coats, a cold sky and sun. Two
-sides, each solved as a whole animal and averaged, are the same model as two halves that share a core, as long as
-the back sees only sky and the belly only ground. The halves are therefore a generalisation of the two sides,
-and the method of NicheMapR is recovered exactly.
+The two agree in every case, to a tenth of a percent, with different coats, a cold sky and sun. Two sides, each
+solved as a whole animal and averaged, are the same model as two halves that share a core, as long as the back
+sees only sky and the belly only ground. The halves are a generalisation of the two sides, and the method of
+NicheMapR is recovered exactly.
 
 ## What each half really sees
 
 The assumption that the back sees only sky is the weak point of both. The flanks of the dorsal half face
-outwards, and see the ground as well. With the two halves joined into a `CompositeBody`, BiophysicalGeometry.jl
+outwards, and see the ground as well. With the halves joined into a `CompositeBody`, BiophysicalGeometry.jl
 computes what each sees:
 
 ```@example two
@@ -187,8 +189,8 @@ end # hide
 fig # hide
 ```
 
-These are fractions of the whole surface of each half, and the rest is its flat face, against the other half. As
-fractions of the exposed surface:
+These are fractions of the whole surface of each half, and the rest is its flat face, against the other half.
+As fractions of the exposed surface:
 
 ```@example two
 exposed(v) = ViewFactors(v.sky / (v.sky + v.ground), v.ground / (v.sky + v.ground), 0.0, 0.0)
@@ -227,21 +229,21 @@ temperature_views(composite, (dorsal = ustrip(u"°C", in_place.parts[1].insulati
 ```
 
 The back is warmer and the belly colder than the simple division gives, because each sees some of what the
-other does. The difference grows with the contrast between the sky and the ground.
+other does. The difference grows with the contrast between sky and ground.
 
 ## What two halves allow
 
-The comparison above is on the ground that both formulations can stand on. The halves go further:
+The comparison above is on ground both formulations can stand on. The halves go further:
 
-- The halves can be given views, and shade from other parts, computed from the positions of the parts of a
-  `CompositeBody`, and a head, limbs and tail can be joined to either half.
-- One half can lie on the ground while the other is in the wind, with `conduction_fraction` set for that half
-  alone.
-- Each half can have its own skin wetness and flesh conductivity, for an animal that sweats from its back, or
-  sends blood to a bare belly.
-- A half can be a compartment of its own, joined to the other by a [`ConductiveCoupling`](@ref) in place of a
-  shared core, for a shell or a hump.
+- Views, and shade from other parts, computed from the positions of the parts of a `CompositeBody`, with a
+  head, limbs and tail joined to either half.
+- One half on the ground while the other is in the wind, with `conduction_fraction` set for that half alone.
+- Its own skin wetness and flesh conductivity for each half: an animal that sweats from its back, or sends
+  blood to a bare belly.
+- A half as a compartment of its own, joined by a [`ConductiveCoupling`](@ref) in place of a shared core: a
+  shell or a hump.
 
 These are assembled from a `CompositeBody` by
-[BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl). The next tutorial,
-[A human of many parts](human.md), builds a body of six parts by hand.
+[BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), see
+[Bodies of many parts](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/multipart) in
+its documentation. The next tutorial, [A human of many parts](human.md), builds a body of six parts by hand.

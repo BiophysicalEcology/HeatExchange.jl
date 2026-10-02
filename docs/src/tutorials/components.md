@@ -1,11 +1,11 @@
 # The endotherm, piece by piece
 
-[`solve_metabolic_rate`](@ref) is a short function that calls others, and each of those can be called alone.
-Kearney et al. (2021) presented the endotherm model of NicheMapR in this way, as modules that can be run in
-isolation or combined differently for a particular animal, because endotherms differ too much in their responses
-for one arrangement to suit all. This tutorial follows that walk through the pieces, in the order in which they
-are called, and puts them back together by hand to get the answer of the
-[previous tutorial](endotherm.md). Each step names the subroutine of NicheMapR that it corresponds to.
+[`solve_metabolic_rate`](@ref) is a short function that calls others, and each can be called alone. Kearney et
+al. (2021) presented the endotherm model of NicheMapR this way, as modules to be run alone or combined
+differently for a particular animal, because endotherms differ too much in their responses for one arrangement
+to suit all. This tutorial walks through the pieces in the order they are called, and puts them back together
+by hand to get the answer of the [previous tutorial](endotherm.md). Each step names the subroutine of NicheMapR
+it corresponds to.
 
 ```@setup components
 using Main.FigureHelpers
@@ -34,8 +34,8 @@ nothing # hide
 
 ## Fur: `IRPROP`
 
-The first step is the properties of the coat, which depend on the temperature of the air within it. That
-temperature is taken as a weighted mean of the guesses of the fur surface and skin temperatures:
+First, the properties of the coat, which depend on the temperature of the air within it, taken as a weighted
+mean of the guesses of the fur surface and skin temperatures:
 
 ```@example components
 skin_guess, surface_guess = u"K"(34.0u"°C"), air_temperature
@@ -57,7 +57,8 @@ total_area(body), skin_area(body), evaporation_area(body), characteristic_dimens
 
 ## Sunlight: `SOLAR_ENDO`
 
-There is no sun in this example, so the call returns zeros, but it is made in the same way when there is:
+There is no sun in this example, so the call returns zeros, but it is made the same way when there is, see
+[Radiation](../manual/radiation.md):
 
 ```@example components
 absorbed = solar(body, Absorptivities(example_radiation_pars(), environment_pars), ViewFactors(0.5, 0.5, 0.0, 0.0),
@@ -67,8 +68,9 @@ absorbed.solar_flow
 
 ## Convection: `CONV_ENDO`
 
-Convection is from the outer surface of the fur. At the guessed surface temperature, which is the air
-temperature, there is none yet, but the coefficients are found:
+Convection is from the outer surface of the fur. At the guessed surface temperature, the air temperature, there
+is none yet, but the coefficients are found, see
+[Convection and conduction](../manual/convection_conduction.md):
 
 ```@example components
 air = convection(; body, area = total_area(body), air_temperature, surface_temperature = surface_guess + 10.0u"K",
@@ -79,7 +81,8 @@ air.heat_transfer_coefficient.combined, air.mass_transfer_coefficient.combined
 
 ## Evaporation from the skin: `SEVAP_ENDO`
 
-The skin under fur is sheltered, and loses water by free convection only:
+The skin under fur is sheltered, and loses water by free convection only, see
+[Evaporation and respiration](../manual/evaporation_respiration.md):
 
 ```@example components
 atmosphere = AtmosphericConditions(environment_vars)
@@ -89,12 +92,13 @@ evaporation(skin, air.mass_transfer_coefficient, atmosphere, evaporation_area(bo
 
 ## Skin and fur temperatures: `SIMULSOL`
 
-The core of the model is the simultaneous solution for the skin and fur surface temperatures of one side of the
-body. [`solve_temperatures`](@ref) takes the body, the coat, the surroundings of that side and the traits. The
+The core of the model is the simultaneous solution for the skin and fur surface temperatures of one side of
+the body, see [Solving a heat balance](../manual/heat_balance.md#With-insulation).
+[`solve_temperatures`](@ref) takes the body, the coat, the surroundings of that side and the traits. The
 convection and evaporation above are computed again inside it, at each trial pair of temperatures.
 
-The dorsal side sees the sky and the ventral side the ground. Each is solved as a whole animal with that coat and
-that view, so the view factor of each is doubled:
+The dorsal side sees the sky and the ventral side the ground. Each is solved as a whole animal with that coat
+and view, so the view factor of each is doubled:
 
 ```@example components
 traits = (; core_temperature, flesh_conductivity = 0.9u"W/m/K", fat_conductivity = 0.23u"W/m/K", ϵ_body = 0.99,
@@ -118,7 +122,7 @@ u"°C"(dorsal.skin_temperature), u"°C"(dorsal.insulation_temperature), dorsal.f
 ```
 
 `flows` is a [`HeatFlows`](@ref HeatExchange.HeatFlows) with each heat flow of that side. `net_metabolic` is
-``Q_{gen,net}``, the heat that must be conducted from the core to the skin to hold those temperatures:
+``Q_{gen,net}``, the heat that must be conducted from core to skin to hold those temperatures:
 
 ```@example components
 f = dorsal.flows
@@ -142,8 +146,8 @@ net_metabolic, u"°C"(lung_temperature)
 ## Respiration: `ZBRENT_ENDO` and `RESPFUN`
 
 The animal must generate that heat and the heat it loses in breathing, which depends on how much it generates.
-[`respiration`](@ref) returns the heat lost for a trial metabolic rate, and the residual `balance`. The metabolic
-rate is where the balance is zero:
+[`respiration`](@ref) returns the heat lost for a trial metabolic rate, and the residual `balance`. The
+metabolic rate is where the balance is zero:
 
 ```@example components
 resp_pars = example_respiration_pars()
@@ -183,10 +187,13 @@ final.respiration_heat_flow, final.respiration_mass_flow
 This is the default arrangement. Others are made of the same pieces:
 
 - **One side only**, for a part of a body that faces one way: [`solve_part_surface`](@ref).
-- **Several parts**, each solved with [`solve_part_surface`](@ref) and added before the one respiration balance:
-  [`solve_coupled_metabolic_rate`](@ref), see [A human of many parts](human.md).
+- **Several parts**, each solved with [`solve_part_surface`](@ref) and added before the one respiration
+  balance: [`solve_coupled_metabolic_rate`](@ref), see [A human of many parts](human.md).
 - **A core temperature that is not given**, with the same surface solve inside a search for it:
   [`solve_temperature`](@ref).
-- **No search at all**, with the temperatures and the metabolic rate handed in and the residuals handed back, for an
-  optimiser: [`solve_part_heat_balance`](@ref), see
+- **No search at all**, with the temperatures and metabolic rate handed in and the residuals handed back, for
+  an optimiser: [`solve_part_heat_balance`](@ref), see
   [Differentiability and the NLP interface](../manual/autodiff.md).
+- **A loop around the whole**, changing a trait between solves, for thermoregulation: see
+  [Endotherm thermoregulation by rules](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/endotherm_rules)
+  in the documentation of BiophysicalBehaviour.jl.

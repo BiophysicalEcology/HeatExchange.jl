@@ -1,7 +1,7 @@
 # Convection and conduction
 
 Heat passes between the surface of an organism and the air or water around it by convection, and between the
-surface and the ground that it touches by conduction.
+surface and the ground it touches by conduction.
 
 ```@setup convection
 using Main.FigureHelpers
@@ -10,15 +10,15 @@ using CairoMakie
 
 ## Convection
 
-Convective heat loss is proportional to the area exposed and to the difference between the temperature of the
-surface and of the fluid:
+Convective heat loss is proportional to the area exposed and to the difference between surface and fluid
+temperature:
 
 ```math
 Q_{conv} = h_c \, A_{conv} \, (T_s - T_a)
 ```
 
-Everything else is in the heat transfer coefficient ``h_c``, which depends on the size and shape of the body, the
-speed of the fluid and its properties. [`convection`](@ref) finds it from standard correlations between
+Everything else is in the heat transfer coefficient ``h_c``, which depends on the size and shape of the body
+and the speed and properties of the fluid. [`convection`](@ref) finds it from standard correlations between
 dimensionless numbers (Gates 1980, Bird et al. 2002):
 
 ```math
@@ -28,17 +28,19 @@ h_c = \frac{Nu \, k}{D}
 where ``Nu`` is the Nusselt number, ``k`` the thermal conductivity of the fluid and ``D`` the characteristic
 dimension of the body.
 
-Two processes move the fluid. In *forced* convection it is moved by wind, and the Nusselt number is a function of
-the Reynolds number ``Re = \rho v D / \mu``. In *free* convection it is moved by the buoyancy of the fluid warmed
-or cooled by the surface, and the Nusselt number is a function of the Grashof number, which rises with the
-temperature difference and with ``D^3``, and of the Prandtl number. The two are combined as
-(Bird et al. 2002):
+Two processes move the fluid:
+
+- **Forced convection**: wind. ``Nu`` is a function of the Reynolds number ``Re = \rho v D / \mu``.
+- **Free convection**: the buoyancy of fluid warmed or cooled by the surface. ``Nu`` is a function of the
+  Grashof number, which rises with the temperature difference and with ``D^3``, and of the Prandtl number.
+
+They are combined as (Bird et al. 2002):
 
 ```math
 Nu = \left(Nu_{free}^3 + Nu_{forced}^3\right)^{1/3}
 ```
 
-The correlations differ between shapes, and the method is chosen by the family of the shape of the body:
+The correlations are chosen by the family of the shape:
 
 | Shape family | Free convection, [`nusselt_free`](@ref) | Forced convection, [`nusselt_forced`](@ref) |
 |:--|:--|:--|
@@ -46,6 +48,9 @@ The correlations differ between shapes, and the method is chosen by the family o
 | spheres and ellipsoids | ``2 + 0.6 \, Gr^{1/4} Pr^{1/3}`` (Bird et al. 2002) | ``0.35 \, Re^{0.6}`` (McAdams 1954) |
 | plates | ``0.13 \, (Gr \, Pr)^{1/3}`` (Gates 1980) | ``0.032 \, Re^{0.8}`` |
 | `DesertIguana`, `LeopardFrog` | as cylinders | as spheres |
+
+These are fitted relations between dimensionless numbers, see
+[Units, dimensions and functional traits](units_traits.md#Dimensionless-numbers).
 
 ```@example convection
 using HeatExchange, BiophysicalGeometry, Unitful
@@ -76,9 +81,9 @@ fig
 
 ### Size
 
-The characteristic dimension is the one length that stands for the size of the body in these numbers. Because
-``h_c`` falls as ``D`` rises, a small animal is coupled closely to the air temperature and a large one much less
-so. The formula is a [`CharacteristicDimFormula`](@ref), set in [`ConvectionParameters`](@ref):
+The characteristic dimension is the one length that stands for the size of the body. Because ``h_c`` falls as
+``D`` rises, a small animal is coupled closely to air temperature and a large one much less. The formula is a
+[`CharacteristicDimFormula`](@ref), set in [`ConvectionParameters`](@ref):
 
 | Formula | Dimension |
 |:--|:--|
@@ -91,36 +96,35 @@ characteristic_dimension(VolumeCubeRoot(), leaf), characteristic_dimension(Scale
 ```
 
 For a thin leaf the cube root of the volume says little about how air flows over it, and 0.7 of the width is
-used (Gates 1980, Campbell and Norman 1998), see the tutorial [A leaf](../tutorials/leaf.md).
+used (Gates 1980, Campbell and Norman 1998), see [A leaf](../tutorials/leaf.md).
 
 ### Outdoors, and in water
 
-The correlations are for smooth flow in a wind tunnel. Natural wind is turbulent, which raises convection. This is
-allowed for by `convection_enhancement` in [`EnvironmentalPars`](@ref), a multiplier on the forced Nusselt number,
-1 by default and about 1.4 outdoors (Kowalski and Mitchell 1976).
+The correlations are for smooth flow in a wind tunnel. Natural wind is turbulent, which raises convection:
+`convection_enhancement` in [`EnvironmentalPars`](@ref) multiplies the forced Nusselt number, 1 by default and
+about 1.4 outdoors (Kowalski and Mitchell 1976).
 
-`fluid` in [`EnvironmentalPars`](@ref) is [`Air`](@ref) or [`Water`](@ref). The properties of air, which change with
-temperature and pressure, and of water are from
-[FluidProperties.jl](https://github.com/BiophysicalEcology/FluidProperties.jl). The gas composition of the air can
-be changed with `gas_fractions`, for a burrow or for an atmosphere of the past.
+`fluid` in [`EnvironmentalPars`](@ref) is [`Air`](@ref) or [`Water`](@ref), with properties from
+[FluidProperties.jl](https://github.com/BiophysicalEcology/FluidProperties.jl). The composition of the air can
+be changed with `gas_fractions`, for a burrow or an atmosphere of the past.
 
 ### Mass transfer
 
-Water vapour is carried from a wet surface by the same motion of the air that carries heat. [`convection`](@ref)
-therefore also returns a mass transfer coefficient, from the Sherwood number, which follows from the Nusselt number
-by the Chilton–Colburn analogy:
+Water vapour is carried from a wet surface by the same motion of air that carries heat. [`convection`](@ref)
+therefore also returns a mass transfer coefficient, from the Sherwood number, which follows from the Nusselt
+number by the Chilton–Colburn analogy:
 
 ```math
 Sh = Nu \left(\frac{Sc}{Pr}\right)^{1/3}, \qquad h_d = \frac{Sh \, D_v}{D}
 ```
 
 where ``Sc`` is the Schmidt number and ``D_v`` the diffusivity of water vapour in air. It is passed to
-[`evaporation`](@ref), so that evaporation and convection are always computed for the same body and the same wind,
-see [Evaporation and respiration](evaporation_respiration.md).
+[`evaporation`](@ref), so that evaporation and convection are always computed for the same body and wind, see
+[Evaporation and respiration](evaporation_respiration.md) and [Flows of mass](gradients.md#Flows-of-mass).
 
 ## Conduction
 
-An animal lying on the ground exchanges heat with it through the area in contact, [`conduction`](@ref):
+An animal lying on the ground exchanges heat through the area in contact, [`conduction`](@ref):
 
 ```math
 Q_{cond} = A_{cond} \, \frac{k_{sub}}{x_{sub}} \, (T_s - T_{sub})
@@ -141,12 +145,11 @@ conduction(; conduction_area = 0.1 * total_area(body), L = 2.5u"cm", surface_tem
 The value is negative: the animal gains heat from the hot ground. The area in contact is taken out of the area
 for convection and for radiation to the ground.
 
-With fur, the coat under an animal is pressed flat. Heat then passes from the skin through the compressed fur, of
+With fur, the coat under an animal is pressed flat. Heat passes from the skin through the compressed fur, of
 depth `depth_compressed` in [`InsulationParameters`](@ref), to the substrate, as a second path beside the one
 through the uncompressed fur to the air, see [Insulation](insulation.md).
 
 ## Conduction inside the body
 
-Conduction of heat from the core to the skin, through flesh and fat, is described in
-[Layers as a radial graph](radial_layers.md), and between the parts of a body in
-[Bodies of many parts](multipart.md).
+For conduction from the core to the skin, see [Layers as a radial graph](radial_layers.md). For conduction
+between the parts of a body, see [Bodies of many parts](multipart.md).

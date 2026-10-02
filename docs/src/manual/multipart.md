@@ -1,22 +1,24 @@
 # Bodies of many parts
 
 A real animal is not one shape. Its limbs, ears and tail are thin and lose heat fast, its back and belly have
-different coats and face different surroundings, and it can be warm at the core and cold at the feet. Kearney et
-al. (2021) showed how the endotherm model of NicheMapR could be arranged for several body parts, and HomoTherm
-(Kearney et al. 2026) did so for a human. This page describes the functions here that solve a heat budget for a
-body of several parts.
+different coats and surroundings, and it can be warm at the core and cold at the feet. Kearney et al. (2021)
+showed how the endotherm model of NicheMapR could be arranged for several body parts, and HomoTherm (Kearney et
+al. 2026) did so for a human. This page describes the functions here that solve a heat budget for a body of
+several parts.
 
-The parts themselves, their joins, their areas and what each one sees, come from a `CompositeBody` of
-[BiophysicalGeometry.jl](https://github.com/BiophysicalEcology/BiophysicalGeometry.jl). The functions on this page
-take one description for each part, and are the layer beneath
+The parts, their joins, their areas and what each sees come from a `CompositeBody` of
+[BiophysicalGeometry.jl](https://github.com/BiophysicalEcology/BiophysicalGeometry.jl). The functions here take
+one description for each part. They are the layer beneath
 [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), which builds those
-descriptions from a `CompositeBody` and solves the whole animal. They can also be called directly, as here.
+descriptions from a `CompositeBody` and solves the whole animal, see
+[Bodies of many parts](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/multipart) in
+its documentation. They can also be called directly, as here.
 
-To build a body of several parts, see the documentation of BiophysicalGeometry.jl: its manual pages on bodies as
-graphs and on joins, its tutorials, which build a dog, a cow and a human, and its interactive page
+To build a body of several parts, see the documentation of BiophysicalGeometry.jl: its pages on bodies as
+graphs and on joins, its tutorials (a dog, a cow, a human), and its interactive page
 [Build an animal](https://biophysicalecology.github.io/BiophysicalGeometry.jl/dev/builder), where an animal is
-assembled with sliders and the code that builds it can be copied. The tutorial
-[A human of many parts](../tutorials/human.md) here takes such a body through to its heat budget.
+assembled with sliders and the code can be copied. [A human of many parts](../tutorials/human.md) takes such a
+body through to its heat budget.
 
 ```@setup multipart
 using Main.FigureHelpers
@@ -26,17 +28,17 @@ using CairoMakie
 
 ## The scheme
 
-The heat budget of a body of several parts is solved in three steps, the first two of which are the two sides of
-[Solving a heat balance](heat_balance.md) for one part:
+The heat budget of a body of several parts is solved in three steps:
 
 1. **Each part's surface.** For a given core temperature of a part, find its skin and fur surface temperatures
-   and the heat ``Q_{gen,net}`` that must be conducted from its core to hold them. This is
-   [`solve_part_surface`](@ref).
-2. **The cores.** Parts exchange heat with each other inside the body. Find the core temperature of each part that
-   is not regulated, from the heat it makes, the heat it loses through its own surface, and the heat it is given
-   by its neighbours. This is [`solve_regulated_core_temperatures`](@ref).
-3. **The whole animal.** Add up the heat that the regulated core must supply, and find the metabolic rate that
-   supplies it after the heat lost in breathing. This is [`solve_coupled_metabolic_rate`](@ref).
+   and the heat ``Q_{gen,net}`` that must be conducted from its core: [`solve_part_surface`](@ref).
+2. **The cores.** Parts exchange heat inside the body. Find the core temperature of each part that is not
+   regulated, from the heat it makes, loses through its surface, and is given by its neighbours:
+   [`solve_regulated_core_temperatures`](@ref).
+3. **The whole animal.** Add up the heat the regulated core must supply, and find the metabolic rate that
+   supplies it after the heat lost in breathing: [`solve_coupled_metabolic_rate`](@ref).
+
+The first and third are the two sides of [Solving a heat balance](heat_balance.md#With-insulation) for one part.
 
 ## Describing a part
 
@@ -82,13 +84,13 @@ nothing # hide
 | `traits` | its core temperature, conductivities, emissivity and wetness |
 | `environment_vars` | its surroundings: temperatures, **its own view factors**, the air, and **the sunlight it absorbs**, in W |
 | `conduction_fraction`, `conductance_coefficient` | its contact with the ground |
-| `covered_area` | the area hidden by its joins to other parts, which exchanges no heat with the environment |
+| `covered_area` | the area hidden by its joins, which exchanges no heat with the environment |
 | `characteristic_dim` | the length for convection, see [Convection and conduction](convection_conduction.md) |
 
-Each part has its own coat and its own exposure, and the two are independent: a part can have thick fur and face
-the ground, or thin fur and face the sky. The view factors and the absorbed sunlight are where the geometry of
-the whole body enters. For a `CompositeBody` they come from `silhouette_factors` and `silhouette` of
-BiophysicalGeometry.jl, which account for parts shading each other.
+Each part has its own coat and its own exposure, independently: thick fur facing the ground, or thin fur facing
+the sky. The view factors and absorbed sunlight are where the geometry of the whole body enters. For a
+`CompositeBody` they come from `silhouette_factors` and `silhouette` of BiophysicalGeometry.jl, which account
+for parts shading each other.
 
 ## One part's surface
 
@@ -111,7 +113,7 @@ u"°C"(torso_surface.skin_temperature), u"°C"(torso_surface.insulation_temperat
 ```
 
 The torso and its four legs as a `CompositeBody`, with its graph of parts and joins. The joins are discs of the
-radius of a leg, which is the `join_area` used above:
+radius of a leg, the `join_area` used above:
 
 ```@example multipart
 torso_body, leg_body = torso.body, part_setup(leg_shape, thin, core_temperature).body # hide
@@ -127,8 +129,8 @@ animal = CompositeBody(; # hide
 body_graph(animal) # hide
 ```
 
-[`solve_part_surface`](@ref) also returns `flesh_conductance`, the heat conducted per degree between the core and
-the skin of the part, which the next step uses.
+[`solve_part_surface`](@ref) also returns `flesh_conductance`, the heat conducted per degree between the core
+and skin of the part, which the next step uses.
 
 ## Compartments and couplings
 
@@ -155,11 +157,11 @@ compartment_diagram(graph; edges = ((:dorsal, :ventral, :shared), (:dorsal, :hea
 ```
 
 The thick line is a shared core and the dashed lines are conductive couplings. The number in each part is its
-compartment. The back and the belly of an animal are the usual case of a shared core, and the tutorial
-[Back and belly: two halves](../tutorials/two_parts.md) solves it.
+compartment. The back and belly of an animal are the usual case of a shared core, see
+[Back and belly: two halves](../tutorials/two_parts.md).
 
 The conductance of a conductive join follows from its area, the distance from the centre of each part to the
-join, and the conductivity of the flesh of each part, with [`contribution_to_conductance`](@ref). The area and the
+join, and the conductivity of the flesh of each, with [`contribution_to_conductance`](@ref). The area and
 distances are `join_area` and `internal_distance` of BiophysicalGeometry.jl:
 
 ```@example multipart
@@ -171,10 +173,10 @@ with_blood_flow = contribution_to_conductance(ConductiveCoupling(300.0u"W/m^2/K"
 by_conduction, with_blood_flow
 ```
 
-Conduction through flesh alone carries very little heat along a limb. In a living animal most of the heat that
-reaches a limb is carried by blood, and a conductance per area is a simple way to stand for that. A coupling for
-blood flow in its own right is planned, and is added by defining a new subtype of [`HeatCoupling`](@ref) with its
-contribution to the conductance and to the heat load of each compartment, [`contribution_to_heat_load`](@ref).
+Conduction through flesh alone carries very little heat along a limb. In a living animal most of it is carried
+by blood, and a conductance per area is a simple way to stand for that. A coupling for blood flow in its own
+right is planned, as a new subtype of [`HeatCoupling`](@ref) with its contribution to the conductance and to
+the heat load of each compartment, [`contribution_to_heat_load`](@ref).
 
 ## The core temperatures
 
@@ -185,10 +187,10 @@ heat conducted to the skins of its own parts and to the cores of its neighbours:
 Q_{gen,c} - Q_{resp,c} = \sum_{p \in c} G_p \, (T_c - T_{s,p}) + \sum_j G_{cj} \, (T_c - T_j)
 ```
 
-where ``G_p`` is the `flesh_conductance` of part ``p`` and ``G_{cj}`` the conductance of the join to compartment
-``j``. With the skin temperatures held at their current values this is a set of linear equations in the core
-temperatures, one for each compartment. [`build_conductance_matrix`](@ref) assembles the matrix of the
-conductances between compartments, and [`solve_core_temperatures`](@ref) solves the system:
+where ``G_p`` is the `flesh_conductance` of part ``p`` and ``G_{cj}`` the conductance of the join to
+compartment ``j``. With the skin temperatures held, this is a set of linear equations in the core temperatures,
+one for each compartment. It is the network of [Layers as a radial graph](radial_layers.md) applied sideways.
+[`build_conductance_matrix`](@ref) assembles the matrix and [`solve_core_temperatures`](@ref) solves it:
 
 ```@example multipart
 two = compartment_graph((:a, :b), ())
@@ -201,16 +203,16 @@ solve_core_temperatures(two, ((1, 2, 0.5u"W/K"),),     # the join between compar
 Both skins are at 300 K. The first compartment makes 5 W, loses 4 W through its own skin and passes 1 W to the
 second, which makes 1 W and loses 2 W.
 
-In an endotherm one compartment is regulated: its core is held at the set temperature, and the heat it must make
-is what is being solved for. [`solve_regulated_core_temperatures`](@ref) holds that core fixed and solves for the
-others, which float to whatever balances their own heat budgets.
+In an endotherm one compartment is regulated: its core is held at the set temperature, and the heat it must
+make is what is solved for. [`solve_regulated_core_temperatures`](@ref) holds that core fixed and solves for the
+others, which float to whatever balances their own budgets.
 
 ## A torso and four legs
 
-Here the torso is regulated at 37 °C and each leg is a compartment of its own, joined to the torso with the
-conductance for blood flow above. The legs have thin fur and make a little heat of their own. Their surface
-temperatures depend on their core temperature and their core temperature on their surface, so the two steps are
-repeated until the core temperature of a leg stops changing:
+Here the torso is regulated at 37 °C and each leg is its own compartment, joined to the torso with the
+conductance for blood flow above. The legs have thin fur and make a little heat. Their surface temperatures
+depend on their core temperature and the reverse, so the two steps are repeated until the core temperature of a
+leg stops changing:
 
 ```@example multipart
 function solve_leg(conductance; leg_generation = 0.3u"W")
@@ -242,7 +244,7 @@ temperature_views(animal, (torso = ustrip(u"°C", torso_surface.skin_temperature
                            leg_bl = leg_skin, leg_br = leg_skin); views = (:oblique, :side)) # hide
 ```
 
-The legs are much cooler than the torso. The heat that the torso passes to them is added to what it must supply to
+The legs are much cooler than the torso. The heat the torso passes to them is added to what it must supply to
 its own surface, as `extra_net_metabolic`, and the metabolic rate of the animal follows:
 
 ```@example multipart
@@ -257,9 +259,9 @@ cool_legs = whole_animal((torso,); extra = 4 * leg.heat_from_torso)
 cool_legs.metabolic_heat_flow
 ```
 
-Compare this with the two limits. If the legs were held at the core temperature of the torso, as parts of one
-compartment, each would lose heat as fast as its thin fur allows. If they were joined to the torso by conduction
-through flesh alone, they would be given almost nothing and would fall nearly to air temperature:
+Compare the two limits. Legs held at the core temperature of the torso, as parts of one compartment, lose heat
+as fast as their thin fur allows. Legs joined by conduction through flesh alone are given almost nothing and
+fall nearly to air temperature:
 
 ```@example multipart
 warm_leg = part_setup(leg_shape, thin, core_temperature; covered_area = join_area)
@@ -280,17 +282,17 @@ The basal metabolic rate of an animal of this mass is
 metabolic_rate(Kleiber(), 10.0u"kg")
 ```
 
-so letting the legs cool is the difference between a large cost of keeping warm and a small one. Animals of cold
-climates do exactly this.
+so letting the legs cool is the difference between a large cost of keeping warm and a small one. Animals of
+cold climates do exactly this.
 
 ## Parts that see each other
 
-A part whose view is partly blocked by another part exchanges longwave radiation with that part's surface over
-the blocked fraction, in place of the sky or the ground behind it. The surfaces of the parts then depend on each
-other, and [`solve_coupled_metabolic_rate`](@ref) solves them together when given a `neighbour_topology`: for each
-part, the parts it sees and the fraction of its view that each takes up. The fractions are those returned by
-`silhouette_factors` of BiophysicalGeometry.jl, in which the views of the sky, the ground and the other parts sum
-to one.
+A part whose view is partly blocked by another exchanges longwave radiation with that part's surface over the
+blocked fraction, in place of the sky or ground behind it. The surfaces then depend on each other, and
+[`solve_coupled_metabolic_rate`](@ref) solves them together when given a `neighbour_topology`: for each part,
+the parts it sees and the fraction of its view each takes up. The fractions are those of `silhouette_factors`
+of BiophysicalGeometry.jl, in which the views of sky, ground and other parts sum to one. See also
+[Radiation](radiation.md#View-factors).
 
 ```@example multipart
 sees = (((; index = 2, fraction = 0.1),),    # the torso sees the leg over a tenth of its view
@@ -306,14 +308,14 @@ together = solve_coupled_metabolic_rate(;
 map(part -> u"°C"(part.insulation_temperature), together.parts)
 ```
 
-A warm neighbour is a warmer thing to face than a cold sky, so parts that are close together lose less heat than
-the same parts apart. This is why limbs held against the body, and animals huddled together, save energy.
+A warm neighbour is warmer to face than a cold sky, so parts close together lose less heat than the same parts
+apart. This is why limbs held against the body, and animals huddled together, save energy.
 
 ## Half shapes
 
-The back and the belly of one shape are two parts, each a half: `HalfCylinder`, `HalfEllipsoid` and `HalfSphere`
-of BiophysicalGeometry.jl. Every heat-transfer method for a shape family works for its halves, and the fur of a
-half covers half of the shell. See the tutorial [Back and belly: two halves](../tutorials/two_parts.md).
+The back and belly of one shape are two parts, each a half: `HalfCylinder`, `HalfEllipsoid` and `HalfSphere` of
+BiophysicalGeometry.jl. Every heat-transfer method for a shape family works for its halves, and the fur of a
+half covers half of the shell. See [Back and belly: two halves](../tutorials/two_parts.md).
 
 ## What is and is not here
 
