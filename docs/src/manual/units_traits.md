@@ -232,10 +232,10 @@ potential, see [Solving a heat balance](gradients.md).
 
 The heat budget itself has few thresholds. It will return a body temperature of 60 °C, or a metabolic rate
 below the minimum, without comment. The thresholds belong to the model of what the organism does about its
-state, which is [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), and
-a companion section in the documentation of that package is to describe them: the body temperatures that bound
-activity and trigger each behaviour of an ectotherm, and the limits of core temperature, flesh conductivity,
-panting and skin wetness within which an endotherm responds.
+state, which is [BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl).
+[States, thresholds and traits](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/states_traits) in the documentation of that package describes them: the body
+temperatures that bound activity and trigger each behaviour of an ectotherm, and the limits of core temperature,
+flesh conductivity, panting and skin wetness within which an endotherm responds.
 
 ### Four kinds of functional trait
 

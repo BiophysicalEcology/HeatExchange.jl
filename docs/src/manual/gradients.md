@@ -64,4 +64,5 @@ exhausted. But it is a gradient of *information*. Nothing flows down it. It is s
 physical gradients decide what will happen to an organism in a given state and place, and are the subject of this
 package and of Microclimate.jl. The gradient between state and target decides what the organism does about it,
 and is the subject of
-[BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl).
+[BiophysicalBehaviour.jl](https://github.com/BiophysicalEcology/BiophysicalBehaviour.jl), see
+[Gradients and control](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/gradients) and [Behaviour as control](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/control) in its documentation.
