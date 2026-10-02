@@ -16,6 +16,12 @@
 # discretised radiative source remain design decisions — see docs/radial_layer_model.md.
 # =============================================================================
 
+"""
+    AbstractRadialLayer
+
+Abstract supertype for the concentric layers through which heat is conducted from the core of a body to its
+skin. Subtypes are [`GeneratingCore`](@ref) and [`ConductiveShell`](@ref). See [`stack_resistance`](@ref).
+"""
 abstract type AbstractRadialLayer end
 
 """

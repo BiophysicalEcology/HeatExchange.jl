@@ -23,6 +23,13 @@ Required for insulated organisms; also valid for naked animals.
 """
 struct MultiSided <: EvaluationStrategy end
 
+"""
+    evaluation_strategy(organism)
+    evaluation_strategy(insulation)
+
+The [`EvaluationStrategy`](@ref) of an organism, from the layers of its body: [`SingleBody`](@ref) for `Naked()`
+and [`MultiSided`](@ref) for a `FibrousLayer` or a `CompositeInsulation`.
+"""
 evaluation_strategy(o::Organism) = evaluation_strategy(insulation(body(o)))
 evaluation_strategy(::Naked)                          = SingleBody()
 evaluation_strategy(::Union{FibrousLayer, CompositeInsulation}) = MultiSided()
@@ -67,6 +74,11 @@ function _outer_insulation_thickness(ci::CompositeInsulation)
     _outer_insulation_thickness(BiophysicalGeometry.outer_insulation(ci))
 end
 
+"""
+    characteristic_dimension(formula::CharacteristicDimFormula, body)
+
+The characteristic dimension of `body` for convection, by [`VolumeCubeRoot`](@ref) or [`ScaledDimension`](@ref).
+"""
 characteristic_dimension(::VolumeCubeRoot, body) =
     cbrt(body.geometry.volume) + _outer_insulation_thickness(body.insulation)
 

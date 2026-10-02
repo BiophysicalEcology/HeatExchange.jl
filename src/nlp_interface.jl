@@ -8,6 +8,13 @@
 # residuals go straight through `part_surface_residuals` (part_surface.jl), so no
 # physics is duplicated across the package boundary.
 
+"""
+    NLPStrategy
+
+Abstract supertype for formulations of the heat budget as a nonlinear program. The concrete strategy and its
+[`nlp_pack`](@ref) method are defined by the calling package (BiophysicalBehaviour.jl), which owns the bounds,
+objective and layout of variables. The physics of each evaluation comes from [`part_surface_residuals`](@ref).
+"""
 abstract type NLPStrategy end
 
 """

@@ -48,6 +48,14 @@ Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,S
     shade::SD
 end
 
+"""
+    EnvironmentalVarsVec <: AbstractEnvironmentalVars
+
+    EnvironmentalVarsVec(; kw...)
+
+Environmental variables as vectors, one element for each time step, with the fields of
+[`EnvironmentalVars`](@ref).
+"""
 Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,SD} <:
                    AbstractEnvironmentalVars
     air_temperature::Vector{TA}
