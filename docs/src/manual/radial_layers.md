@@ -1,9 +1,9 @@
 # Layers as a radial graph
 
-Heat made in the core of an animal is conducted outwards through shells: flesh, fat, skin, fur. NicheMapR holds
-this as a formula for each shape, with one layer of each kind. Here it is a chain of nodes joined by thermal
+Heat produced at the core of an animal is conducted outwards through shells: flesh, fat, skin, fur. NicheMapR holds
+this as a formula for each shape, with one layer of each kind. In HeatExchange.jl it is a chain of nodes joined by thermal
 resistances, so that the number and kind of layers is data, not code. This page describes that chain, how far it
-has been taken, and where it is going.
+has been taken, and the plan for future versions of the package.
 
 ```@setup layers
 using Main.FigureHelpers
@@ -20,8 +20,8 @@ heat entering or leaving at each node:
 radial_network_diagram() # hide
 ```
 
-The closed-form equations of the endotherm model are this network already solved. In bond-graph terms the nodes
-are 0-junctions, the layers resistors in series, and the heat entering at a node a source of flow, see
+The closed-form equations of the endotherm model are solutions to this network. In bond-graph terms the nodes
+are 0-junctions, the layers are resistors in series, and the heat entering at a node is a source of flow, see
 [Gradients, resistances and flows](gradients.md#The-budget-as-a-network).
 
 **Nodes**
@@ -190,7 +190,7 @@ uconvert(u"K/W", stack_resistance(clothed, body))
 
 ## Where this stands
 
-The chain from core to skin is in use: every solver conducts heat through it. From the skin through the fur to
+The chain from core to skin is in use: every solver conducts heat through it. The chain from the skin through the fur to
 the environment is not yet a list of layers. It is the surface solve of [`solve_part_heat_balance`](@ref), with
 one layer of fur, see [Insulation](insulation.md).
 
