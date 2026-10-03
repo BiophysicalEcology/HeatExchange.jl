@@ -1,3 +1,9 @@
+"""
+    example_environment_vars(; kwargs...) → EnvironmentalVars
+
+[`EnvironmentalVars`](@ref) for still, dry air with no sun, with the sky, ground, substrate and vegetation at
+the air temperature. These are the default conditions of the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_environment_vars(;
     air_temperature=u"K"((20.0)u"°C"),
     relative_humidity=0.05,
@@ -28,6 +34,11 @@ function example_environment_vars(;
     )
 end
 
+"""
+    example_environment_pars(; kwargs...) → EnvironmentalPars
+
+[`EnvironmentalPars`](@ref) with the defaults of the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_environment_pars(;
     ground_albedo=0.8,
     ground_emissivity=1.0,
@@ -48,6 +59,11 @@ function example_environment_pars(;
     )
 end
 
+"""
+    example_ellipsoid_shape_pars(; kwargs...) → Ellipsoid
+
+An `Ellipsoid` of 65 kg, nearly spherical, the default shape of the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_ellipsoid_shape_pars(;
     mass=65.0u"kg",
     ρ_flesh=1000.0u"kg/m^3",
@@ -57,8 +73,18 @@ function example_ellipsoid_shape_pars(;
     Ellipsoid(mass, ρ_flesh, axis_ratio_b, axis_ratio_c)
 end
 
+"""
+    example_shape_pars(; kwargs...)
+
+The default shape, that of [`example_ellipsoid_shape_pars`](@ref).
+"""
 example_shape_pars(; kwargs...) = example_ellipsoid_shape_pars(; kwargs...)
 
+"""
+    example_conduction_pars_external(; kwargs...) → ExternalConductionParameters
+
+[`ExternalConductionParameters`](@ref) with no contact with the substrate. Each value can be changed by keyword.
+"""
 function example_conduction_pars_external(;
     conduction_fraction=0.0,
 )
@@ -67,6 +93,11 @@ function example_conduction_pars_external(;
     )
 end
 
+"""
+    example_conduction_pars_internal(; kwargs...) → InternalConductionParameters
+
+[`InternalConductionParameters`](@ref) with the defaults of the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_conduction_pars_internal(;
     fat_fraction=0.0,
     flesh_conductivity=0.9u"W/m/K",
@@ -81,6 +112,11 @@ function example_conduction_pars_internal(;
     )
 end
 
+"""
+    example_radiation_pars(; kwargs...) → RadiationParameters
+
+[`RadiationParameters`](@ref) with the defaults of the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_radiation_pars(;
     body_absorptivity_dorsal=0.8,
     body_absorptivity_ventral=0.8,
@@ -105,6 +141,11 @@ function example_radiation_pars(;
     )
 end
 
+"""
+    example_evaporation_pars(; kwargs...) → AnimalEvaporationParameters
+
+[`AnimalEvaporationParameters`](@ref) with the defaults of the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_evaporation_pars(;
     skin_wetness=0.005,
     insulation_wetness=0.0,
@@ -121,6 +162,11 @@ function example_evaporation_pars(;
     )
 end
 
+"""
+    example_hydraulic_pars(; kwargs...) → HydraulicParameters
+
+[`HydraulicParameters`](@ref) for a fully hydrated organism. Each value can be changed by keyword.
+"""
 function example_hydraulic_pars(;
     water_potential=0.0u"J/kg",
     hydraulic_conductance=0.0u"kg / (m^2 * s * (J/kg))",
@@ -133,6 +179,11 @@ function example_hydraulic_pars(;
     )
 end
 
+"""
+    example_respiration_pars(; kwargs...) → RespirationParameters
+
+[`RespirationParameters`](@ref) with the defaults of the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_respiration_pars(;
     oxygen_extraction_efficiency=0.2,
     pant=1.0,
@@ -149,6 +200,12 @@ function example_respiration_pars(;
     )
 end
 
+"""
+    example_metabolism_pars(; kwargs...) → MetabolismParameters
+
+[`MetabolismParameters`](@ref) for a 65 kg mammal with a core temperature of 37 °C and the basal metabolic
+rate of [`Kleiber`](@ref). Each value can be changed by keyword.
+"""
 function example_metabolism_pars(;
     core_temperature=u"K"((37.0)u"°C"),
     metabolic_heat_flow=77.61842u"W",
@@ -163,6 +220,12 @@ function example_metabolism_pars(;
     )
 end
 
+"""
+    example_insulation_pars(; kwargs...) → InsulationParameters
+
+[`InsulationParameters`](@ref) for a coat 2 mm deep, the same on the dorsal and ventral surfaces, the default of
+the NicheMapR endotherm model. Each value can be changed by keyword.
+"""
 function example_insulation_pars(;
     fibre_diameter_dorsal=30e-06u"m",
     fibre_diameter_ventral=30e-06u"m",
@@ -200,6 +263,11 @@ function example_insulation_pars(;
     )
 end
 
+"""
+    example_convection_pars(; kwargs...) → ConvectionParameters
+
+[`ConvectionParameters`](@ref) with the [`VolumeCubeRoot`](@ref) characteristic dimension. Each value can be changed by keyword.
+"""
 function example_convection_pars(;
     convection_area=0.0u"m^2",
     characteristic_dimension_formula=VolumeCubeRoot(),
@@ -210,6 +278,11 @@ function example_convection_pars(;
     )
 end
 
+"""
+    example_leaf_evaporation_pars(; kwargs...) → LeafEvaporationParameters
+
+[`LeafEvaporationParameters`](@ref) for a leaf with stomata on its lower surface. Each value can be changed by keyword.
+"""
 function example_leaf_evaporation_pars(;
     abaxial_vapour_conductance=0.3u"mol/m^2/s",
     adaxial_vapour_conductance=0.0u"mol/m^2/s",
@@ -222,6 +295,11 @@ function example_leaf_evaporation_pars(;
     )
 end
 
+"""
+    example_metabolic_rate_options(; kwargs...) → SolveMetabolicRateOptions
+
+[`SolveMetabolicRateOptions`](@ref) with respiration included. Each value can be changed by keyword.
+"""
 function example_metabolic_rate_options(;
     respire=true,
     temperature_error_tolerance=1e-3u"K",

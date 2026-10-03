@@ -11,9 +11,34 @@ Base.getproperty(s::AbstractOutputSection, f::Symbol) =
 Base.propertynames(s::AbstractOutputSection, private::Bool=false) =
     propertynames(getfield(s, :data))
 
+"""
+    ThermoregulationState
+
+The `thermoregulation` section of a [`ThermoregulationOutput`](@ref): core, skin, insulation and lung
+temperatures, the state of the traits that thermoregulation changes, and the values for each side in `dorsal` and
+`ventral`. Its fields are read as properties.
+"""
 struct ThermoregulationState{NT<:NamedTuple} <: AbstractOutputSection; data::NT; end
+"""
+    MorphologyState
+
+The `morphology` section of a [`ThermoregulationOutput`](@ref): areas, volumes and lengths of the body. Its
+fields are read as properties.
+"""
 struct MorphologyState{NT<:NamedTuple}       <: AbstractOutputSection; data::NT; end
+"""
+    EnergyFlowState
+
+The `energy_flows` section of a [`ThermoregulationOutput`](@ref): the terms of the heat budget, the residuals,
+and the flows of each side in `dorsal` and `ventral`. Its fields are read as properties.
+"""
 struct EnergyFlowState{NT<:NamedTuple}       <: AbstractOutputSection; data::NT; end
+"""
+    MassFlowState
+
+The `mass_flows` section of a [`ThermoregulationOutput`](@ref): air breathed, oxygen consumed, water evaporated
+and the molar flows of gases through the lungs. Its fields are read as properties.
+"""
 struct MassFlowState{NT<:NamedTuple}         <: AbstractOutputSection; data::NT; end
 
 """
