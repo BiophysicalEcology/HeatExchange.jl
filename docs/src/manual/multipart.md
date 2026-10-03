@@ -1,10 +1,17 @@
 # Bodies of many parts
 
-A real animal is not one shape. Its limbs, ears and tail are thin and lose heat fast, its back and belly have
-different coats and surroundings, and it can be warm at the core and cold at the feet. Kearney et al. (2021)
-showed how the endotherm model of NicheMapR could be arranged for several body parts, and HomoTherm (Kearney et
-al. 2026) did so for a human. This page describes the functions here that solve a heat budget for a body of
-several parts.
+Modelling an animal as one shape is computationally efficient, and is biologically sufficient for many purposes.
+But for some questions it is better to take a multi-part approach and explicitly include limbs, ears, wings,
+noses, tails and necks. This can better approximate surface areas without resorting to allometric functions or
+unrealistic shape distortion (like the 'uncurl' response of
+[BiophysicalBehaviour.jl](https://biophysicalecology.github.io/BiophysicalBehaviour.jl/dev/manual/endotherm_rules)),
+and can capture postural adjustments (extending ears, Graener et al. 1984), adaptations like counter-current heat
+exchange (crane legs, Fitzpatrick et al. 2015) and blood flow shunting (toucan bills, Tattersall et al. 2009), as
+well as the role of wings (and ears!) in heat loss during flight (Ward et al. 1999; Phillips and Heath 2001).
+
+Kearney et al. (2021) showed how the endotherm model of NicheMapR could be arranged for several body parts, 
+and HomoTherm (Kearney et al. 2026) did so for a human. This page describes the functions here that solve a heat 
+budget for a body of several parts in a more generalised manner using HeatExchange.jl.
 
 The parts, their joins, their areas and what each sees come from a `CompositeBody` of
 [BiophysicalGeometry.jl](https://github.com/BiophysicalEcology/BiophysicalGeometry.jl). The functions here take

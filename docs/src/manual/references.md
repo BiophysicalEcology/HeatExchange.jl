@@ -14,6 +14,10 @@ Cannon, W. B. (1932). *The Wisdom of the Body*. W. W. Norton, New York.
 Conley, K. E. and Porter, W. P. (1986). Heat loss from deer mice (*Peromyscus*): evaluation of seasonal limits to
 thermoregulation. *Journal of Experimental Biology* 126: 249–269.
 
+Fitzpatrick, M. J., Mathewson, P. D. and Porter, W. P. (2015). Validation of a mechanistic model for non-invasive
+study of ecological energetics in an endangered wading bird with counter-current heat exchange in its legs. *PLoS
+ONE* 10: e0136677. https://doi.org/10.1371/journal.pone.0136677
+
 Forrest, J., Rajagopal, V., Stumpf, M. P. H. and Pan, M. (2023). BondGraphs.jl: composable energy-based modelling in
 systems biology. *Bioinformatics* 39: btad578.
 
@@ -23,6 +27,9 @@ Gawthrop, P. J. and Crampin, E. J. (2014). Energy-based analysis of biochemical 
 *Proceedings of the Royal Society A* 470: 20140459.
 
 Gates, D. M. (1980). *Biophysical Ecology*. Springer, New York.
+
+Graener, R., Werner, J. and Buse, M. (1984). Properties of central control of body temperature in the rabbit.
+*Biological Cybernetics* 50: 437–445. https://doi.org/10.1007/BF00335201
 
 Kearney, M. R. and Porter, W. P. (2004). Mapping the fundamental niche: physiology, climate and the distribution of a
 nocturnal lizard. *Ecology* 85: 3119–3131.
@@ -73,6 +80,9 @@ Mitchell, J. W. (1976). Heat transfer from spheres and other animal forms. *Biop
 
 Paynter, H. M. (1961). *Analysis and Design of Engineering Systems*. MIT Press, Cambridge, Massachusetts.
 
+Phillips, P. K. and Heath, J. E. (2001). Heat loss in Dumbo: a theoretical approach. *Journal of Thermal Biology*
+26: 117–120.
+
 Porter, W. P. and Gates, D. M. (1969). Thermodynamic equilibria of animals with environment. *Ecological Monographs*
 39: 227–244.
 
@@ -90,10 +100,17 @@ size and nitrogen in plants. *Nature* 439: 457–461.
 
 Sterling, P. (2012). Allostasis: a model of predictive regulation. *Physiology & Behavior* 106: 5–15.
 
+Tattersall, G. J., Andrade, D. V. and Abe, A. S. (2009). Heat exchange from the toucan bill reveals a controllable
+vascular thermal radiator. *Science* 325: 468–470. https://doi.org/10.1126/science.1175553
+
 Tracy, C. R. (1976). A model of the dynamic exchanges of water and energy between a terrestrial amphibian and its
 environment. *Ecological Monographs* 46: 293–326.
 
 Underwood, C. R. and Ward, E. J. (1966). The solar radiation area of man. *Ergonomics* 9: 155–168.
+
+Ward, S., Rayner, J. M. V., Möller, U., Jackson, D. M., Nachtigall, W. and Speakman, J. R. (1999). Heat transfer from
+starlings *Sturnus vulgaris* during flight. *Journal of Experimental Biology* 202: 1589–1602.
+https://doi.org/10.1242/jeb.202.12.1589
 
 Welch, W. R. (1980). Evaporative water loss from endotherms in thermally and hygrically complex environments: an
 empirical approach for interspecific comparisons. *Journal of Comparative Physiology* 139: 135–143.
