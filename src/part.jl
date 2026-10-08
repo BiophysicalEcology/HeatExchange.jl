@@ -38,8 +38,10 @@ function Part(; body, insulation, traits, environment, ventral_fraction, side = 
     characteristic_dimension = characteristic_dimension(VolumeCubeRoot(), body), weight = 1.0,
 )
     area = BiophysicalGeometry.total_area(body) - covered_area
+    # The evaporating area is a share of the skin, and the covered skin takes the same share.
+    exposed_evaporation_area = evaporation_area(body) * (1 - covered_area / skin_area(body))
     Part(body, insulation, side, traits, environment, conduction_fraction, conductance_coefficient,
-        ventral_fraction, area, evaporation_area(body) - covered_area, characteristic_dimension, weight)
+        ventral_fraction, area, exposed_evaporation_area, characteristic_dimension, weight)
 end
 
 """
@@ -47,11 +49,26 @@ end
 
 The [`Part`](@ref)s of `body`, from `setups` keyed like `body.parts`, each holding the
 keywords of `Part` other than `body` and `covered_area`.
+
+Halves joined over their whole cut faces are one body to the air around them, so by
+default each takes the [`VolumeCubeRoot`](@ref) of all the halves it is joined to as its
+`characteristic_dimension`.
 """
-function parts(body::CompositeBody, setups::NamedTuple)
+function parts(body::CompositeBody{<:NamedTuple{K}}, setups::NamedTuple) where {K}
     covered = BiophysicalGeometry.covered_areas(body.parts, body.joins)
-    map((part, setup, covered_area) -> Part(; setup..., body = part, covered_area), body.parts, setups, covered)
+    group = _groups(body, map(_joins_halves, body.joins))
+    volumes = map(part -> part.geometry.volume, values(body.parts))
+    dimensions = NamedTuple{K}(map(values(body.parts), group) do part, g
+        cbrt(sum(map((volume, h) -> h == g ? volume : zero(volume), volumes, group))) +
+            _outer_insulation_thickness(part.insulation)
+    end)
+    map(body.parts, setups, covered, dimensions) do part, setup, covered_area, characteristic_dimension
+        Part(; characteristic_dimension, setup..., body = part, covered_area)
+    end
 end
+
+_joins_halves(::Join{<:Any,<:Any,<:Attachment{<:Flat,FullCover},<:Attachment{<:Flat,FullCover}}) = true
+_joins_halves(::Join) = false
 
 """
     heat_balance(temperatures::OrganismTemperatures, metabolic_heat_flow, part::Part;

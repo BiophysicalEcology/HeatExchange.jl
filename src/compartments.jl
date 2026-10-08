@@ -65,7 +65,7 @@ struct ThermalNetwork{K,N,C}
 end
 function ThermalNetwork(body::CompositeBody, couplings::Tuple, flesh_conductivities::NamedTuple)
     links = map((j, c) -> _link(body, j, c, flesh_conductivities), body.joins, couplings)
-    compartment = foldl(_join_compartments, links; init = values(_indices(body.parts)))
+    compartment = _groups(body, map(l -> l.shared, links))
     conductances = map(l -> (l.parent, l.child, l.conductance), links)
     ThermalNetwork{keys(body.parts),length(compartment),typeof(conductances)}(compartment, conductances)
 end
@@ -73,10 +73,17 @@ end
 _indices(parts::NamedTuple{K}) where {K} = NamedTuple{K}(ntuple(identity, Val(length(K))))
 
 function _link(body, j::Join{P,C}, coupling, flesh_conductivities) where {P,C}
-    indices = _indices(body.parts)
-    (; parent = getfield(indices, P), child = getfield(indices, C), shared = shares_core(coupling),
+    (; _ends(body, j)..., shared = shares_core(coupling),
        conductance = _conductance(coupling, j, body, (getfield(flesh_conductivities, P), getfield(flesh_conductivities, C))))
 end
+
+_ends(body, ::Join{P,C}) where {P,C} = (; parent = getfield(_indices(body.parts), P), child = getfield(_indices(body.parts), C))
+
+# The parts brought together by the joins for which `linked` holds, as the index of the
+# first part of each part's group.
+_groups(body::CompositeBody, linked::Tuple) =
+    foldl(_join_compartments, map((j, shared) -> (; _ends(body, j)..., shared), body.joins, linked);
+        init = values(_indices(body.parts)))
 
 _conductance(coupling::HeatCoupling, j, body, conductivities) = conductance(coupling, nothing, nothing, conductivities)
 function _conductance(coupling::ConductiveCoupling, j, body, conductivities)

@@ -76,11 +76,31 @@ torso = CompositeBody(;
     parts = (; dorsal = half, ventral = half),
     joins = (Join(dorsal = Attachment(Flat(), FullCover()), ventral = Attachment(Flat(), FullCover())),),
 )
-full_dimension = characteristic_dimension(VolumeCubeRoot(), full_body)
-halves = solve(parts(torso, (;
-    dorsal = setup(ViewFactors(sky * 2, 0.0, 0.0, 0.0), radiation.body_emissivity_dorsal; characteristic_dimension = full_dimension),
-    ventral = setup(ViewFactors(0.0, (1 - sky) * 2, 0.0, 0.0), radiation.body_emissivity_ventral; characteristic_dimension = full_dimension),
-)))
+halves_parts = parts(torso, (;
+    dorsal = setup(ViewFactors(sky * 2, 0.0, 0.0, 0.0), radiation.body_emissivity_dorsal),
+    ventral = setup(ViewFactors(0.0, (1 - sky) * 2, 0.0, 0.0), radiation.body_emissivity_ventral),
+))
+halves = solve(halves_parts)
+
+@testset "Two halves seeing what the whole sees carry its heat" begin
+    open = setup(ViewFactors(sky, 1 - sky, 0.0, 0.0), radiation.body_emissivity_dorsal)
+    flat_faces = (Join(dorsal = Attachment(Flat(), FullCover()), ventral = Attachment(Flat(), FullCover())),)
+    for (whole_shape, half_shape) in (
+        (Cylinder(; mass, density, axis_ratio_b = 3.0), HalfCylinder(; mass = mass / 2, density, axis_ratio_b = 3.0)),
+        (Sphere(; mass, density), HalfSphere(; mass = mass / 2, density)),
+    )
+        body(shape) = Body(shape, CompositeInsulation(fur, fat))
+        one = solve(parts(CompositeBody(; parts = (; whole = body(whole_shape)), joins = ()), (; whole = open)))
+        two = solve(parts(CompositeBody(; parts = (; dorsal = body(half_shape), ventral = body(half_shape)), joins = flat_faces),
+            (; dorsal = open, ventral = open)))
+        @test two.net_metabolic_total ≈ one.net_metabolic_total rtol = 1e-6
+        @test two.skin_temperature ≈ one.skin_temperature rtol = 1e-6
+    end
+end
+
+@testset "Halves convect as the whole" begin
+    @test halves_parts.dorsal.characteristic_dimension ≈ characteristic_dimension(VolumeCubeRoot(), full_body)
+end
 
 @testset "The whole body as one part" begin
     @test whole.metabolic_heat_flow ≈ sides_solution.energy_flows.metabolic_heat_flow rtol = 1e-3
