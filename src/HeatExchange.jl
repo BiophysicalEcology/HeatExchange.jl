@@ -60,14 +60,14 @@ export body,
 export solar,
     radiation_in, radiation_out, evaporation, conduction, convection, nusselt_free, nusselt_forced
 
-export heat_balance, solve_part_heat_balance, solve_temperature, surface_and_lung_temperature
+export heat_balance, solve_temperature, surface_and_lung_temperature
 
 export AbstractRadialLayer, GeneratingCore, ConductiveShell,
     stack_resistance, core_to_skin_stack, radial_net_metabolic_heat
 
-export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
+export radiant_temperature
 
-export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
+export Part, parts, sides, solve_surface
 
 export solve_metabolic_rate,
     ellipsoid_endotherm
@@ -84,11 +84,10 @@ export init, solve!, solve, reinit!
 
 export HeatCoupling, Insulated, SharedCore, ConductiveCoupling
 export ThermalNetwork, conductance, core_temperatures
-export solve_part_surface, part_surface_residuals, solve_coupled_metabolic_rate
 
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
-export solve_temperatures, mean_skin_temperature, respiration
+export mean_skin_temperature, respiration
 
 export ConductanceCoeffs,
     DivisorCoeffs,
@@ -110,7 +109,6 @@ export ConductanceCoeffs,
     Emissivities,
     Absorptivities,
     InsulationProperties,
-    GeometryVariables,
     BodySide,
     Dorsal,
     Ventral,
@@ -151,7 +149,6 @@ include("traits.jl")
 include("environment.jl")
 
 include("insulated/types.jl")
-include("insulated/utils.jl")
 
 include("biophysics.jl")
 include("metabolism.jl")
@@ -164,17 +161,15 @@ include("solve_temperature.jl")
 
 include("ellipsoid_model.jl")
 include("insulated/radiant_temperature.jl")
-include("insulated/insulation_radiant_temperature.jl")
-include("insulated/compressed_radiant_temperature.jl")
 include("insulated/mean_skin_temperature.jl")
 include("radial_layers.jl")
 include("half_shapes.jl")
 include("insulated/net_metabolic_heat.jl")
-include("insulated/skin_and_insulation_temperature.jl")
+include("insulated/surface_exchange.jl")
+include("part.jl")
+include("sides.jl")
 include("solve_metabolic_rate.jl")
 include("compartments.jl")
-include("part_surface.jl")
-include("coupled_solve.jl")
 include("heat_balance_problem.jl")
 include("nlp_interface.jl")
 include("examples.jl")

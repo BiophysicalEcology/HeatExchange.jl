@@ -1,32 +1,3 @@
-
-# Evaluation strategy
-
-"""
-    EvaluationStrategy
-
-Abstract supertype for heat balance evaluation strategies.
-"""
-abstract type EvaluationStrategy end
-
-"""
-    SingleBody <: EvaluationStrategy
-
-Evaluate the organism as a single body (default for naked animals and leaves).
-"""
-struct SingleBody <: EvaluationStrategy end
-
-"""
-    MultiSided <: EvaluationStrategy
-
-Evaluate dorsal and ventral sides independently and combine with `ventral_fraction` weighting.
-Required for insulated organisms; also valid for naked animals.
-"""
-struct MultiSided <: EvaluationStrategy end
-
-evaluation_strategy(o::Organism) = evaluation_strategy(insulation(body(o)))
-evaluation_strategy(::Naked)                          = SingleBody()
-evaluation_strategy(::Union{FibrousLayer, CompositeInsulation}) = MultiSided()
-
 # Characteristic dimension formulas
 
 """
@@ -54,10 +25,11 @@ e.g. `:width_skin`, `:height_skin`, `:radius_skin`. Use this when
 the volume-cube-root scale is inappropriate, such as flat plates or oblate ellipsoids.
 The factor defaults to 1.0.
 """
-struct ScaledDimension{F} <: CharacteristicDimFormula
+struct ScaledDimension{F,D<:Val} <: CharacteristicDimFormula
     factor::F
-    dimension::Symbol
+    dimension::D
 end
+ScaledDimension(factor, dimension::Symbol) = ScaledDimension(factor, Val(dimension))
 ScaledDimension(dimension::Symbol) = ScaledDimension(1.0, dimension)
 
 _outer_insulation_thickness(::Naked)   = 0.0u"m"
@@ -70,8 +42,8 @@ end
 characteristic_dimension(::VolumeCubeRoot, body) =
     cbrt(body.geometry.volume) + _outer_insulation_thickness(body.insulation)
 
-characteristic_dimension(sd::ScaledDimension, body) =
-    sd.factor * getproperty(body.geometry.length, sd.dimension)
+characteristic_dimension(sd::ScaledDimension{<:Any,Val{D}}, body) where {D} =
+    sd.factor * getfield(body.geometry.length, D)
 
 # Convection correlation
 

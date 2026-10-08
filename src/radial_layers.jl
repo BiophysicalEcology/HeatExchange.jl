@@ -1,20 +1,6 @@
-# =============================================================================
-# Radial conduction as an ordered stack of concentric layers.
-#
-# Design + rationale: docs/radial_layer_model.md. The current core→skin physics
-# (`net_metabolic_heat`) is a radial conduction network already solved in closed
-# form — a uniformly heat-generating flesh core in series with passive conductive
-# shells (fat, then fur). This module makes that network explicit: an ordered list of
-# layers, each contributing a shape-dispatched thermal resistance, whose series sum
-# reproduces `net_metabolic_heat` exactly (gated in test/radial_layers.jl). Adding a
-# layer — a second flesh shell for a large animal, extra fur, clothing — becomes an
-# entry in the list, not a new bespoke formula.
-#
-# This is the production core→skin conduction path: `net_metabolic_heat` (net_metabolic_heat.jl)
-# is a thin wrapper over `radial_net_metabolic_heat` here. The outer boundary is the separate
-# per-part energy balance in `solve_part_heat_balance`; the ground-contact branch and the
-# discretised radiative source remain design decisions — see docs/radial_layer_model.md.
-# =============================================================================
+# Conduction from core to skin as a series of concentric layers: a flesh core generating
+# heat throughout, then passive shells of fat, each with a resistance by shape.
+# `net_metabolic_heat` is this stack. See docs/radial_layer_model.md.
 
 abstract type AbstractRadialLayer end
 

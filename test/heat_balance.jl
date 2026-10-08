@@ -130,117 +130,18 @@ thermoreg  = endo_out.thermoregulation
 metabolic_heat_flow      = endo_out.energy_flows.metabolic_heat_flow
 core_temperature     = thermoreg.core_temperature
 
-# -------------------------------------------------------------------------
-# Replicate the dorsal-side inputs that solve_metabolic_rate packs internally
-# (see solve_metabolic_rate lines ~80–200 in endotherm.jl)
-# -------------------------------------------------------------------------
-dmult = 1.0 - pven                      # 0.6
-vegetation_factor = radiation_pars.sky_view_factor * environment_vars.shade   # 0.5 * 0.1 = 0.05
-sky_factor_ref    = radiation_pars.sky_view_factor - vegetation_factor         # 0.45
-ground_factor_ref = 1.0 - sky_factor_ref - vegetation_factor                  # 0.50
-
-# Dorsal body uses the dorsal insulation depth
-ins_layer_d = FibrousLayer(insulation_pars.dorsal.depth, insulation_pars.dorsal.diameter, insulation_pars.dorsal.density)
-body_d      = Body(shape_pars, CompositeInsulation(ins_layer_d, fat))
-
-# Solar for dorsal side — mirrors solve_metabolic_rate solar block
-ep = stripparams(environment_pars)
-absorptivities   = Absorptivities(radiation_pars, ep)
-vf_solar         = ViewFactors(sky_factor_ref, ground_factor_ref, 0.0, 0.0)
-solar_conds      = SolarConditions(environment_vars)
-area_sil         = silhouette(geometry, radiation_pars.solar_orientation)
-area_cond_ref    = BiophysicalGeometry.total_area(geometry) * external_conduction.conduction_fraction
-solar_out        = solar(geometry, absorptivities, vf_solar, solar_conds, area_sil, area_cond_ref)
-dorsal_solar     = solar_out.solar_flow > 0.0u"W" ?
-    2.0 * solar_out.solar_direct_flow + solar_out.solar_sky_flow * 2.0 :
-    0.0u"W"
-
-# Dorsal side temperatures from converged solution
-dorsal_skin_temperature = thermoreg.dorsal.skin_temperature
-dorsal_insulation_temperature  = thermoreg.dorsal.insulation_temperature
-
-# Insulation properties at converged dorsal temperatures
-ins_d = insulation_properties(insulation_pars, dorsal_insulation_temperature * 0.7 + dorsal_skin_temperature * 0.3, pven)
-
-geometry_vars_d = GeometryVariables(;
-    side                    = Dorsal(),
-    conductance_coefficient = 0.0u"W/K",
-    ventral_fraction        = pven,
-    conduction_fraction     = external_conduction.conduction_fraction,
-    longwave_depth_fraction = insulation_pars.longwave_depth_fraction,
-)
-
-# vegetation_temperature is reference_air_temperature in solve_metabolic_rate
-env_d = (;
-    temperature = (
-        air        = environment_vars.air_temperature,
-        sky        = environment_vars.sky_temperature,
-        ground     = environment_vars.ground_temperature,
-        vegetation = environment_vars.reference_air_temperature,
-        bush       = environment_vars.bush_temperature,
-        substrate  = environment_vars.substrate_temperature,
-    ),
-    view_factors = (
-        sky        = sky_factor_ref * 2.0,
-        ground     = 0.0,
-        bush       = 0.0,
-        vegetation = vegetation_factor * 2.0,
-    ),
-    atmos = (
-        relative_humidity    = environment_vars.relative_humidity,
-        wind_speed           = environment_vars.wind_speed,
-        atmospheric_pressure = environment_vars.atmospheric_pressure,
-    ),
-    fluid                  = ep.fluid,
-    solar_flow             = dorsal_solar,
-    gas_fractions          = ep.gas_fractions,
-    convection_enhancement = ep.convection_enhancement,
-)
-
-traits_d = (;
-    fat_conductivity   = internal_conduction.fat_conductivity,
-    flesh_conductivity = internal_conduction.flesh_conductivity,
-    ϵ_body             = radiation_pars.body_emissivity_dorsal,
-    insulation_wetness = evaporation_pars.insulation_wetness,
-    bare_skin_fraction = evaporation_pars.bare_skin_fraction,
-    eye_fraction       = evaporation_pars.eye_fraction,
-    skin_wetness       = evaporation_pars.skin_wetness,
-)
-
-hb_d = heat_balance(
-    core_temperature, dorsal_skin_temperature, dorsal_insulation_temperature, metabolic_heat_flow;
-    body              = body_d,
-    insulation_pars   = insulation_pars,
-    insulation        = ins_d,
-    geometry_vars     = geometry_vars_d,
-    minimum_metabolic_heat = metabolic_heat_flow, # what should this be?
-    environment_vars  = env_d,
-    traits            = traits_d,
-    resp_pars         = respiration_pars,
-)
-balance = metabolic_heat_flow + hb_d.solar_heat_flow - 
-    hb_d.radiation_heat_flow - 
-    hb_d.convection_heat_flow - 
-    hb_d.conduction_heat_flow - 
-    hb_d.skin_evaporation_heat_flow -
-    hb_d.insulation_evaporation_heat_flow - 
-    hb_d.respiration_heat_flow - 
-    hb_d.net_metabolic_heat_internal
-
-#@test abs(ustrip(u"W", balance)) < 0.01
-# The iterative solver converged skin_temperature, so residual_skin_temperature must be near zero.
-# residual_energy_balance and residual_internal_conduction use the full-organism metabolic_heat_flow
-# against per-side losses, so they need not be zero for a one-sided call.
-#@test abs(ustrip(u"K", hb_d.residual_skin_temperature)) < 0.01
-
-# -------------------------------------------------------------------------
-# MultiSided solve_temperature for insulated organism
-# -------------------------------------------------------------------------
-@test evaluation_strategy(organism) isa MultiSided
-
 e = (; environment_pars, environment_vars)
 
-# heat_balance on a MultiSided organism raises MethodError — use solve_temperature instead
+@testset "Each side's surface balances at the solution" begin
+    for (part, side) in zip(sides(organism, e), (thermoreg.dorsal, thermoreg.ventral))
+        temperatures = HeatExchange.OrganismTemperatures(core_temperature, side.skin_temperature, side.insulation_temperature)
+        b = heat_balance(temperatures, metabolic_heat_flow, part; respiration_pars)
+        @test abs(ustrip(u"W", b.surface_balance)) < 1e-6
+        @test abs(ustrip(u"K", b.residual_skin_temperature)) < 1e-6
+    end
+end
+
+# An insulated organism's temperature comes from solve_temperature.
 @test_throws MethodError heat_balance(u"K"(30.0u"°C"), organism, e)
 
 # solve_temperature returns a rich ThermoregulationOutput with whole-organism and per-side results

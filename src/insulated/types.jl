@@ -2,8 +2,8 @@
     BodySide
 
 Abstract supertype for body-side selectors. `Dorsal()` and `Ventral()` are
-singleton subtypes — they parameterise `GeometryVariables{S,...}` so the
-compiler can specialise on side and eliminate the wrong-branch code.
+singleton subtypes — they parameterise a [`Part`](@ref) so the compiler can
+specialise on side and eliminate the wrong-branch code.
 """
 abstract type BodySide end
 
@@ -427,24 +427,4 @@ struct InsulationProperties{F<:BodyRegionValues,C<:BodyRegionValues,A<:BodyRegio
     optical_thickness::O
     insulation_test::IT
     conductivity_compressed::CC
-end
-
-"""
-    GeometryVariables
-
-Geometric and thermal parameters for heat exchange calculations on a body side.
-
-# Fields
-- `side::BodySide` — Body side (`Dorsal()` or `Ventral()`)
-- `conductance_coefficient` — Thermal conductance to substrate (W/K), conduction_flow = conductance_coefficient × ΔT
-- `ventral_fraction` — Fraction of body surface that is ventral (0-1)
-- `conduction_fraction` — Fraction of surface area in contact with substrate (0-1)
-- `longwave_depth_fraction` — Fraction of insulation depth for longwave radiation exchange (0-1)
-"""
-Base.@kwdef struct GeometryVariables{S<:BodySide,SC,VF,CF,LDF}
-    side::S
-    conductance_coefficient::SC
-    ventral_fraction::VF
-    conduction_fraction::CF
-    longwave_depth_fraction::LDF
 end

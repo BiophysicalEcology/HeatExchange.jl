@@ -61,7 +61,7 @@ graph LR
 | flesh → skin (fat) | `2k_fat·V / (r²·log(r_skin/r_flesh))` | net_metabolic_heat |
 | skin → fur surface | `k_ins / log(r_ins/r_skin)` (uncompressed) | radiant_temperature |
 | skin → ground (compressed fur) | `k_comp / log(r_comp/r_skin)` · `conduction_fraction` | radiant_temperature |
-| fur → env | convection + linearised radiation (T³) | solve_part_heat_balance |
+| fur → env | convection + linearised radiation (T³) | heat_balance(…, ::Part) |
 
 **Node source / boundary fluxes:**
 
@@ -183,16 +183,10 @@ slab, and **ellipsoid** (via the equivalent-sphere approximation) are all implem
 values (`rtol < 1e-10`) for every shape, with and without fat, so §1's claim is proven in
 running code: the old closed form *is* this radial network collapsed.
 
-**Surface solve: unified; the iterative twin is retired.** The rule-based per-part surface
-solve for insulated parts now root-finds skin and insulation temperatures on the same
-residuals the multipart NLP uses (`surface_balance` + `residual_skin_temperature`), via the
-shared `solve_part_heat_balance` primitive (`_solve_temperatures_insulated`). The hand-rolled
-iterative `solve_with_insulation!` is gone; the rule-based and NLP paths share one
-surface-physics implementation. `solve_part_heat_balance` already *is* the "surface node" an
-earlier draft listed as a separate phase — a non-iterative per-part energy balance
-(convection + radiation + evaporation + conduction − solar) returning residuals — so no new
-node abstraction was needed. The bare-skin path (`solve_without_insulation!`) is kept: the
-insulated formulation's `log(r_insulation/r_skin)` conductance factors are singular at zero
+**Surface solve.** `solve_surface` root-finds an insulated part's skin and insulation
+temperatures on the residuals the multipart NLP uses (`surface_balance` +
+`residual_skin_temperature`) from `heat_balance(…, ::Part)`, so the rule-based and NLP paths
+share one surface energy balance. Bare skin has its own fixed point: the insulated formulation's `log(r_insulation/r_skin)` conductance factors are singular at zero
 insulation. The unified solver balances surface energy exactly where NicheMapR endoR used a
 linearised update, so `test/endotherm.jl` agrees with it to ~0.3 % on surface quantities and
 ~1 % on metabolic-heat-linked flows (regulated core/lung temperatures and geometry still

@@ -1,5 +1,5 @@
 """
-    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, conductance_coefficient, longwave_depth_fraction, conduction_fraction, evaporation_flow, substrate_temperature)
+    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, conductance_coefficient, conduction_fraction, evaporation_flow, substrate_temperature)
 
 Calculate the radiant temperature at the insulation surface for longwave radiation exchange.
 
@@ -14,7 +14,6 @@ heat conduction equations through the insulation layer.
 - `conductivities::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
 - `side`: Body side (`:dorsal` or `:ventral`)
 - `conductance_coefficient`: Substrate conductance coefficient
-- `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
 - `conduction_fraction`: Fraction of body in contact with substrate
 - `evaporation_flow`: Evaporative heat loss
 - `substrate_temperature`: Substrate temperature
@@ -34,7 +33,6 @@ function radiant_temperature(;
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature,
@@ -49,7 +47,6 @@ function radiant_temperature(;
         conductivities,
         side,
         conductance_coefficient,
-        longwave_depth_fraction,
         conduction_fraction,
         evaporation_flow,
         substrate_temperature;
@@ -79,20 +76,20 @@ function radiant_temperature(
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
+    (; longwave_depth_fraction) = insulation_pars
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
     insulation_depth = _side_value(insulation.fibres, side).depth
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
+    r_radiation = r_skin + longwave_depth_fraction * insulation_depth
     compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
     length = body.geometry.length.length_skin
@@ -162,20 +159,20 @@ function radiant_temperature(
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
+    (; longwave_depth_fraction) = insulation_pars
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
     insulation_depth = _side_value(insulation.fibres, side).depth
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
+    r_radiation = r_skin + longwave_depth_fraction * insulation_depth
     compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
 
@@ -250,13 +247,13 @@ function radiant_temperature(
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
+    (; longwave_depth_fraction) = insulation_pars
 
     volume = flesh_volume(body)
 

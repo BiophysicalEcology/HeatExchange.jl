@@ -1,12 +1,5 @@
-# NLP strategy interface for IPOPT and other nonlinear solvers.
-#
-# HeatExchange owns the strategy *abstraction*; the calling package
-# (BiophysicalBehaviour.jl) owns the solver policy (bounds, objective, variable
-# unpacking) and supplies the concrete strategy. The one concrete strategy,
-# `MultipartNLP`, is defined in BiophysicalBehaviour and extends `nlp_pack` here
-# to pack the fixed per-part physics once before the solve; the per-iteration
-# residuals go straight through `part_surface_residuals` (part_surface.jl), so no
-# physics is duplicated across the package boundary.
+# NLP strategy interface for IPOPT and other nonlinear solvers. BiophysicalBehaviour
+# defines the one strategy, whose residuals are each part's `heat_balance`.
 
 abstract type NLPStrategy end
 
