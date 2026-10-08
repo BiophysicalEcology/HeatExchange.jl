@@ -106,14 +106,9 @@ function compressed_radiant_temperature(
     volume = flesh_volume(body)
     insulation_depth = _side_value(insulation_pars, side).depth
 
-    a_semi_major = body.geometry.length.a_semi_major
-    b_semi_minor = body.geometry.length.b_semi_minor
-    c_semi_minor = body.geometry.length.c_semi_minor
+    a_semi_major, b_semi_minor, c_semi_minor = BiophysicalGeometry.skin_semiaxes(body.geometry.length)
 
-    fat = body.geometry.length.fat
-    a_semi_major_flesh = a_semi_major - fat
-    b_semi_minor_flesh = b_semi_minor - fat
-    c_semi_minor_flesh = c_semi_minor - fat
+    a_semi_major_flesh, b_semi_minor_flesh, c_semi_minor_flesh = BiophysicalGeometry.flesh_semiaxes(body.geometry.length)
 
     a_square = min(a_semi_major_flesh^2, a_semi_major^2)
     b_square = min(b_semi_minor_flesh^2, b_semi_minor^2)

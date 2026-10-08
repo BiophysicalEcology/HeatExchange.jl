@@ -49,7 +49,7 @@ skin0  = core - 5u"K"
 insul0 = env_vars.air_temperature + 2u"K"
 
 # --- baseline: dorsal/ventral MultiSided on the full cylinder --------------
-full_shape = Cylinder(mass, ρ, b)
+full_shape = Cylinder(; mass, density = ρ, axis_ratio_b = b)
 full_body  = Body(full_shape, CompositeInsulation(fur, fat))
 traits = example_heat_exchange_traits(;
     shape_pars = full_shape,
@@ -97,24 +97,22 @@ part_traits(ϵ_body) = (;
 # cache input the caller supplies.)
 full_characteristic_dim = characteristic_dimension(VolumeCubeRoot(), full_body)
 
-function part_setup(view_factors, ϵ_body)
-    part_body = Body(HalfCylinder(mass / 2, ρ, b), CompositeInsulation(fur, fat))
-    # Covered join patch: the flat face that mates with the other half
-    # (2·radius_skin·length_skin), matching CompositeBody's covered-area accounting.
-    covered_area = 2 * part_body.geometry.length.radius_skin * part_body.geometry.length.length_skin
-    return (;
-        body = part_body,
-        insulation_pars = ins_pars,
-        traits = part_traits(ϵ_body),
-        environment_vars = packed(view_factors),
-        conduction_fraction = 0.0,
-        conductance_coefficient = 0.0u"W/K",
-        ventral_fraction = 0.5,
-        longwave_depth_fraction = 1.0,
-        covered_area,
-        characteristic_dim = full_characteristic_dim,
-    )
-end
+half = Body(HalfCylinder(; mass = mass / 2, density = ρ, axis_ratio_b = b), CompositeInsulation(fur, fat))
+torso = CompositeBody(;
+    parts = (; dorsal = half, ventral = half),
+    joins = (Join(dorsal = Attachment(Flat(), FullCover()), ventral = Attachment(Flat(), FullCover())),),
+)
+
+part_setup(view_factors, ϵ_body) = (;
+    insulation_pars = ins_pars,
+    traits = part_traits(ϵ_body),
+    environment_vars = packed(view_factors),
+    conduction_fraction = 0.0,
+    conductance_coefficient = 0.0u"W/K",
+    ventral_fraction = 0.5,
+    longwave_depth_fraction = 1.0,
+    characteristic_dim = full_characteristic_dim,
+)
 
 # Per-side view factors mirror _pack_sides: sky/vegetation-facing (dorsal) and
 # ground/bush-facing (ventral), each doubled (half the body, twice the exposure).
@@ -123,8 +121,7 @@ ground_factor = 1 - sky_factor
 dorsal_setup  = part_setup(ViewFactors(sky_factor * 2, 0.0, 0.0, 0.0), rad_pars.body_emissivity_dorsal)
 ventral_setup = part_setup(ViewFactors(0.0, ground_factor * 2, 0.0, 0.0), rad_pars.body_emissivity_ventral)
 
-multipart = solve_coupled_metabolic_rate(;
-    part_surface_setups = (dorsal_setup, ventral_setup),
+multipart = solve_coupled_metabolic_rate(torso, (; dorsal = dorsal_setup, ventral = ventral_setup);
     core_temperature = core,
     skin_temperature = skin0,
     insulation_temperature = insul0,
@@ -145,7 +142,6 @@ multipart = solve_coupled_metabolic_rate(;
 # in the symmetric case the two sides average to the full body, so a single full
 # part must reproduce the dorsal/ventral solve essentially exactly.
 whole_setup = (;
-    body = full_body,
     insulation_pars = ins_pars,
     traits = part_traits(rad_pars.body_emissivity_dorsal),
     environment_vars = packed(ViewFactors(sky_factor, ground_factor, 0.0, 0.0)),
@@ -154,8 +150,7 @@ whole_setup = (;
     ventral_fraction = 0.5,
     longwave_depth_fraction = 1.0,
 )
-whole = solve_coupled_metabolic_rate(;
-    part_surface_setups = (whole_setup,),
+whole = solve_coupled_metabolic_rate(CompositeBody(; parts = (; whole = full_body), joins = ()), (; whole = whole_setup);
     core_temperature = core,
     skin_temperature = skin0,
     insulation_temperature = insul0,

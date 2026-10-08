@@ -153,13 +153,8 @@ function mean_skin_temperature(
     smoothing::SmoothingStrategy=HardBound(),
 )
     volume = flesh_volume(body)
-    a_semi_major = body.geometry.length.a_semi_major_skin
-    b_semi_minor = body.geometry.length.b_semi_minor_skin
-    c_semi_minor = body.geometry.length.c_semi_minor_skin
-    fat = body.geometry.length.fat
-    a_semi_major_flesh = a_semi_major - fat
-    b_semi_minor_flesh = b_semi_minor - fat
-    c_semi_minor_flesh = c_semi_minor - fat
+    a_semi_major, b_semi_minor, c_semi_minor = BiophysicalGeometry.skin_semiaxes(body.geometry.length)
+    a_semi_major_flesh, b_semi_minor_flesh, c_semi_minor_flesh = BiophysicalGeometry.flesh_semiaxes(body.geometry.length)
 
     a_square = safe_min(smoothing, a_semi_major_flesh^2, a_semi_major^2; scale=oneunit(a_semi_major^2))
     b_square = safe_min(smoothing, b_semi_minor_flesh^2, b_semi_minor^2; scale=oneunit(b_semi_minor^2))

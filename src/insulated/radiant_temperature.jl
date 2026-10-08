@@ -260,13 +260,8 @@ function radiant_temperature(
 
     volume = flesh_volume(body)
 
-    a_semi_major = body.geometry.length.a_semi_major_skin
-    b_semi_minor = body.geometry.length.b_semi_minor_skin
-    c_semi_minor = body.geometry.length.c_semi_minor_skin
-    fat = body.geometry.length.fat
-    a_semi_major_flesh = a_semi_major - fat
-    b_semi_minor_flesh = b_semi_minor - fat
-    c_semi_minor_flesh = c_semi_minor - fat
+    a_semi_major, b_semi_minor, c_semi_minor = BiophysicalGeometry.skin_semiaxes(body.geometry.length)
+    a_semi_major_flesh, b_semi_minor_flesh, c_semi_minor_flesh = BiophysicalGeometry.flesh_semiaxes(body.geometry.length)
 
     insulation_depth = _side_value(insulation.fibres, side).depth
     compressed_conductivity = insulation.conductivity_compressed

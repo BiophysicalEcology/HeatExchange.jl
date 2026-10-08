@@ -8,7 +8,7 @@ using Test
 
 # Parameters from test/data/endoR_input_4_1.csv (Ellipsoid with fur)
 # Shape 4 = Ellipsoid, furmult 1 = with insulation
-shape_pars = Ellipsoid(65.0u"kg", 1000.0u"kg/m^3", 5.0, 5.0)
+shape_pars = Ellipsoid(mass = 65.0u"kg", density = 1000.0u"kg/m^3", axis_ratio_b = 5.0, axis_ratio_c = 5.0)
 fat        = FatLayer(0.20, 901.0u"kg/m^3")
 
 pven = 0.4

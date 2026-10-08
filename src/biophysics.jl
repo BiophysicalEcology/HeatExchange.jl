@@ -1,8 +1,6 @@
 # Biophysics
 
-# Extend BiophysicalGeometry.silhouette_area to support (body, orientation, zenith_angle).
-# Falls back to the orientation-based 2-arg method for shapes (like AllometricShape) that
-# compute silhouette from posture rather than sun angle.
+# Silhouettes of bodies set by posture rather than sun angle.
 BiophysicalGeometry.silhouette(body::AbstractBody, orientation, zenith_angle) =
     silhouette(shape(body), orientation)
 
@@ -305,7 +303,7 @@ end
 Calculate the Nusselt number for free convection based on body shape.
 
 # Arguments
-- `shape`: Body shape (Cylinder, Plate, Sphere, Ellipsoid, or animal-specific shapes)
+- `shape`: Body shape (Cylinder, Plate, Sphere or Ellipsoid)
 - `grashof_number`: Grashof number (dimensionless)
 - `prandtl_number`: Prandtl number (dimensionless)
 
@@ -354,7 +352,7 @@ end
 Calculate the Nusselt number for forced convection based on body shape.
 
 # Arguments
-- `shape`: Body shape (Cylinder, Plate, Sphere, Ellipsoid, or animal-specific shapes)
+- `shape`: Body shape (Cylinder, Plate, Sphere or Ellipsoid)
 - `reynolds_number`: Reynolds number (dimensionless)
 
 # Returns

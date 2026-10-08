@@ -1,18 +1,5 @@
-# CommonSolve.jl interface for the endotherm heat-balance solve.
-#
-# `HeatBalanceProblem` is a self-contained heat-balance problem; `HeatBalanceSolver`
-# is a reusable workspace carrying the current temperature state across successive
-# solves. This exposes the standard SciML `init` / `solve!` / `reinit!` / `solve`
-# surface so downstream code composes with the rest of the ecosystem and so
-# `BiophysicalBehaviour`'s control loop can warm-start across effector iterations.
-#
-# The physics behind `solve!` is currently the validated single-body /
-# dorsal-ventral `solve_metabolic_rate`. As the multi-part per-part primitive
-# (`solve_part_heat_balance`) and compartment graph land, they slot in behind
-# this same interface without changing the surface. The problem stores the
-# organism + environment for now; the fuller per-part
-# geometry/physiology/couplings/compartment_graph decomposition (plan §3.6) is
-# added as multi-part physics arrives.
+# The CommonSolve interface to `solve_metabolic_rate`, with a solver that keeps its
+# temperatures to start the next solve from.
 
 using CommonSolve: CommonSolve, init, solve!, solve
 

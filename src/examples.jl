@@ -50,11 +50,11 @@ end
 
 function example_ellipsoid_shape_pars(;
     mass=65.0u"kg",
-    ρ_flesh=1000.0u"kg/m^3",
+    density=1000.0u"kg/m^3",
     axis_ratio_b=1.1,
     axis_ratio_c=1.1,
 )
-    Ellipsoid(mass, ρ_flesh, axis_ratio_b, axis_ratio_c)
+    Ellipsoid(; mass, density, axis_ratio_b, axis_ratio_c)
 end
 
 example_shape_pars(; kwargs...) = example_ellipsoid_shape_pars(; kwargs...)

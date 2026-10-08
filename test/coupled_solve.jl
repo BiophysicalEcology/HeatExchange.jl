@@ -8,10 +8,7 @@ using HeatExchange: solve_coupled_metabolic_rate,
     EnvironmentTemperatures, ViewFactors, AtmosphericConditions,
     example_environment_vars, example_environment_pars, example_respiration_pars
 
-# ---------------------------------------------------------------------------
-# Two half-cylinder parts sharing a core (the dorsal/ventral topology).
-# Two equal-mass half-cylinders joined reconstruct a full Cylinder(2·mass).
-# ---------------------------------------------------------------------------
+# Two half-cylinders joined flat to flat, as a torso's dorsal and ventral halves.
 ρ = 1000.0u"kg/m^3"
 fat = FatLayer(0.10, 901.0u"kg/m^3")
 fur = FibrousLayer(0.01u"m", 3e-5u"m", 3e7u"1/m^2")
@@ -54,21 +51,19 @@ packed_environment = (;
     convection_enhancement = env_pars.convection_enhancement,
 )
 
-# One part setup per half-cylinder; each carries 5 kg so the pair ≡ Cylinder(10 kg).
-function halfcyl_setup(mass)
-    body = Body(HalfCylinder(mass, ρ, 3.0), CompositeInsulation(fur, fat))
-    return (;
-        body,
-        insulation_pars = part_insulation_pars,
-        traits,
-        environment_vars = packed_environment,
-        conduction_fraction = 0.0,
-        conductance_coefficient = 0.0u"W/K",
-        ventral_fraction = 0.5,
-        longwave_depth_fraction = 1.0,
-    )
-end
-setups = (halfcyl_setup(5.0u"kg"), halfcyl_setup(5.0u"kg"))
+half(mass) = Body(HalfCylinder(; mass, density = ρ, axis_ratio_b = 3.0), CompositeInsulation(fur, fat))
+flat_join = Join(dorsal = Attachment(Flat(), FullCover()), ventral = Attachment(Flat(), FullCover()))
+torso = CompositeBody(; parts = (; dorsal = half(5.0u"kg"), ventral = half(5.0u"kg")), joins = (flat_join,))
+setup = (;
+    insulation_pars = part_insulation_pars,
+    traits,
+    environment_vars = packed_environment,
+    conduction_fraction = 0.0,
+    conductance_coefficient = 0.0u"W/K",
+    ventral_fraction = 0.5,
+    longwave_depth_fraction = 1.0,
+)
+setups = (; dorsal = setup, ventral = setup)
 
 resp_pars = example_respiration_pars()
 atmos = AtmosphericConditions(env_vars)
@@ -88,7 +83,7 @@ common = (;
 )
 
 @testset "solve_coupled_metabolic_rate — mechanics and self-consistency" begin
-    result = solve_coupled_metabolic_rate(; part_surface_setups = setups, respire = true, common...)
+    result = solve_coupled_metabolic_rate(torso, setups; respire = true, common...)
     @test length(result.parts) == 2
     @test all(part -> part.success, result.parts)
     # net_metabolic_total is the plain sum of per-part core→skin flow
@@ -104,19 +99,23 @@ common = (;
 end
 
 @testset "solve_coupled_metabolic_rate — respire=false is the identity" begin
-    result = solve_coupled_metabolic_rate(; part_surface_setups = setups, respire = false, common...)
+    result = solve_coupled_metabolic_rate(torso, setups; respire = false, common...)
     # With no respiration, the metabolic heat flow is exactly the internal heat sum
     @test result.metabolic_heat_flow == result.net_metabolic_total
     @test result.respiration_out === nothing
 end
 
-@testset "solve_coupled_metabolic_rate — two 5 kg halves ≈ one 10 kg pair scaling" begin
-    # Splitting the same mass into more parts conserves total internal heat:
-    # a single-part setup carrying the whole 10 kg as one half-cylinder produces
-    # net_metabolic close to the sum of two 5 kg halves at the same core/skin guess.
-    one_part = (halfcyl_setup(10.0u"kg"),)
-    r_two = solve_coupled_metabolic_rate(; part_surface_setups = setups, respire = false, common...)
-    r_one = solve_coupled_metabolic_rate(; part_surface_setups = one_part, respire = false, common...)
-    @test r_two.net_metabolic_total > 0.0u"W"
-    @test r_one.net_metabolic_total > 0.0u"W"
+@testset "solve_coupled_metabolic_rate — one part" begin
+    alone = CompositeBody(; parts = (; dorsal = half(10.0u"kg")), joins = ())
+    result = solve_coupled_metabolic_rate(alone, (; dorsal = setup); respire = false, common...)
+    @test result.net_metabolic_total > 0.0u"W"
+end
+
+@testset "solve_coupled_metabolic_rate — neighbours from silhouette_factors" begin
+    apart = solve_coupled_metabolic_rate(torso, setups; respire = false, common...)
+    neighbours = map(view -> view.neighbours, silhouette_factors(torso, Sky(0.5); ndirections = 64, resolution = 32))
+    beside = solve_coupled_metabolic_rate(torso, setups; neighbours, respire = false, common...)
+    @test all(part -> part.success, beside.parts)
+    # The halves of a cylinder hardly see each other.
+    @test beside.net_metabolic_total ≈ apart.net_metabolic_total rtol = 0.01
 end

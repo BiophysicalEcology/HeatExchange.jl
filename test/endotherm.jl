@@ -91,31 +91,31 @@ for shape_number in 1:4
 
         # define shape
         if endo_input.SHAPE == 1
-            shape_pars = Cylinder(
-                (endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3", (endo_input.SHAPE_B)
-            ) # define shape
+            shape_pars = Cylinder(;
+                mass = (endo_input.AMASS)u"kg", density = (endo_input.ANDENS)u"kg/m^3",
+                axis_ratio_b = endo_input.SHAPE_B,
+            )
         end
         if endo_input.SHAPE == 2
-            shape_pars = Sphere((endo_input.AMASS)u"kg", (endo_input.ANDENS)u"kg/m^3")
+            shape_pars = Sphere(; mass = (endo_input.AMASS)u"kg", density = (endo_input.ANDENS)u"kg/m^3")
         end
         if endo_input.SHAPE == 3
-            shape_pars = Plate(
-                (endo_input.AMASS)u"kg",
-                (endo_input.ANDENS)u"kg/m^3",
-                (endo_input.SHAPE_B),
-                (endo_input.SHAPE_C),
+            shape_pars = Plate(;
+                mass = (endo_input.AMASS)u"kg", density = (endo_input.ANDENS)u"kg/m^3",
+                axis_ratio_b = endo_input.SHAPE_B, axis_ratio_c = endo_input.SHAPE_C,
             )
         end
         if endo_input.SHAPE == 4
-            shape_pars = Ellipsoid(
-                (endo_input.AMASS)u"kg",
-                (endo_input.ANDENS)u"kg/m^3",
-                (endo_input.SHAPE_B),
-                (endo_input.SHAPE_C),
+            shape_pars = Ellipsoid(;
+                mass = (endo_input.AMASS)u"kg", density = (endo_input.ANDENS)u"kg/m^3",
+                axis_ratio_b = endo_input.SHAPE_B, axis_ratio_c = endo_input.SHAPE_C,
             )
         end
 
-        fat = FatLayer(endo_input.FATPCT / 100.0, (endo_input.FATDEN)u"kg/m^3")
+        # NicheMapR's ellipsoid fat solve takes the wrong root of its cubic and drops the
+        # fat (FAT_THICK = 0, FLESH_VOL = VOLUME), so its ellipsoid is compared without fat.
+        fat_fraction = endo_input.SHAPE == 4 ? 0.0 : endo_input.FATPCT / 100.0
+        fat = FatLayer(fat_fraction, (endo_input.FATDEN)u"kg/m^3")
         mean_insulation_depth =
             (endo_input.ZFURD * (1 - endo_input.PVEN) + endo_input.ZFURV * endo_input.PVEN)u"m"
         mean_fibre_diameter = (
@@ -163,7 +163,7 @@ for shape_number in 1:4
         )
 
         conduction_pars_internal = InternalConductionParameters(;
-            fat_fraction=(endo_input.FATPCT / 100.0),
+            fat_fraction,
             flesh_conductivity=(endo_input.AK1)u"W/m/K",
             fat_conductivity=(endo_input.AK2)u"W/m/K",
             fat_density=(endo_input.FATDEN)u"kg/m^3",
@@ -329,7 +329,9 @@ for shape_number in 1:4
                 rtol
             @test morph_output_vec.CHAR_DIM ≈
                 ustrip(u"m", morphology.characteristic_dimension) rtol = rtol
-            @test morph_output_vec.MASS_FAT ≈ ustrip(u"kg", morphology.fat_mass) rtol = rtol
+            # NicheMapR reports the ellipsoid's fat mass though it drops the fat.
+            endo_input.SHAPE == 4 ||
+                @test morph_output_vec.MASS_FAT ≈ ustrip(u"kg", morphology.fat_mass) rtol = rtol
             if mammal.body.shape isa Cylinder
                 @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.length_fibrous) rtol =
                     rtol
@@ -349,12 +351,9 @@ for shape_number in 1:4
                     rtol
             end
             if mammal.body.shape isa Ellipsoid
-                @test morph_output_vec.LENGTH ≈
-                    ustrip(u"m", morphology.a_semi_major_fibrous * 2) rtol = rtol
-                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.b_semi_minor_fibrous * 2) rtol =
-                    rtol
-                @test morph_output_vec.HEIGHT ≈
-                    ustrip(u"m", morphology.c_semi_minor_fibrous * 2) rtol = rtol
+                @test morph_output_vec.LENGTH ≈ ustrip(u"m", morphology.length_fibrous) rtol = rtol
+                @test morph_output_vec.WIDTH ≈ ustrip(u"m", morphology.width_fibrous) rtol = rtol
+                @test morph_output_vec.HEIGHT ≈ ustrip(u"m", morphology.height_fibrous) rtol = rtol
             end
             @test morph_output_vec.FAT_THICK ≈ ustrip(u"m", fat) rtol = rtol
         end

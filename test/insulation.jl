@@ -28,7 +28,7 @@ insulation_out = insulation_properties(insulation, (273.15 + 20.0)u"K", 0.3)
 density = 1000.0u"kg/m^3"
 mass = 0.04u"kg"
 shapeb = 2
-shape = Cylinder(mass, density, shapeb) # define shape as a Cylinder struct of type 'Shape' and give it required values
+shape = Cylinder(; mass, density, axis_ratio_b = shapeb)
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = FatLayer(fat_fraction, fat_density)
@@ -49,7 +49,7 @@ body_geometry = geometry(shape, fur)
 θ = 90u"°"
 area_silhouette = silhouette(body, θ)
 
-shape = Sphere(mass, density) # define shape as a Cylinder struct of type 'Shape' and give it required values
+shape = Sphere(; mass, density)
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = FatLayer(fat_fraction, fat_density)
@@ -64,7 +64,7 @@ body = Body(shape, fur) # construct a Body, which is furred
 body = Body(shape, fat) # construct a Body, which has a fat layer
 body = Body(shape, CompositeInsulation(fur, fat))
 
-shape = Plate(mass, density, shapeb, shapeb) # define shape as a Cylinder struct of type 'Shape' and give it required values
+shape = Plate(; mass, density, axis_ratio_b = shapeb, axis_ratio_c = shapeb)
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = FatLayer(fat_fraction, fat_density)
@@ -80,7 +80,7 @@ body = Body(shape, fur) # construct a Body, which is furred
 body = Body(shape, fat) # construct a Body, which has a fat layer
 body = Body(shape, CompositeInsulation(fur, fat))
 
-shape = Ellipsoid(mass, density, shapeb, shapeb) # define shape as a Cylinder struct of type 'Shape' and give it required values
+shape = Ellipsoid(; mass, density, axis_ratio_b = shapeb, axis_ratio_c = shapeb)
 fat_fraction = 0.2
 fat_density = 901.0u"kg/m^3"
 fat = FatLayer(fat_fraction, fat_density)

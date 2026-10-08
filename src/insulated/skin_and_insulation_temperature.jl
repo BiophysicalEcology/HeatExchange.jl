@@ -56,21 +56,10 @@ function _radiation_coefficients(area, view_factors, ϵ, σ, radiant_temperature
                     coeff(F.vegetation, T.vegetation), coeff(F.ground, T.ground))
 end
 
-# Inter-part (neighbour) surface exchange — the lumped radiative component of the
-# blocked-solid-angle term. A part whose hemisphere is partly occluded by a sibling
-# part exchanges longwave with that sibling's outer surface over the neighbour view
-# fraction, instead of with the sky/ground it can't see through the sibling. Same
-# linearised radiative-conductance form as `_radiation_coefficients`, with the
-# neighbour's surface temperature as the far side. The fractions come from
-# `view_partition`, where sky + ground + Σ neighbours = 1, so the blocked solid angle
-# (and hence its energy) is not lost — it becomes this term. `neighbours` is a tuple
-# of `(; fraction, temperature)`.
-#
-# Dispatched so the empty (free-standing / single-part) case is the *identity* on the
-# running radiation total: `radiation_heat_flow` then compiles to exactly the pre-
-# coupling expression, adding no new operations on the active/differentiated path
-# (the nested-Enzyme IPOPT Hessian is intolerant of even an added `+ zero`). Only a
-# part that genuinely has neighbours pays the extra term.
+# Longwave exchange with the parts a part sees, over the fractions of its view they
+# take (the `neighbours` of `silhouette_factors`). `neighbours` is a tuple of
+# `(; fraction, temperature)`. With none, the flow is returned untouched, adding
+# nothing to the differentiated path.
 @inline _add_neighbour_radiation(base, area, ::Tuple{}, ϵ, σ, radiant_temperature) = base
 @inline function _add_neighbour_radiation(base, area, neighbours::Tuple, ϵ, σ, radiant_temperature)
     flow = base

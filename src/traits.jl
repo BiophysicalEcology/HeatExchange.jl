@@ -50,7 +50,7 @@ struct VolumeCubeRoot <: CharacteristicDimFormula end
 Characteristic dimension = `factor × body.geometry.length.<dimension>`.
 
 `dimension` names a field in the shape's `length` NamedTuple —
-e.g. `:width_skin`, `:b_semi_minor_skin`, `:radius_skin`. Use this when
+e.g. `:width_skin`, `:height_skin`, `:radius_skin`. Use this when
 the volume-cube-root scale is inappropriate, such as flat plates or oblate ellipsoids.
 The factor defaults to 1.0.
 """

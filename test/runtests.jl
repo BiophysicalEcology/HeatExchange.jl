@@ -12,9 +12,10 @@ using Test
 end
 
 @safetestset "biophysics" begin include("biophysics.jl") end
-@safetestset "ectotherm" begin include("ectotherm.jl") end
 @safetestset "leaf" begin include("leaf.jl") end
 @safetestset "endotherm" begin include("endotherm.jl") end
+@safetestset "ectotherm" begin include("ectotherm.jl") end
+@safetestset "reference" begin include("reference.jl") end
 @safetestset "heat_balance" begin include("heat_balance.jl") end
 @safetestset "compartments" begin include("compartments.jl") end
 @safetestset "part_surface" begin include("part_surface.jl") end

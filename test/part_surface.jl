@@ -11,7 +11,7 @@ using HeatExchange: solve_part_surface, part_surface_residuals,
 # ---------------------------------------------------------------------------
 # A single insulated part: an Ellipsoid with a uniform fur layer.
 # ---------------------------------------------------------------------------
-shape = Ellipsoid(1.0u"kg", 1000.0u"kg/m^3", 2.0, 2.0)
+shape = Ellipsoid(mass = 1.0u"kg", density = 1000.0u"kg/m^3", axis_ratio_b = 2.0, axis_ratio_c = 2.0)
 fat   = FatLayer(0.10, 901.0u"kg/m^3")
 fur   = FibrousLayer(0.01u"m", 3e-5u"m", 3e7u"1/m^2")
 part_body = Body(shape, CompositeInsulation(fur, fat))
@@ -177,7 +177,7 @@ end
     # (Σcᵢ into the denominator, ΣcᵢTᵢ into the numerator) rather than the insulated
     # radiation total. Same contract: empty / zero-fraction is a no-op, a hotter neighbour
     # warms the skin, a colder one cools it.
-    naked = Body(Sphere(1.0u"kg", 1000.0u"kg/m^3"), Naked())
+    naked = Body(Sphere(mass = 1.0u"kg", density = 1000.0u"kg/m^3"), Naked())
     bare_fibres = FibreProperties(; diameter = 3e-5u"m", length = 0.0u"m", density = 0.0u"1/m^2",
         depth = 0.0u"m", reflectance = 0.2, conductivity = 0.209u"W/m/K")
     bare_ins_pars = InsulationParameters(; dorsal = bare_fibres, ventral = bare_fibres,

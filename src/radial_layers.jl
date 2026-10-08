@@ -75,10 +75,11 @@ _layer_resistance(l::ConductiveShell, ::AbstractSpherical, body; smoothing::Smoo
 # b-semi-minor axes of its inner/outer surfaces.
 @inline function _ellipsoid_ssqg(body, smoothing::SmoothingStrategy)
     len = body.geometry.length
-    a, b, c, fat = len.a_semi_major_skin, len.b_semi_minor_skin, len.c_semi_minor_skin, len.fat
-    a2 = safe_min(smoothing, (a - fat)^2, a^2; scale = oneunit(a^2))
-    b2 = safe_min(smoothing, (b - fat)^2, b^2; scale = oneunit(b^2))
-    c2 = safe_min(smoothing, (c - fat)^2, c^2; scale = oneunit(c^2))
+    a, b, c = BiophysicalGeometry.skin_semiaxes(len)
+    a_flesh, b_flesh, c_flesh = BiophysicalGeometry.flesh_semiaxes(len)
+    a2 = safe_min(smoothing, a_flesh^2, a^2; scale = oneunit(a^2))
+    b2 = safe_min(smoothing, b_flesh^2, b^2; scale = oneunit(b^2))
+    c2 = safe_min(smoothing, c_flesh^2, c^2; scale = oneunit(c^2))
     return (a2 * b2 * c2) / (a2 * b2 + a2 * c2 + b2 * c2)
 end
 
@@ -116,7 +117,7 @@ _core_to_skin_stack(::Union{AbstractCylindrical,AbstractSlab,AbstractSpherical},
 # (see `_layer_resistance` above). A zero-thickness fat shell contributes zero resistance.
 function _core_to_skin_stack(::AbstractEllipsoidal, body, c, smoothing::SmoothingStrategy)
     len = body.geometry.length
-    b_skin  = len.b_semi_minor_skin
+    b_skin = len.width_skin / 2
     b_flesh = safe_min(smoothing, b_skin, b_skin - len.fat; scale = oneunit(b_skin))
     return (GeneratingCore(c.flesh), ConductiveShell(c.fat, b_flesh, b_skin))
 end
