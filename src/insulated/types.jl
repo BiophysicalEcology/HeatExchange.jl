@@ -89,14 +89,14 @@ Linearized radiation exchange coefficients to environmental surfaces.
 
 # Fields
 - `sky::T1` — Radiation coefficient to sky
-- `bush::T2` — Radiation coefficient to bush/shrub layer
-- `vegetation::T3` — Radiation coefficient to vegetation canopy
+- `understory::T2` — Radiation coefficient to the understory
+- `canopy::T3` — Radiation coefficient to the canopy
 - `ground::T4` — Radiation coefficient to ground surface
 """
 struct RadiationCoeffs{T1,T2,T3,T4}
     sky::T1
-    bush::T2
-    vegetation::T3
+    understory::T2
+    canopy::T3
     ground::T4
 end
 
@@ -162,16 +162,16 @@ Temperatures of environmental surfaces for radiation exchange.
 - `air::T1` — Air temperature
 - `sky::T2` — Effective sky temperature
 - `ground::T3` — Ground surface temperature
-- `vegetation::T4` — Vegetation canopy temperature
-- `bush::T5` — Bush/shrub layer temperature
+- `canopy::T4` — Temperature of the canopy, the vegetation shading the sky
+- `understory::T5` — Temperature of the understory, the vegetation hiding the ground
 - `substrate::T6` — Substrate temperature (for conduction)
 """
 struct EnvironmentTemperatures{T1,T2,T3,T4,T5,T6}
     air::T1
     sky::T2
     ground::T3
-    vegetation::T4
-    bush::T5
+    canopy::T4
+    understory::T5
     substrate::T6
 end
 function EnvironmentTemperatures(environment_vars::AbstractEnvironmentalVars)
@@ -179,8 +179,8 @@ function EnvironmentTemperatures(environment_vars::AbstractEnvironmentalVars)
         environment_vars.air_temperature,
         environment_vars.sky_temperature,
         environment_vars.ground_temperature,
-        environment_vars.vegetation_temperature,
-        environment_vars.bush_temperature,
+        environment_vars.canopy_temperature,
+        environment_vars.understory_temperature,
         environment_vars.substrate_temperature,
     )
 end
@@ -209,14 +209,14 @@ View factors to environmental surfaces for radiation exchange.
 # Fields
 - `sky::T1` — View factor to sky
 - `ground::T2` — View factor to ground
-- `bush::T3` — View factor to bush/shrub layer
-- `vegetation::T4` — View factor to vegetation canopy
+- `understory::T3` — View factor to the understory
+- `canopy::T4` — View factor to the canopy
 """
 struct ViewFactors{T1,T2,T3,T4}
     sky::T1
     ground::T2
-    bush::T3
-    vegetation::T4
+    understory::T3
+    canopy::T4
 end
 
 """
@@ -288,8 +288,8 @@ Heat flow components from the heat balance solution.
 - `longwave` — Net longwave radiation exchange
 - `solar` — Absorbed solar radiation
 - `sky_radiation` — Radiation exchange with sky
-- `bush_radiation` — Radiation exchange with bush layer
-- `vegetation_radiation` — Radiation exchange with vegetation
+- `understory_radiation` — Radiation exchange with the understory
+- `canopy_radiation` — Radiation exchange with the canopy
 - `ground_radiation` — Radiation exchange with ground
 """
 struct HeatFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
@@ -301,8 +301,8 @@ struct HeatFlows{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
     longwave::T6
     solar::T7
     sky_radiation::T8
-    bush_radiation::T9
-    vegetation_radiation::T10
+    understory_radiation::T9
+    canopy_radiation::T10
     ground_radiation::T11
 end
 

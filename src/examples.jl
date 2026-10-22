@@ -8,6 +8,7 @@ function example_environment_vars(;
     global_radiation=0.0u"W/m^2",
     diffuse_fraction=0.1,
     shade=0,
+    understory_cover=0.0,
 )
     EnvironmentalVars(;
         air_temperature,
@@ -15,8 +16,8 @@ function example_environment_vars(;
         sky_temperature           = air_temperature,
         ground_temperature        = air_temperature,
         substrate_temperature     = air_temperature,
-        bush_temperature          = air_temperature,
-        vegetation_temperature    = air_temperature,
+        understory_temperature    = air_temperature,
+        canopy_temperature        = air_temperature,
         relative_humidity,
         wind_speed,
         atmospheric_pressure,
@@ -25,6 +26,7 @@ function example_environment_vars(;
         global_radiation,
         diffuse_fraction,
         shade,
+        understory_cover,
     )
 end
 
@@ -88,7 +90,6 @@ function example_radiation_pars(;
     body_emissivity_ventral=0.99,
     sky_view_factor=0.5,
     ground_view_factor=0.5,
-    bush_view_factor=0.0,
     ventral_fraction=0.5,
     solar_orientation=Intermediate(),
 )
@@ -99,7 +100,6 @@ function example_radiation_pars(;
         body_emissivity_ventral,
         sky_view_factor,
         ground_view_factor,
-        bush_view_factor,
         ventral_fraction,
         solar_orientation,
     )
@@ -310,7 +310,6 @@ Create example `RadiationParameters` for an ectotherm with NicheMapR defaults.
 | `body_emissivity_ventral`    | 0.95           | epsilon = 0.95       |
 | `sky_view_factor`            | 0.4            | fatosk = 0.4         |
 | `ground_view_factor`         | 0.4            | fatosb = 0.4         |
-| `bush_view_factor`           | 0.0            | (none)               |
 | `ventral_fraction`           | 0.5            | (none)               |
 | `solar_orientation`          | `Intermediate()` | postur = 0         |
 """
@@ -321,7 +320,6 @@ function example_ectotherm_radiation_pars(;
     body_emissivity_ventral   = 0.95,
     sky_view_factor           = 0.4,
     ground_view_factor        = 0.4,
-    bush_view_factor          = 0.0,
     ventral_fraction          = 0.5,
     solar_orientation         = Intermediate(),
 )
@@ -332,7 +330,6 @@ function example_ectotherm_radiation_pars(;
         body_emissivity_ventral,
         sky_view_factor,
         ground_view_factor,
-        bush_view_factor,
         ventral_fraction,
         solar_orientation,
     )

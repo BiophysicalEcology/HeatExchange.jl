@@ -137,15 +137,13 @@ Morphological parameters relating to radiation exchange.
 - `body_emissivity_ventral::F` — Longwave emissivity of ventral body surface (0–1).
 - `sky_view_factor::F` — Radiative view factor to sky (0–1).
 - `ground_view_factor::F` — Radiative view factor to substrate/ground (0–1).
-- `vegetation_view_factor::F` — View factor to surrounding vegetation (0–1).
-- `bush_view_factor::F` — View factor to vegetation at animal height (0–1).
 - `ventral_fraction::F` — Fraction of total surface area that is ventral (0–1).
 - `silhouette_area` — Projected silhouette area (m²).
 - `total_area` — Total surface area (m²).
 - `conduction_area` — Area in contact with substrate (m²).
 
 """
-Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,VF,SO} <:
+Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,VF,SO} <:
                    AbstractMorphologyParameters
     body_absorptivity_dorsal::AD = Param(0.85, bounds=(0.0, 1.0))
     body_absorptivity_ventral::AV = Param(0.85, bounds=(0.0, 1.0))
@@ -156,8 +154,6 @@ Base.@kwdef struct RadiationParameters{AD,AV,ED,EV,AS,AT,AC,FS,FG,FV,FB,VF,SO} <
     conduction_area::AC = Param(0.0u"m^2")
     sky_view_factor::FS = Param(0.5, bounds=(0.0, 1.0))
     ground_view_factor::FG = Param(0.5, bounds=(0.0, 1.0))
-    vegetation_view_factor::FV = Param(0.0, bounds=(0.0, 1.0))
-    bush_view_factor::FB = Param(0.0, bounds=(0.0, 1.0))
     ventral_fraction::VF = Param(0.5, bounds=(0.0, 1.0))
     solar_orientation::SO = Intermediate()
 end

@@ -48,8 +48,8 @@ function _radiation_coefficients(area, view_factors, ϵ, σ, radiant_temperature
     T = env_temps
     F = view_factors
     coeff(vf, t) = area * vf * 4 * ϵ * σ * ((radiant_temperature + t) / 2)^3
-    RadiationCoeffs(coeff(F.sky, T.sky), coeff(F.bush, T.bush),
-                    coeff(F.vegetation, T.vegetation), coeff(F.ground, T.ground))
+    RadiationCoeffs(coeff(F.sky, T.sky), coeff(F.understory, T.understory),
+                    coeff(F.canopy, T.canopy), coeff(F.ground, T.ground))
 end
 
 # Longwave exchange with the parts a part sees, over the fractions of its view they

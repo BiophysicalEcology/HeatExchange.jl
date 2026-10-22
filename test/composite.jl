@@ -4,7 +4,7 @@ using Unitful, UnitfulMoles
 using FluidProperties
 using Test
 
-using HeatExchange: EnvironmentTemperatures, ViewFactors, AtmosphericConditions,
+using HeatExchange: EnvironmentTemperatures, AtmosphericConditions,
     example_environment_vars, example_environment_pars, example_heat_exchange_traits,
     example_metabolism_pars, example_metabolic_rate_options
 
@@ -34,12 +34,7 @@ setup = (;
         eye_fraction = 0.0,
     ),
     environment = (;
-        temperature = EnvironmentTemperatures(
-            env_vars.air_temperature, env_vars.sky_temperature,
-            env_vars.ground_temperature, env_vars.vegetation_temperature,
-            env_vars.bush_temperature, env_vars.substrate_temperature,
-        ),
-        view_factors = ViewFactors(0.5, 0.5, 0.0, 0.0),
+        temperature = EnvironmentTemperatures(env_vars),
         atmos = AtmosphericConditions(env_vars),
         fluid = env_pars.fluid,
         solar_flow = 0.0u"W",
@@ -54,7 +49,8 @@ torso = CompositeBody(;
     parts = (; dorsal = half(5.0u"kg"), ventral = half(5.0u"kg")),
     joins = (Join(dorsal = Attachment(Flat(), FullCover()), ventral = Attachment(Flat(), FullCover())),),
 )
-halves = parts(torso, (; dorsal = setup, ventral = setup))
+apart = (; sky = 0.5, ground = 0.5, neighbours = (; dorsal = 0.0, ventral = 0.0))
+halves = parts(torso, (; dorsal = setup, ventral = setup), (; dorsal = apart, ventral = apart))
 
 traits(respire) = example_heat_exchange_traits(;
     metabolism_pars = example_metabolism_pars(; core_temperature, metabolic_heat_flow = 10.0u"W"),
@@ -83,14 +79,25 @@ end
     @test unrespired.respiration_out === nothing
 
     alone = CompositeBody(; parts = (; dorsal = half(10.0u"kg")), joins = ())
-    @test solve(parts(alone, (; dorsal = setup)), false).net_metabolic_total > 0.0u"W"
+    view = (; sky = 0.5, ground = 0.5, neighbours = (; dorsal = 0.0))
+    @test solve(parts(alone, (; dorsal = setup), (; dorsal = view)), false).net_metabolic_total > 0.0u"W"
 end
 
-@testset "Neighbours from silhouette_factors" begin
-    apart = solve(halves, false)
-    neighbours = map(view -> view.neighbours, silhouette_factors(torso, Sky(0.5); ndirections = 64, resolution = 32))
-    beside = solve(halves, false; neighbours)
+@testset "Views from silhouette_factors" begin
+    views = silhouette_factors(torso, Sky(0.5); ndirections = 64, resolution = 32)
+    seen = parts(torso, (; dorsal = setup, ventral = setup), views)
+    @test seen.dorsal.environment.view_factors.sky + seen.dorsal.environment.view_factors.ground +
+        sum(seen.dorsal.neighbours) ≈ 1
+    @test seen.dorsal.environment.view_factors.sky > seen.ventral.environment.view_factors.sky
+    beside = solve(seen, false)
     @test all(part -> part.success, beside.parts)
     # The halves of a cylinder hardly see each other.
-    @test beside.net_metabolic_total ≈ apart.net_metabolic_total rtol = 0.01
+    @test beside.net_metabolic_total ≈ solve(halves, false).net_metabolic_total rtol = 0.01
+end
+
+@testset "The canopy and understory take their shares of the sky and ground" begin
+    covered = parts(torso, (; dorsal = setup, ventral = setup), (; dorsal = apart, ventral = apart);
+        shade = 0.4, understory_cover = 0.2)
+    (; sky, ground, understory, canopy) = covered.dorsal.environment.view_factors
+    @test [sky, canopy, ground, understory] ≈ [0.3, 0.2, 0.4, 0.1]
 end

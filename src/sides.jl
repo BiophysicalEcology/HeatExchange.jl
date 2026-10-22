@@ -21,15 +21,11 @@ function sides(o::Organism, e; smoothing::SmoothingStrategy=HardBound())
     sunlit = solar_out.solar_flow > 0.0u"W"
     dorsal_solar = sunlit ? 2.0 * solar_out.solar_direct_flow + 2.0 * solar_out.solar_sky_flow : 0.0u"W"
     ventral_solar = sunlit ?
-        (solar_out.solar_substrate_flow / (1.0 - view.sky - view.vegetation)) * (1.0 - 2.0 * conduction_fraction) : 0.0u"W"
+        (solar_out.solar_substrate_flow / (1.0 - view.sky - view.canopy)) * (1.0 - 2.0 * conduction_fraction) : 0.0u"W"
 
     fibres = _fibres(ins_pars, rad_pars.ventral_fraction; smoothing)
     fat = FatLayer(internal_conduction.fat_fraction, internal_conduction.fat_density)
-    temperature = EnvironmentTemperatures(
-        environment_vars.air_temperature, environment_vars.sky_temperature,
-        environment_vars.ground_temperature, environment_vars.reference_air_temperature,
-        environment_vars.bush_temperature, environment_vars.substrate_temperature,
-    )
+    temperature = EnvironmentTemperatures(environment_vars)
     function side_part(side, view_factors, solar_flow, ϵ_body, weight)
         fibre = _side_value(fibres, side)
         body = Body(o.body.shape, CompositeInsulation(FibrousLayer(fibre.depth, fibre.diameter, fibre.density), fat))
@@ -62,21 +58,17 @@ function sides(o::Organism, e; smoothing::SmoothingStrategy=HardBound())
             weight,
         )
     end
-    dorsal_share = view.sky + view.vegetation
+    dorsal_share = view.sky + view.canopy
     return (;
-        dorsal = side_part(Dorsal(), ViewFactors(view.sky * 2.0, 0.0, 0.0, view.vegetation * 2.0),
+        dorsal = side_part(Dorsal(), ViewFactors(view.sky * 2.0, 0.0, 0.0, view.canopy * 2.0),
             dorsal_solar, rad_pars.body_emissivity_dorsal, dorsal_share),
-        ventral = side_part(Ventral(), ViewFactors(0.0, view.ground * 2.0, rad_pars.bush_view_factor * 2.0, 0.0),
+        ventral = side_part(Ventral(), ViewFactors(0.0, view.ground * 2.0, view.understory * 2.0, 0.0),
             ventral_solar, rad_pars.body_emissivity_ventral, 1 - dorsal_share),
     )
 end
 
-# The shares of the view taken by open sky, by the vegetation shading it, and by the ground.
-function _view_shares(rad_pars, environment_vars)
-    vegetation = rad_pars.sky_view_factor * environment_vars.shade
-    sky = rad_pars.sky_view_factor - vegetation
-    (; sky, vegetation, ground = 1 - sky - vegetation)
-end
+_view_shares(rad_pars, environment_vars) = _split_view(rad_pars.sky_view_factor, 1 - rad_pars.sky_view_factor;
+    environment_vars.shade, environment_vars.understory_cover)
 
 # Only the belly touches the ground, over twice its share of the contact.
 _ground_conductance(::Dorsal, body, conduction_fraction, environment_pars, environment_vars) = 0.0u"W/K"
@@ -213,8 +205,8 @@ function _organism_output(o, e, core_temperature, metabolic_heat_flow, respirati
         insulation_evaporation = s.flows.insulation_evaporation,
         longwave = s.flows.longwave,
         sky_radiation = s.flows.sky_radiation,
-        bush_radiation = s.flows.bush_radiation,
-        vegetation_radiation = s.flows.vegetation_radiation,
+        understory_radiation = s.flows.understory_radiation,
+        canopy_radiation = s.flows.canopy_radiation,
         ground_radiation = s.flows.ground_radiation,
     )
     energy_flows = (;

@@ -43,7 +43,7 @@ function solve_temperature(::Union{FibrousLayer,CompositeInsulation}, organism, 
 
     initial_skin_temperature = metab_pars.core_temperature - 5u"K"
     initial_insulation_temperature = metab_pars.core_temperature - 3u"K"
-    surfaces(core_temperature) = _solve_surfaces(parts, nothing, core_temperature,
+    surfaces(core_temperature) = _solve_surfaces(parts, map(part -> part.neighbours, parts), core_temperature,
         initial_skin_temperature, initial_insulation_temperature, tolerance, smoothing)
     respiration_at(core_temperature, metabolic_heat_flow, lung_temperature) = respiration(
         MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = metabolic_heat_flow),

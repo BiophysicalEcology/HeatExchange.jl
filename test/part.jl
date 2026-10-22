@@ -19,11 +19,7 @@ insulation = InsulationParameters(; dorsal = fibres, ventral = fibres, depth_com
 env_vars = example_environment_vars(; air_temperature = u"K"(20.0u"°C"), wind_speed = 1.0u"m/s", global_radiation = 0.0u"W/m^2")
 env_pars = example_environment_pars()
 environment = (;
-    temperature = EnvironmentTemperatures(
-        env_vars.air_temperature, env_vars.sky_temperature,
-        env_vars.ground_temperature, env_vars.vegetation_temperature,
-        env_vars.bush_temperature, env_vars.substrate_temperature,
-    ),
+    temperature = EnvironmentTemperatures(env_vars),
     view_factors = ViewFactors(0.5, 0.5, 0.0, 0.0),
     atmos = AtmosphericConditions(env_vars),
     fluid = env_pars.fluid,

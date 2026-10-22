@@ -1,7 +1,7 @@
 """
     Part(; body, insulation, traits, environment, ventral_fraction, side = Dorsal(),
         conduction_fraction = 0.0, conductance_coefficient = 0.0u"W/K", covered_area,
-        characteristic_dimension, weight = 1.0)
+        characteristic_dimension, weight = 1.0, neighbours = nothing)
 
 A surface of an organism that comes to its own skin and insulation temperatures around a
 core: its geometry `body`, the `side` of the `InsulationParameters` `insulation` it wears,
@@ -16,9 +16,10 @@ the `traits` of its tissue and surface, and the `environment` it sees.
 `conductance_coefficient`. `covered_area` is the surface joined to other parts, which
 exchanges nothing with the environment; it defaults to none. The `characteristic_dimension`
 for convection defaults to the part's own [`VolumeCubeRoot`](@ref). `weight` is the share of
-the organism's heat the part carries.
+the organism's heat the part carries. `neighbours`, keyed like the parts of its body, are
+the shares of its view that the other parts take.
 """
-struct Part{B,I,S,T,E,F,C,V,A,AE,D,W}
+struct Part{B,I,S,T,E,F,C,V,A,AE,D,W,N}
     body::B
     insulation::I
     side::S
@@ -31,30 +32,39 @@ struct Part{B,I,S,T,E,F,C,V,A,AE,D,W}
     evaporation_area::AE
     characteristic_dimension::D
     weight::W
+    neighbours::N
 end
 function Part(; body, insulation, traits, environment, ventral_fraction, side = Dorsal(),
     conduction_fraction = 0.0, conductance_coefficient = 0.0u"W/K",
     covered_area = zero(BiophysicalGeometry.total_area(body)),
     characteristic_dimension = characteristic_dimension(VolumeCubeRoot(), body), weight = 1.0,
+    neighbours = nothing,
 )
     area = BiophysicalGeometry.total_area(body) - covered_area
     # The evaporating area is a share of the skin, and the covered skin takes the same share.
     exposed_evaporation_area = evaporation_area(body) * (1 - covered_area / skin_area(body))
     Part(body, insulation, side, traits, environment, conduction_fraction, conductance_coefficient,
-        ventral_fraction, area, exposed_evaporation_area, characteristic_dimension, weight)
+        ventral_fraction, area, exposed_evaporation_area, characteristic_dimension, weight, neighbours)
 end
 
 """
-    parts(body::CompositeBody, setups::NamedTuple)
+    parts(body::CompositeBody, setups::NamedTuple, views::NamedTuple; shade = 0.0, understory_cover = 0.0)
 
 The [`Part`](@ref)s of `body`, from `setups` keyed like `body.parts`, each holding the
-keywords of `Part` other than `body` and `covered_area`.
+keywords of `Part` other than `body`, `covered_area` and `neighbours`, and an `environment`
+without `view_factors`.
+
+`views`, keyed like `body.parts`, splits each part's view into `sky`, `ground` and
+`neighbours`, as [`silhouette_factors`](@ref) does. The canopy hides `shade` of the sky and
+the understory `understory_cover` of the ground.
 
 Halves joined over their whole cut faces are one body to the air around them, so by
 default each takes the [`VolumeCubeRoot`](@ref) of all the halves it is joined to as its
 `characteristic_dimension`.
 """
-function parts(body::CompositeBody{<:NamedTuple{K}}, setups::NamedTuple) where {K}
+function parts(body::CompositeBody{<:NamedTuple{K}}, setups::NamedTuple, views::NamedTuple;
+    shade = 0.0, understory_cover = 0.0,
+) where {K}
     covered = BiophysicalGeometry.covered_areas(body.parts, body.joins)
     group = _groups(body, map(_joins_halves, body.joins))
     volumes = map(part -> part.geometry.volume, values(body.parts))
@@ -62,13 +72,24 @@ function parts(body::CompositeBody{<:NamedTuple{K}}, setups::NamedTuple) where {
         cbrt(sum(map((volume, h) -> h == g ? volume : zero(volume), volumes, group))) +
             _outer_insulation_thickness(part.insulation)
     end)
-    map(body.parts, setups, covered, dimensions) do part, setup, covered_area, characteristic_dimension
-        Part(; characteristic_dimension, setup..., body = part, covered_area)
+    map(body.parts, setups, views, covered, dimensions) do part, setup, view, covered_area, characteristic_dimension
+        split = _split_view(view.sky, view.ground; shade, understory_cover)
+        view_factors = ViewFactors(split.sky, split.ground, split.understory, split.canopy)
+        Part(; characteristic_dimension, setup..., body = part, covered_area,
+            environment = (; setup.environment..., view_factors), neighbours = view.neighbours)
     end
 end
 
 _joins_halves(::Join{<:Any,<:Any,<:Attachment{<:Flat,FullCover},<:Attachment{<:Flat,FullCover}}) = true
 _joins_halves(::Join) = false
+
+# The open sky and ground, and the canopy and understory that hide `shade` of the one and
+# `understory_cover` of the other.
+function _split_view(sky, ground; shade, understory_cover)
+    canopy = sky * shade
+    understory = ground * understory_cover
+    (; sky = sky - canopy, canopy, ground = ground - understory, understory)
+end
 
 """
     heat_balance(temperatures::OrganismTemperatures, metabolic_heat_flow, part::Part;
@@ -163,11 +184,11 @@ function heat_balance(temperatures::OrganismTemperatures, metabolic_heat_flow, p
 
     coefficients = _radiation_coefficients(area_convection, view_factors, ϵ_body, σ, radiant, T)
     sky_radiation_flow = coefficients.sky * (radiant - T.sky)
-    bush_radiation_flow = coefficients.bush * (radiant - T.bush)
-    vegetation_radiation_flow = coefficients.vegetation * (radiant - T.vegetation)
+    understory_radiation_flow = coefficients.understory * (radiant - T.understory)
+    canopy_radiation_flow = coefficients.canopy * (radiant - T.canopy)
     ground_radiation_flow = coefficients.ground * (radiant - T.ground)
     radiation_heat_flow = _add_neighbour_radiation(
-        sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow,
+        sky_radiation_flow + understory_radiation_flow + canopy_radiation_flow + ground_radiation_flow,
         area_convection, neighbours, ϵ_body, σ, radiant)
 
     convection_heat_flow = conv.heat_transfer_coefficient.combined * area_convection * (insulation_temperature - T.air)
@@ -219,8 +240,8 @@ function heat_balance(temperatures::OrganismTemperatures, metabolic_heat_flow, p
         respiration_heat_flow,
         net_metabolic_heat_internal,
         sky_radiation_flow,
-        bush_radiation_flow,
-        vegetation_radiation_flow,
+        understory_radiation_flow,
+        canopy_radiation_flow,
         ground_radiation_flow,
         residual_energy_balance,
         residual_internal_conduction,
@@ -286,8 +307,8 @@ function _solve_insulated(part, core_temperature, skin_temperature, insulation_t
         b.radiation_heat_flow,
         b.solar_heat_flow,
         b.sky_radiation_flow,
-        b.bush_radiation_flow,
-        b.vegetation_radiation_flow,
+        b.understory_radiation_flow,
+        b.canopy_radiation_flow,
         b.ground_radiation_flow,
     )
     return (;
@@ -395,15 +416,15 @@ function _solve_bare(part, core_temperature, skin_temperature, insulation_temper
             c = _radiation_coefficients(area, view_factors, ϵ_body, σ, skin_temperature, T)
             nb = _neighbour_coefficients(area, neighbours, ϵ_body, σ, skin_temperature)
             gain = flesh * core_temperature - skin_evaporation_flow + heat_transfer_coefficient * area * T.air + solar_flow +
-                c.sky * T.sky + c.bush * T.bush + c.vegetation * T.vegetation + c.ground * T.ground + nb.cTsum
-            conductance = flesh + heat_transfer_coefficient * area + c.sky + c.bush + c.vegetation + c.ground + nb.csum
+                c.sky * T.sky + c.understory * T.understory + c.canopy * T.canopy + c.ground * T.ground + nb.cTsum
+            conductance = flesh + heat_transfer_coefficient * area + c.sky + c.understory + c.canopy + c.ground + nb.csum
             skin_temperature_calc = gain / conductance
 
             sky_radiation_flow = c.sky * (skin_temperature_calc - T.sky)
-            bush_radiation_flow = c.bush * (skin_temperature_calc - T.bush)
-            vegetation_radiation_flow = c.vegetation * (skin_temperature_calc - T.vegetation)
+            understory_radiation_flow = c.understory * (skin_temperature_calc - T.understory)
+            canopy_radiation_flow = c.canopy * (skin_temperature_calc - T.canopy)
             ground_radiation_flow = c.ground * (skin_temperature_calc - T.ground)
-            longwave_flow = sky_radiation_flow + bush_radiation_flow + vegetation_radiation_flow + ground_radiation_flow +
+            longwave_flow = sky_radiation_flow + understory_radiation_flow + canopy_radiation_flow + ground_radiation_flow +
                 nb.csum * skin_temperature_calc - nb.cTsum
             convection_flow = heat_transfer_coefficient * area * (skin_temperature_calc - T.air)
             net_metabolic = flesh * (core_temperature - skin_temperature_calc)
@@ -416,8 +437,8 @@ function _solve_bare(part, core_temperature, skin_temperature, insulation_temper
                 longwave_flow,
                 solar_flow,
                 sky_radiation_flow,
-                bush_radiation_flow,
-                vegetation_radiation_flow,
+                understory_radiation_flow,
+                canopy_radiation_flow,
                 ground_radiation_flow,
             )
 

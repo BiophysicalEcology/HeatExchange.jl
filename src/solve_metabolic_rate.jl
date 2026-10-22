@@ -73,18 +73,18 @@ end
 
 """
     solve_metabolic_rate(parts::NamedTuple, traits, e, skin_temperature, insulation_temperature;
-        lung_mass, core_temperature, neighbours = nothing, extra_net_metabolic = 0 W,
-        smoothing = HardBound())
+        lung_mass, core_temperature, extra_net_metabolic = 0 W, smoothing = HardBound())
 
 The metabolic heat flow that holds every one of the [`Part`](@ref)s at `core_temperature`, by
 default that of the metabolism in `traits`. The parts' surfaces are solved from the given
-temperatures, each starting from the temperatures of the part before it. Their heat, weighted
-by each part's `weight`, is met by metabolism less the respiration of lungs of `lung_mass`.
+temperatures. Their heat, weighted by each part's `weight`, is met by metabolism less the
+respiration of lungs of `lung_mass`.
 
-`neighbours` is keyed like `parts`, each entry the fractions of that part's view taken by every
-part, as the `neighbours` of `silhouette_factors`. With them the parts exchange longwave
-radiation, and are solved again until their temperatures settle. `extra_net_metabolic` is heat
-the parts lose by other routes, such as conduction to other compartments.
+Parts with `neighbours` exchange longwave radiation with them, and are solved again until
+their temperatures settle. Parts without, such as the [`sides`](@ref) of a single body, are
+solved in turn, each starting from the temperatures of the part before it.
+`extra_net_metabolic` is heat the parts lose by other routes, such as conduction to other
+compartments.
 
 Returns `(; metabolic_heat_flow, parts, net_metabolic_total, skin_temperature,
 insulation_temperature, lung_temperature, respiration_out)`, where `parts` holds each part's
@@ -94,7 +94,6 @@ function solve_metabolic_rate(parts::NamedTuple, traits::AbstractFunctionalTrait
     skin_temperature, insulation_temperature;
     lung_mass,
     core_temperature = metabolism_pars(traits).core_temperature,
-    neighbours = nothing,
     extra_net_metabolic = zero(metabolism_pars(traits).metabolic_heat_flow),
     smoothing::SmoothingStrategy=HardBound(),
 )
@@ -103,7 +102,7 @@ function solve_metabolic_rate(parts::NamedTuple, traits::AbstractFunctionalTrait
     opts = options(traits)
     resp_pars = respiration_pars(traits)
     setpoint = metabolism_pars(traits).metabolic_heat_flow
-    solved = _solve_surfaces(parts, neighbours, core_temperature, skin_temperature, insulation_temperature,
+    solved = _solve_surfaces(parts, map(part -> part.neighbours, parts), core_temperature, skin_temperature, insulation_temperature,
         opts.temperature_error_tolerance, smoothing)
 
     net_metabolic_total = sum(map((part, s) -> s.net_metabolic * part.weight, parts, solved)) + extra_net_metabolic
@@ -145,7 +144,7 @@ function solve_metabolic_rate(parts::NamedTuple, traits::AbstractFunctionalTrait
     )
 end
 
-_solve_surfaces(parts::NamedTuple{K}, ::Nothing, core_temperature, skin_temperature, insulation_temperature, tolerance, smoothing) where {K} =
+_solve_surfaces(parts::NamedTuple{K}, ::NamedTuple{K,<:Tuple{Vararg{Nothing}}}, core_temperature, skin_temperature, insulation_temperature, tolerance, smoothing) where {K} =
     NamedTuple{K}(_solve_in_turn(values(parts), core_temperature, skin_temperature, insulation_temperature, tolerance, smoothing))
 
 _solve_in_turn(::Tuple{}, args...) = ()

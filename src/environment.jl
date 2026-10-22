@@ -28,16 +28,20 @@ abstract type AbstractEnvironmentalVars end
     EnvironmentalVars(; kw...)
 
 Environmental variables for an organism model.
+
+`shade` is the share of the sky hidden by the canopy, which is at `canopy_temperature`, and
+`understory_cover` the share of the ground hidden by the understory, which is at
+`understory_temperature`.
 """
-Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,SD} <:
+Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,SD,UC} <:
                    AbstractEnvironmentalVars
     air_temperature::TA
     reference_air_temperature::TR = air_temperature
     sky_temperature::TU
     ground_temperature::TD
     substrate_temperature::TS
-    bush_temperature::TB = air_temperature
-    vegetation_temperature::TV = air_temperature
+    understory_temperature::TB = air_temperature
+    canopy_temperature::TV = reference_air_temperature
     relative_humidity::RH
     wind_speed::WS
     atmospheric_pressure::PA
@@ -46,17 +50,18 @@ Base.@kwdef struct EnvironmentalVars{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,S
     global_radiation::GR
     diffuse_fraction::FD
     shade::SD
+    understory_cover::UC = 0.0
 end
 
-Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,SD} <:
+Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,FD,SD,UC} <:
                    AbstractEnvironmentalVars
     air_temperature::Vector{TA}
     reference_air_temperature::Vector{TR} = air_temperature
     sky_temperature::Vector{TU}
     ground_temperature::Vector{TD}
     substrate_temperature::Vector{TS}
-    bush_temperature::Vector{TB} = air_temperature
-    vegetation_temperature::Vector{TV} = air_temperature
+    understory_temperature::Vector{TB} = air_temperature
+    canopy_temperature::Vector{TV} = reference_air_temperature
     relative_humidity::Vector{RH}
     wind_speed::Vector{WS}
     atmospheric_pressure::Vector{PA}
@@ -65,4 +70,5 @@ Base.@kwdef struct EnvironmentalVarsVec{TA,TR,TU,TD,TS,TB,TV,RH,WS,PA,ZA,KS,GR,F
     global_radiation::Vector{GR}
     diffuse_fraction::Vector{FD}
     shade::Vector{SD}
+    understory_cover::Vector{UC} = zero(shade)
 end

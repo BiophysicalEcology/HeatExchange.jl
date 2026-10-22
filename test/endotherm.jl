@@ -132,8 +132,8 @@ for shape_number in 1:4
             sky_temperature=u"K"((endo_input.TSKY)u"°C"),
             ground_temperature=u"K"((endo_input.TGRD)u"°C"),
             substrate_temperature=u"K"((endo_input.TCONDSB)u"°C"),
-            bush_temperature=u"K"((endo_input.TBUSH)u"°C"),
-            vegetation_temperature=u"K"((endo_input.TAREF)u"°C"),
+            understory_temperature=u"K"((endo_input.TBUSH)u"°C"),
+            canopy_temperature=u"K"((endo_input.TAREF)u"°C"),
             relative_humidity=(endo_input.RH / 100.0),
             wind_speed=(endo_input.VEL)u"m/s",
             atmospheric_pressure=(endo_input.BP)u"Pa",
@@ -142,6 +142,7 @@ for shape_number in 1:4
             global_radiation=(endo_input.QSOLR)u"W/m^2",
             diffuse_fraction=endo_input.PDIF,
             shade=(endo_input.SHADE / 100),
+            understory_cover=endo_input.FABUSH / (1 - endo_input.FSKREF),
         )
 
         environment_pars = EnvironmentalPars(;
@@ -183,7 +184,6 @@ for shape_number in 1:4
             body_emissivity_ventral=endo_input.EMISAN,
             sky_view_factor=endo_input.FSKREF,
             ground_view_factor=endo_input.FGDREF,
-            bush_view_factor=endo_input.FABUSH,
             ventral_fraction=endo_input.PVEN,
             solar_orientation,
         )
