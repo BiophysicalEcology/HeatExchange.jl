@@ -127,7 +127,7 @@ function ellipsoid_endotherm(
 
     # body geometry
     V = mass / density # volume
-    b = ((3 * V) / (4 * π * posture))^(1 / 3)
+    b = cbrt((3 * V) / (4 * π * posture))
     c = b
     a = b * posture
 
@@ -151,7 +151,7 @@ function ellipsoid_endotherm(
     μ, air_conductivity, ρ_air = dynamic_viscosity, thermal_conductivity, density
 
     V = (4 / 3) * π * a * b * c # recompute volume
-    L_c = V^(1 / 3) # characteristic dimension
+    L_c = cbrt(V) # characteristic dimension
     e = sqrt(a^2 - c^2) / a # eccentricity
     A = 2 * π * b^2 + 2 * π * ((a * b) / e) * asin(e) # area of skin
 
@@ -159,16 +159,16 @@ function ellipsoid_endotherm(
     prandtl_number = (μ * c_p_air) / air_conductivity # Prandtl number
 
     q′′′_numerator =
-        2 * A * body_conductivity * air_conductivity * (2 + a_coef * (reynolds_number^b_coef) * prandtl_number^(1 / 3)) * (core_temperature - air_temperature)
+        2 * A * body_conductivity * air_conductivity * (2 + a_coef * (reynolds_number^b_coef) * cbrt(prandtl_number)) * (core_temperature - air_temperature)
     q′′′_denominator =
-        2 * body_conductivity * L_c * V + A * S2 * air_conductivity * (2 + a_coef * reynolds_number^b_coef * prandtl_number^(1 / 3))
+        2 * body_conductivity * L_c * V + A * S2 * air_conductivity * (2 + a_coef * reynolds_number^b_coef * cbrt(prandtl_number))
     q′′′ = q′′′_numerator / q′′′_denominator
     skin_temperature = core_temperature - (q′′′ * S2) / (2 * body_conductivity) # skin temperature, Eq. 6
 
     grashof_number = abs((ρ_air^2) * (1 / air_temperature) * Unitful.gn * (L_c^3) * (skin_temperature - air_temperature) / μ^2) # Grashof number
-    free_nusselt_number = 2 + 0.6 * (grashof_number^0.25) * (prandtl_number^(1 / 3))
+    free_nusselt_number = 2 + 0.6 * sqrt(sqrt(grashof_number)) * (cbrt(prandtl_number))
     forced_nusselt_number = 0.37 * reynolds_number^0.6
-    combined_nusselt_number = (free_nusselt_number^3 + forced_nusselt_number^3)^(1 / 3) #  Eq. 24
+    combined_nusselt_number = cbrt(free_nusselt_number^3 + forced_nusselt_number^3) #  Eq. 24
     h_cv = combined_nusselt_number * air_conductivity / L_c # Eq. 25
     R_cv = 1 / (h_cv * outer_area)
     R_rad = u"K/W"(1 / (4 * outer_area * ϵ * Unitful.σ * air_temperature^3)) # Eq. 39
