@@ -377,7 +377,7 @@ Create example `RespirationParameters` for an ectotherm with NicheMapR defaults.
 | `oxygen_extraction_efficiency`  | 0.2      | F_O2 = 20 (%)                                    |
 | `respiratory_quotient`          | 0.8      | RQ = 0.8                                         |
 | `pant`                          | 1.0      | pantmax = 1 (no panting)                         |
-| `exhaled_temperature_offset`    | 0.1 K    | delta_air = 0.1 (°C above Tair)                  |
+| `exhaled_temperature_offset`    | nothing  | exhaled air at lung temperature (RESP.f)         |
 | `exhaled_relative_humidity`     | 1.0      | (saturated exhaled air)                          |
 | `mouth_fraction`                | 0.05     | pct_mouth/100: added to skin_wetness when panting|
 """
@@ -385,7 +385,7 @@ function example_ectotherm_respiration_pars(;
     oxygen_extraction_efficiency = 0.2,
     respiratory_quotient         = 0.8,
     pant                         = 1.0,
-    exhaled_temperature_offset   = 0.1u"K",
+    exhaled_temperature_offset   = nothing,
     exhaled_relative_humidity    = 1.0,
     mouth_fraction               = 0.05,
 )
