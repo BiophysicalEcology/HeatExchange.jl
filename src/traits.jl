@@ -226,7 +226,8 @@ Physiological parameters relating to respiration of the organism.
 - `oxygen_extraction_efficiency` — Fraction of inspired oxygen extracted per breath (0–1).
 - `pant` — Multiplier on breathing rate to simulate panting.
 - `respiratory_quotient` — Respiratory quotient relating CO₂ produced to O₂ consumed (0–1).
-- `exhaled_temperature_offset` — Temperature offset between ambient air and exhaled air (K).
+- `exhaled_temperature_offset` — Exhaled air temperature above air temperature (K), capped at lung temperature;
+  `nothing` (default) exhales at lung temperature.
 - `exhaled_relative_humidity` — Relative humidity of exhaled air (fraction 0–1).
 - `mouth_fraction` — Fractional addition to `skin_wetness` when mouth is open for panting
   (`pant > 1`). Replicates NicheMapR PMOUTH parameter. Default 0.0 (adds 0% of surface area).
@@ -237,7 +238,7 @@ Base.@kwdef struct RespirationParameters{OE,PA,RQ,DB,RE,MF} <: AbstractPhysiolog
     oxygen_extraction_efficiency::OE = Param(0.2, bounds=(0.0, 1.0))
     pant::PA = Param(1.0, bounds=(1.0, Inf))
     respiratory_quotient::RQ = Param(0.8, bounds=(0.5, 1.2))
-    exhaled_temperature_offset::DB = Param(0.0u"K")
+    exhaled_temperature_offset::DB = nothing
     exhaled_relative_humidity::RE = Param(1.0, bounds=(0.0, 1.0))
     mouth_fraction::MF = Param(0.0, bounds=(0.0, 1.0))
 end
@@ -284,10 +285,11 @@ A collection of physiological parameters relating to metabolic rate.
 - `core_temperature::B` — Core body temperature (K)
 - `metabolic_heat_flow::B` — Metabolic heat generation rate (W)
 - `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
+- `model` — `(variable, taxon)` for [`metabolic_rate`](@ref), or `nothing`.
 """
-Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysiologyParameters
+Base.@kwdef struct MetabolismParameters{TC,QM,QT,MO} <: AbstractPhysiologyParameters
     core_temperature::TC = Param(u"K"(37u"°C"))
     metabolic_heat_flow::QM = Param(0.0u"W")
     q10::QT = Param(2.0)
-    model = AndrewsPough2()
+    model::MO = (StandardMetabolicRate(), Squamate())
 end

@@ -1,5 +1,6 @@
 using HeatExchange
 using BiophysicalGeometry
+using BiologicalScaling: BasalMetabolicRate, EutherianMammal
 using ModelParameters
 using Unitful, UnitfulMoles
 using FluidProperties
@@ -98,14 +99,14 @@ respiration_pars = RespirationParameters(;
     oxygen_extraction_efficiency = 0.2,
     pant                         = 1.0,
     respiratory_quotient         = 0.8,
-    exhaled_temperature_offset   = 100.0u"K",
+    exhaled_temperature_offset   = nothing,   # exhaled air at lung temperature
     exhaled_relative_humidity    = 1.0,
 )
 metabolism_pars = MetabolismParameters(;
     core_temperature    = u"K"(37.0u"°C"),
     metabolic_heat_flow = 77.6184u"W",
     q10                 = 2.0,
-    model               = Kleiber(),
+    model               = (BasalMetabolicRate(), EutherianMammal()),
 )
 
 traits = HeatExchangeTraits(

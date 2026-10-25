@@ -23,6 +23,9 @@ using FluidProperties:
 
 using BiophysicalGeometry: AbstractBody, shape, outer_insulation
 
+using BiologicalScaling: allometric, AbstractMetabolicRate, AbstractTaxon, AllometricShape,
+    BasalMetabolicRate, StandardMetabolicRate, EutherianMammal, Squamate, DesertIguana
+
 export Organism,
     HeatExchangeTraits,
     SolveMetabolicRateOptions,
@@ -107,7 +110,7 @@ export ConductanceCoeffs,
 
 export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
 
-export MetabolicRateEquation, metabolic_rate, AndrewsPough2, Kleiber, McKechnieWolf, PlantDarkRespiration
+export metabolic_rate
 
 export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 

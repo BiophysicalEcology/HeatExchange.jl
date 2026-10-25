@@ -1,5 +1,6 @@
 using HeatExchange
 using BiophysicalGeometry
+using BiologicalScaling: BasalMetabolicRate, C3Plant
 using ModelParameters
 using Unitful, UnitfulMoles
 using Test
@@ -76,7 +77,7 @@ leaf_traits = HeatExchangeTraits(
     ),
     HydraulicParameters(; water_potential=0.0u"J/kg"),
     RespirationParameters(),
-    MetabolismParameters(; metabolic_heat_flow=0.0u"W", model=PlantDarkRespiration()),
+    MetabolismParameters(; metabolic_heat_flow=0.0u"W", model=(BasalMetabolicRate(), C3Plant())),
     SolveMetabolicRateOptions(),
 )
 
@@ -121,7 +122,7 @@ closed_traits = HeatExchangeTraits(
     closed_pars,
     HydraulicParameters(; water_potential=0.0u"J/kg"),
     RespirationParameters(),
-    MetabolismParameters(; metabolic_heat_flow=0.0u"W", model=PlantDarkRespiration()),
+    MetabolismParameters(; metabolic_heat_flow=0.0u"W", model=(BasalMetabolicRate(), C3Plant())),
     SolveMetabolicRateOptions(),
 )
 leaf_closed = Organism(leaf_body, closed_traits)
@@ -138,8 +139,8 @@ equilibrium_temperature = eq_out.core_temperature
 # At steady state, heat_balance should be near zero
 @test abs(ustrip(u"W", eq_out.heat_balance)) < 1e-2   # within 0.01 W of zero
 
-# PlantDarkRespiration: metabolic rate at 25°C should be positive and small
-dark_resp = PlantDarkRespiration()
+# Dark respiration at 25°C should be positive and small
+dark_resp = (BasalMetabolicRate(), C3Plant())
 resp_rate = metabolic_rate(dark_resp, leaf_mass, leaf_temperature)
 @test resp_rate > 0.0u"W"
 @test resp_rate < 1.0u"W"   # a tiny leaf

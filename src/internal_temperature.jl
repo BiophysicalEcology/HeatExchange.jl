@@ -34,7 +34,7 @@ function surface_and_lung_temperature(::Cylinder, body::AbstractBody, flesh_cond
     return (; surface_temperature, lung_temperature)
 end
 
-function surface_and_lung_temperature(::Union{DesertIguana,LeopardFrog}, body::AbstractBody, flesh_conductivity, specific_metabolic_heat_production, core_temperature)
+function surface_and_lung_temperature(::AllometricShape, body::AbstractBody, flesh_conductivity, specific_metabolic_heat_production, core_temperature)
     # cylinder: from P. 270 Bird, Stewart & Lightfoot. 1960. Transport Phenomena.
     flesh_radius = body.geometry.length[1]
     surface_temperature = core_temperature - specific_metabolic_heat_production * flesh_radius ^ 2 / (4 * flesh_conductivity)

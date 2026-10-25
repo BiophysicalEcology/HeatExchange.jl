@@ -232,7 +232,7 @@ Transpiration is computed from stomatal vapour conductances via
 `evaporation(::LeafEvaporationParameters, ...)`.
 
 Dark respiration heat is included in `metabolic_heat_flow` via the metabolic model
-(e.g. `PlantDarkRespiration`); `respiration_heat_flow` in `energy_balance` is `0.0 W`
+(e.g. `(BasalMetabolicRate(), C3Plant())`); `respiration_heat_flow` in `energy_balance` is `0.0 W`
 (leaves have no pulmonary respiratory heat loss).
 """
 function heat_balance(core_temperature, evap_pars::LeafEvaporationParameters, o::Organism, e;
