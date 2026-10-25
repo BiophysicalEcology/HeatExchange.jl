@@ -272,7 +272,7 @@ function convection(;
     free_heat_transfer_coefficient = (free_nusselt_number * fluid_conductivity) / characteristic_dim # heat transfer coefficient, free
     # calculating the Sherwood number from the Colburn analogy
     # Bird, Stewart & Lightfoot, 1960. Transport Phenomena. Wiley.
-    free_sherwood_number = free_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, free
+    free_sherwood_number = free_nusselt_number * cbrt(schmidt_number / prandtl_number) # Sherwood number, free
     # calculating the mass transfer coefficient from the Sherwood number
     free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, free
     free_convection_flow = free_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # free convective heat loss at surface
@@ -280,15 +280,15 @@ function convection(;
     forced_nusselt_number = nusselt_forced(body.shape, reynolds_number) * convection_enhancement
     # forced convection for object
     forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dim # heat transfer coefficient, forced
-    forced_sherwood_number = forced_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, forced
+    forced_sherwood_number = forced_nusselt_number * cbrt(schmidt_number / prandtl_number) # Sherwood number, forced
     forced_mass_transfer_coefficient = forced_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient
     forced_convection_flow = forced_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # forced convective heat transfer
     # combined free and forced convection
     # using Bird, Stewart & Lightfoot's mixed convection formula (p. 445, Transport Phenomena, 2002)
-    combined_nusselt_number = (free_nusselt_number^3 + forced_nusselt_number^3)^(1 / 3)
+    combined_nusselt_number = cbrt(free_nusselt_number^3 + forced_nusselt_number^3)
     combined_heat_transfer_coefficient = combined_nusselt_number * (fluid_conductivity / characteristic_dim) # mixed convection heat transfer
     convection_flow = combined_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # total convective heat loss
-    combined_sherwood_number = combined_nusselt_number * (schmidt_number / prandtl_number)^(1 / 3) # Sherwood number, combined
+    combined_sherwood_number = combined_nusselt_number * cbrt(schmidt_number / prandtl_number) # Sherwood number, combined
     combined_mass_transfer_coefficient = combined_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, combined
 
     heat_transfer_coefficient = TransferCoefficients(combined_heat_transfer_coefficient, free_heat_transfer_coefficient, forced_heat_transfer_coefficient)
@@ -335,13 +335,13 @@ function nusselt_free(shape::Union{Cylinder,AllometricShape}, grashof_number, pr
 end
 function nusselt_free(shape::Plate, grashof_number, prandtl_number)
     rayleigh_number = grashof_number * prandtl_number
-    nusselt_number = 0.13 * rayleigh_number ^ (1 / 3) # Gates 1980 eq. 9.77
+    nusselt_number = 0.13 * cbrt(rayleigh_number) # Gates 1980 eq. 9.77
     return nusselt_number
 end
 function nusselt_free(shape::Union{Sphere,Ellipsoid}, grashof_number, prandtl_number)
     #  sphere free convection
     #  from p.413 Bird et all (1960) Transport Phenomena
-    rayleigh_number = (grashof_number ^ (1 / 4)) * (prandtl_number ^ (1 / 3))
+    rayleigh_number = sqrt(sqrt(grashof_number)) * cbrt(prandtl_number)
     nusselt_number = 2.0 + 0.60 * rayleigh_number
     return nusselt_number
 end
