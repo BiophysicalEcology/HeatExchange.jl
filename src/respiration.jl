@@ -33,7 +33,7 @@ function respiration(
     (; metabolic, sum, minimum) = rates
     metabolic_heat_flow, heat_flow_sum, minimum_heat_flow = metabolic, sum, minimum
     (; oxygen_extraction_efficiency, pant, respiratory_quotient, exhaled_temperature_offset, exhaled_relative_humidity) = resp_pars
-    exit_air_temperature = safe_min(smoothing, air_temperature + exhaled_temperature_offset, lung_temperature; scale=oneunit(lung_temperature))
+    exit_air_temperature = exhaled_air_temperature(exhaled_temperature_offset, air_temperature, lung_temperature, smoothing)
     exhaled_rh = exhaled_relative_humidity[]
     (; relative_humidity, atmospheric_pressure) = atmos
     fO2 = gas_fractions.oxygen
@@ -113,3 +113,13 @@ function respiration(
     respiration_mass_flow = uconvert(u"g/hr", respiration_mass_flow)
     return (; balance, respiration_heat_flow, respiration_mass_flow, metabolic_heat_flow, air_flow, oxygen_flow_standard, molar_fluxes_in, molar_fluxes_out)
 end
+
+"""
+    exhaled_air_temperature(exhaled_temperature_offset, air_temperature, lung_temperature, smoothing)
+
+Exhaled air temperature: the lung temperature when the offset is `nothing`, otherwise the air temperature plus
+the offset, capped at the lung temperature.
+"""
+exhaled_air_temperature(::Nothing, air_temperature, lung_temperature, smoothing) = lung_temperature
+exhaled_air_temperature(exhaled_temperature_offset, air_temperature, lung_temperature, smoothing) =
+    safe_min(smoothing, air_temperature + exhaled_temperature_offset, lung_temperature; scale=oneunit(lung_temperature))
