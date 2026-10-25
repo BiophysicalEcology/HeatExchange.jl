@@ -41,7 +41,7 @@ ellipsoid_out = DataFrame(
     ),
 )
 
-rtol=1e-3
+rtol=2e-2 # BiologicalScaling eutherian basal rate is 1.5 % below NicheMapR's Kleiber (1947)
 @testset "ellipsoid model" begin
     @test ellipsoid_out.required_metabolic_heat_production ≈ (ellipsoid_output.Qgen)u"W" rtol=rtol
     @test ellipsoid_out.final_metabolic_heat_production ≈ (ellipsoid_output.QgenFinal)u"W" rtol=rtol

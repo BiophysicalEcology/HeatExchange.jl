@@ -1,5 +1,6 @@
 using HeatExchange
 using BiophysicalGeometry
+using BiologicalScaling: AllometricShape, DesertIguana, StandardMetabolicRate, Squamate
 using FluidProperties
 using ModelParameters
 using Unitful, UnitfulMoles
@@ -193,10 +194,6 @@ flesh_conductivity = (ecto_input.k_flesh)u"W/m/K"
 skin_wetness = ecto_input.pct_wet / 100
 oxygen_extraction_efficiency = ecto_input.F_O2 / 100
 respiratory_quotient = ecto_input.RQ
-mass_normalisation = ecto_input.M_1
-mass_exponent = ecto_input.M_2
-thermal_sensitivity = ecto_input.M_3
-metabolic_state = ecto_input.M_4
 
 # organism behaviour
 if ecto_input.postur == 0.0
@@ -209,7 +206,7 @@ end
 pant = 1.0
 
 # geometry
-shape_pars = DesertIguana(mass, ρ_flesh)
+shape_pars = AllometricShape(DesertIguana(), mass, ρ_flesh)
 #shape_pars = Cylinder(mass, ρ_flesh, aspect_ratio_b)
 geometry = Body(shape_pars, Naked())
 A_total = total_area(geometry)
@@ -236,9 +233,7 @@ core_temperature = u"K"((ecto_output.TC)u"°C")
 # calculate heat flows
 
 # metabolism
-metabolic_heat_flow = metabolic_rate(
-    AndrewsPough2(; mass_normalisation, mass_exponent, thermal_sensitivity, metabolic_state, O2conversion=Typical()), mass, core_temperature
-)
+metabolic_heat_flow = metabolic_rate((StandardMetabolicRate(), Squamate()), mass, core_temperature)
 
 # metabolism test
 @test metabolic_heat_flow ≈ (ecto_output.QMET)u"W" rtol=1e-9
@@ -376,7 +371,7 @@ hydraulic_pars = HydraulicParameters(; water_potential=ψ_org)
 
 respiration_pars = RespirationParameters(; oxygen_extraction_efficiency, pant, respiratory_quotient)
 
-metabolism_pars = MetabolismParameters(; metabolic_heat_flow, model=AndrewsPough2())
+metabolism_pars = MetabolismParameters(; metabolic_heat_flow, model=(StandardMetabolicRate(), Squamate()))
 
 traits = HeatExchangeTraits(
     shape_pars,

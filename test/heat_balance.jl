@@ -1,5 +1,6 @@
 using HeatExchange
 using BiophysicalGeometry
+using BiologicalScaling: BasalMetabolicRate, EutherianMammal
 using ModelParameters
 using Unitful, UnitfulMoles
 using FluidProperties
@@ -105,7 +106,7 @@ metabolism_pars = MetabolismParameters(;
     core_temperature    = u"K"(37.0u"°C"),
     metabolic_heat_flow = 77.6184u"W",
     q10                 = 2.0,
-    model               = Kleiber(),
+    model               = (BasalMetabolicRate(), EutherianMammal()),
 )
 
 traits = HeatExchangeTraits(

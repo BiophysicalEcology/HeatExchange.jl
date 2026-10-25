@@ -284,10 +284,11 @@ A collection of physiological parameters relating to metabolic rate.
 - `core_temperature::B` — Core body temperature (K)
 - `metabolic_heat_flow::B` — Metabolic heat generation rate (W)
 - `q10::F` — Q10 factor describing metabolic rate sensitivity to core temperature.
+- `model` — `(variable, taxon)` for [`metabolic_rate`](@ref), or `nothing`.
 """
-Base.@kwdef struct MetabolismParameters{TC,QM,QT} <: AbstractPhysiologyParameters
+Base.@kwdef struct MetabolismParameters{TC,QM,QT,MO} <: AbstractPhysiologyParameters
     core_temperature::TC = Param(u"K"(37u"°C"))
     metabolic_heat_flow::QM = Param(0.0u"W")
     q10::QT = Param(2.0)
-    model = AndrewsPough2()
+    model::MO = (StandardMetabolicRate(), Squamate())
 end

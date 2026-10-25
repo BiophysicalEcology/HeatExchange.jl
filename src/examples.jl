@@ -153,7 +153,7 @@ function example_metabolism_pars(;
     core_temperature=u"K"((37.0)u"°C"),
     metabolic_heat_flow=77.61842u"W",
     q10=2.0,
-    model=Kleiber(),
+    model=(BasalMetabolicRate(), EutherianMammal()),
 )
     MetabolismParameters(;
         core_temperature,
@@ -286,13 +286,13 @@ end
 
 Create example `MetabolismParameters` for an ectotherm.
 
-Defaults to `AndrewsPough2()` (Andrews & Pough 1985 squamate metabolic rate equation).
+Defaults to squamate standard metabolic rate (Andrews & Pough 1985), from BiologicalScaling.
 `metabolic_heat_flow` is not used directly — metabolic heat is computed from the model
 given body mass and temperature.
 """
 function example_ectotherm_metabolism_pars(;
     metabolic_heat_flow=0.0u"W",
-    model=AndrewsPough2(),
+    model=(StandardMetabolicRate(), Squamate()),
 )
     MetabolismParameters(; metabolic_heat_flow, model)
 end
@@ -438,7 +438,7 @@ Create example `HeatExchangeTraits` for an ectotherm using NicheMapR defaults th
 All component parameter functions can be overridden individually.
 """
 function example_ectotherm_heat_exchange_traits(;
-    shape_pars               = DesertIguana(40.0u"g", 1000.0u"kg/m^3"),
+    shape_pars               = AllometricShape(DesertIguana(), 40.0u"g", 1000.0u"kg/m^3"),
     conduction_pars_external = example_ectotherm_conduction_pars_external(),
     conduction_pars_internal = example_ectotherm_conduction_pars_internal(),
     convection_pars          = ConvectionParameters(),

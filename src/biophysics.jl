@@ -1,7 +1,7 @@
 # Biophysics
 
 # Extend BiophysicalGeometry.silhouette_area to support (body, orientation, zenith_angle).
-# Falls back to the orientation-based 2-arg method for shapes (like DesertIguana) that
+# Falls back to the orientation-based 2-arg method for shapes (like AllometricShape) that
 # compute silhouette from posture rather than sun angle.
 BiophysicalGeometry.silhouette_area(body::AbstractBody, orientation, zenith_angle) =
     silhouette_area(shape(body), orientation)
@@ -310,7 +310,7 @@ Calculate the Nusselt number for free convection based on body shape.
 # Returns
 - Free convection Nusselt number (dimensionless)
 """
-function nusselt_free(shape::Union{Cylinder,DesertIguana,LeopardFrog}, grashof_number, prandtl_number)
+function nusselt_free(shape::Union{Cylinder,AllometricShape}, grashof_number, prandtl_number)
     #  free convection for a cylinder
     #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
     rayleigh_number = grashof_number * prandtl_number
@@ -386,7 +386,7 @@ function nusselt_forced(shape::Plate, reynolds_number)
     # forced convection of a plate
     0.032 * reynolds_number ^ 0.8
 end
-function nusselt_forced(shape::Union{Ellipsoid,Sphere,DesertIguana,LeopardFrog}, reynolds_number)
+function nusselt_forced(shape::Union{Ellipsoid,Sphere,AllometricShape}, reynolds_number)
     #  forced convection of a sphere
     0.35 * reynolds_number ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end

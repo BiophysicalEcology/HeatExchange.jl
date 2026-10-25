@@ -23,7 +23,7 @@ where air, ground, and sky temperatures are equal.
 - `emissivity`: Insulation emissivity (-)
 - `core_temperature`: Core temperature.
 - `minimum_metabolic_rate`: Optional user-specified minimum metabolic rate (energy/time).
-- `metabolic_rate_equation`: Allometric function to compute metabolic rate (default: Kleiber())
+- `metabolic_rate_equation`: `(variable, taxon)` for [`metabolic_rate`](@ref) (default: eutherian basal rate)
 - `metabolic_multiplier`: Scaling factor for the metabolic_rate_equation, 
     e.g. to adjust to a field metabolic rate.
 - `q10`: Temperature dependence factor for metabolism.
@@ -56,7 +56,7 @@ function ellipsoid_endotherm(
     emissivity::Real,
     core_temperature::Quantity,
     minimum_metabolic_rate=missing,
-    metabolic_rate_equation::MetabolicRateEquation=Kleiber(),
+    metabolic_rate_equation=(BasalMetabolicRate(), EutherianMammal()),
     metabolic_multiplier::Real=1.0,
     q10::Real,
     oxygen_fraction::Real,
@@ -97,7 +97,7 @@ function ellipsoid_endotherm(
     emissivity::Real,
     core_temperature::Quantity,
     minimum_metabolic_rate::Union{Missing,Quantity},
-    metabolic_rate_equation::MetabolicRateEquation,
+    metabolic_rate_equation,
     metabolic_multiplier::Real,
     q10::Real,
     oxygen_fraction::Real,

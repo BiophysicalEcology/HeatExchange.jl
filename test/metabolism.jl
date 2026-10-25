@@ -2,57 +2,6 @@ using HeatExchange
 using Unitful
 using Test
 
-@testset "Metabolic Rate Equations" begin
-    @testset "AndrewsPough2 (squamates)" begin
-        eq = AndrewsPough2()
-        mass = 100.0u"g"
-        T = 30.0u"°C"
-
-        # Basic output
-        Q = metabolic_rate(eq, mass, T)
-        @test Q isa Unitful.Power
-        @test Q > 0.0u"W"
-
-        # Temperature capping (1-50°C range)
-        @test metabolic_rate(eq, mass, 0.0u"°C") == metabolic_rate(eq, mass, 1.0u"°C")
-        @test metabolic_rate(eq, mass, 60.0u"°C") == metabolic_rate(eq, mass, 50.0u"°C")
-
-        # Metabolic rate increases with temperature and mass
-        @test metabolic_rate(eq, mass, 30.0u"°C") > metabolic_rate(eq, mass, 20.0u"°C")
-        @test metabolic_rate(eq, 100.0u"g", T) > metabolic_rate(eq, 10.0u"g", T)
-
-        # Resting (metabolic_state=1) > standard (metabolic_state=0)
-        @test metabolic_rate(AndrewsPough2(metabolic_state=1.0), mass, T) > metabolic_rate(AndrewsPough2(metabolic_state=0.0), mass, T)
-
-        # Accepts Kelvin
-        @test metabolic_rate(eq, mass, 303.15u"K") ≈ metabolic_rate(eq, mass, 30.0u"°C")
-    end
-
-    @testset "Kleiber (mammals)" begin
-        Q = metabolic_rate(Kleiber(), 1.0u"kg")
-        @test Q isa Unitful.Power
-        @test Q > 0.0u"W"
-
-        # Metabolic rate increases with mass (allometric scaling)
-        @test metabolic_rate(Kleiber(), 10.0u"kg") > metabolic_rate(Kleiber(), 1.0u"kg")
-
-        # body_temperature argument is ignored
-        @test metabolic_rate(Kleiber(), 1.0u"kg", 37.0u"°C") == metabolic_rate(Kleiber(), 1.0u"kg")
-    end
-
-    @testset "McKechnieWolf (birds)" begin
-        Q = metabolic_rate(McKechnieWolf(), 100.0u"g")
-        @test Q isa Unitful.Power
-        @test Q > 0.0u"W"
-
-        # Metabolic rate increases with mass
-        @test metabolic_rate(McKechnieWolf(), 1000.0u"g") > metabolic_rate(McKechnieWolf(), 100.0u"g")
-
-        # body_temperature argument is ignored
-        @test metabolic_rate(McKechnieWolf(), 100.0u"g", 40.0u"°C") == metabolic_rate(McKechnieWolf(), 100.0u"g")
-    end
-end
-
 @testset "O2-Joules Conversion" begin
     Q = 1.0u"W"
     V = 100.0u"ml/hr"

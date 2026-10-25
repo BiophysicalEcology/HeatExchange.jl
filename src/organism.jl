@@ -1,6 +1,5 @@
 abstract type AbstractPhysiologyModel end
 
-abstract type MetabolicRateEquation <: AbstractPhysiologyModel end
 abstract type OxygenJoulesConversion <: AbstractPhysiologyModel end
 
 abstract type AbstractPhysiologyParameters end
