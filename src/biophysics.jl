@@ -397,15 +397,12 @@ function nusselt_forced(shape::Union{Ellipsoid,Sphere,AllometricShape}, reynolds
     0.35 * reynolds_number ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end
 
-function _vapour_densities(surface_temperature, air_temperature, water_potential,
-                           relative_humidity, atmospheric_pressure; gas_fractions)
+function _vapour_densities(surface_temperature, air_temperature, water_potential, atmos; gas_fractions)
     molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
     rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
     surface_vapour_density =
-        wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions).vapour_density
-    air_vapour_density =
-        wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions).vapour_density
-    return (; surface_vapour_density, air_vapour_density)
+        wet_air_properties(surface_temperature, rh_surf, atmos.atmospheric_pressure; gas_fractions).vapour_density
+    return (; surface_vapour_density, air_vapour_density=air_vapour_density(atmos, air_temperature; gas_fractions))
 end
 
 """
@@ -417,7 +414,7 @@ and vapor density gradient between surface and air.
 # Arguments
 - `evap_pars::AnimalEvaporationParameters`: Evaporation parameters (wetness, eye_fraction, bare_skin_fraction)
 - `mass::TransferCoefficients`: Mass transfer coefficients (combined, free, forced)
-- `atmos::AtmosphericConditions`: Atmospheric conditions (relative_humidity, atmospheric_pressure)
+- `atmos::AbstractAtmosphericConditions`: Atmospheric conditions (humidity, atmospheric_pressure)
 - `area`: Total surface area for evaporation
 - `surface_temperature`: Surface temperature
 - `air_temperature`: Air temperature
@@ -432,7 +429,7 @@ NamedTuple with evaporation_heat_flow, cutaneous_mass_flow, eyes_mass_flow
 function evaporation(
     evap_pars::AnimalEvaporationParameters,
     mass::TransferCoefficients,
-    atmos::AtmosphericConditions,
+    atmos::AbstractAtmosphericConditions,
     area,
     surface_temperature,
     air_temperature;
@@ -440,7 +437,6 @@ function evaporation(
     gas_fractions::GasFractions=GasFractions(),
 )
     (; skin_wetness, eye_fraction, bare_skin_fraction) = evap_pars
-    (; relative_humidity, atmospheric_pressure) = atmos
 
     # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction
@@ -449,7 +445,7 @@ function evaporation(
 
     (; surface_vapour_density, air_vapour_density) = _vapour_densities(
         surface_temperature, air_temperature, water_potential,
-        relative_humidity, atmospheric_pressure; gas_fractions,
+        atmos; gas_fractions,
     )
 
     # mass of water lost
@@ -481,7 +477,7 @@ Stomatal conductances (mol/m²/s) are converted to m/s via the ideal gas relatio
 # Arguments
 - `evap_pars::LeafEvaporationParameters`: Stomatal and cuticular conductances
 - `mass::TransferCoefficients`: Mass transfer coefficients from `convection()` (combined, free, forced)
-- `atmos::AtmosphericConditions`: Atmospheric conditions (relative_humidity, atmospheric_pressure)
+- `atmos::AbstractAtmosphericConditions`: Atmospheric conditions (humidity, atmospheric_pressure)
 - `area`: Total leaf surface area
 - `surface_temperature`: Leaf surface temperature
 - `air_temperature`: Air temperature
@@ -496,7 +492,7 @@ NamedTuple with evaporation_heat_flow, transpiration_mass_flow
 function evaporation(
     evap_pars::LeafEvaporationParameters,
     mass::TransferCoefficients,
-    atmos::AtmosphericConditions,
+    atmos::AbstractAtmosphericConditions,
     area,
     surface_temperature,
     air_temperature;
@@ -504,7 +500,7 @@ function evaporation(
     gas_fractions::GasFractions=GasFractions(),
 )
     (; abaxial_vapour_conductance, adaxial_vapour_conductance, cuticular_conductance) = evap_pars
-    (; relative_humidity, atmospheric_pressure) = atmos
+    (; atmospheric_pressure) = atmos
 
     # convert stomatal conductances from mol/m²/s → m/s via ideal gas: h = g_mol × R·T/P
     molar_volume_air = Unitful.R * air_temperature / atmospheric_pressure
@@ -525,7 +521,7 @@ function evaporation(
     # vapour density at leaf surface and in air (same as animal evaporation)
     (; surface_vapour_density, air_vapour_density) = _vapour_densities(
         surface_temperature, air_temperature, water_potential,
-        relative_humidity, atmospheric_pressure; gas_fractions,
+        atmos; gas_fractions,
     )
 
     # transpiration mass flux and latent heat
