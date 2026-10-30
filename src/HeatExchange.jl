@@ -109,6 +109,7 @@ export ConductanceCoeffs,
     Water
 
 export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
+export ConvectionCorrelation, ShapeCorrelation, SimpleForcedCorrelation
 
 export metabolic_rate
 

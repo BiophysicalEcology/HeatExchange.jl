@@ -73,6 +73,39 @@ characteristic_dimension(::VolumeCubeRoot, body) =
 characteristic_dimension(sd::ScaledDimension, body) =
     sd.factor * getproperty(body.geometry.length, sd.dimension)
 
+# Convection correlation
+
+"""
+    ConvectionCorrelation
+
+Abstract supertype selecting which Nusselt-number correlation `convection()`
+uses for `nusselt_free`/`nusselt_forced`.
+"""
+abstract type ConvectionCorrelation end
+
+"""
+    ShapeCorrelation <: ConvectionCorrelation
+
+Dispatch `nusselt_free`/`nusselt_forced` on `body.shape` (default).
+"""
+struct ShapeCorrelation <: ConvectionCorrelation end
+
+"""
+    SimpleForcedCorrelation <: ConvectionCorrelation
+
+Forced convection only: `Nu = 0.6·√Re`, Pr-independent, no free-convection
+term (`nusselt_free` returns zero), no shape dependence. Cheaper and less
+complete than `ShapeCorrelation`, not more accurate.
+"""
+struct SimpleForcedCorrelation <: ConvectionCorrelation end
+
+nusselt_free(::ShapeCorrelation, shape, grashof_number, prandtl_number) =
+    nusselt_free(shape, grashof_number, prandtl_number)
+nusselt_forced(::ShapeCorrelation, shape, reynolds_number) =
+    nusselt_forced(shape, reynolds_number)
+nusselt_free(::SimpleForcedCorrelation, shape, grashof_number, prandtl_number) = zero(grashof_number)
+nusselt_forced(::SimpleForcedCorrelation, shape, reynolds_number) = 0.6 * sqrt(reynolds_number)
+
 """
     ExternalConductionParameters <: AbstractMorphologyParameters
 
