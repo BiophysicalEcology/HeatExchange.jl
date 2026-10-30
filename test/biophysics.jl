@@ -73,3 +73,26 @@ end
     shaped = convection(; common..., wind_speed=2.0u"m/s")
     @test shaped.convection_flow != windy.convection_flow
 end
+
+@testset "TemperatureDifferenceModel" begin
+    body = Body(Ellipsoid(0.2u"g" |> u"kg", 700.0u"kg/m^3", 1.0, 100.0), Naked())
+    air_temperature = u"K"(25.0u"°C")
+    width = 0.1u"K"
+    free(ΔT, temperature_difference_model) = convection(; body, area=0.01u"m^2", air_temperature,
+        surface_temperature=air_temperature + ΔT, wind_speed=0.5u"m/s", atmospheric_pressure=101325.0u"Pa",
+        fluid=Air(), temperature_difference_model).heat_transfer_coefficient.free
+    exact, smooth = ExactTemperatureDifference(), SmoothTemperatureDifference(width)
+
+    # Exact is the default
+    @test convection(; body, area=0.01u"m^2", air_temperature, surface_temperature=air_temperature + 1.0u"K",
+        wind_speed=0.5u"m/s", atmospheric_pressure=101325.0u"Pa", fluid=Air()).heat_transfer_coefficient.free ==
+        free(1.0u"K", exact)
+    # At ΔT = 0, smooth free convection is exact free convection at ΔT = width
+    @test free(0.0u"K", smooth) ≈ free(width, exact)
+    # Smooth has a flat top at ΔT = 0, where exact has a cusp (beyond its 1e-6 K AD floor)
+    δ = 1.0e-4u"K"
+    @test abs(free(δ, smooth) - free(0.0u"K", smooth)) < 1.0e-6 * free(0.0u"K", smooth)
+    @test free(δ, exact) - free(0.0u"K", exact) > 100 * (free(δ, smooth) - free(0.0u"K", smooth))
+    # Far from ΔT = 0 the two agree
+    @test free(10.0u"K", smooth) ≈ free(10.0u"K", exact) rtol = 1.0e-4
+end
