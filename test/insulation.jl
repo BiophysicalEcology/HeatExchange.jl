@@ -47,7 +47,7 @@ body = Body(shape, CompositeInsulation(fur, fat))
 body_geometry = geometry(shape, fur)
 
 θ = 90u"°"
-area_silhouette = silhouette(body, θ)
+area_silhouette = silhouette_area(body, θ)
 
 shape = Sphere(; mass, density)
 fat_fraction = 0.2

@@ -16,7 +16,7 @@ function sides(o::Organism, e; smoothing::SmoothingStrategy=HardBound())
     view = _view_shares(rad_pars, environment_vars)
 
     solar_out = solar(o.body, Absorptivities(rad_pars, environment_pars), ViewFactors(view.sky, view.ground, 0.0, 0.0),
-        SolarConditions(environment_vars), silhouette(o.body, rad_pars.solar_orientation),
+        SolarConditions(environment_vars), silhouette_area(o.body, rad_pars.solar_orientation),
         BiophysicalGeometry.total_area(o.body) * conduction_fraction)
     sunlit = solar_out.solar_flow > 0.0u"W"
     dorsal_solar = sunlit ? 2.0 * solar_out.solar_direct_flow + 2.0 * solar_out.solar_sky_flow : 0.0u"W"
@@ -186,7 +186,7 @@ function _organism_output(o, e, core_temperature, metabolic_heat_flow, respirati
         area_evaporation = evaporation_area(o.body),
         area_convection = BiophysicalGeometry.total_area(o.body) * (1 - conduction_fraction),
         area_conduction = sides.ventral.area * conduction_fraction,
-        area_silhouette = silhouette(geometry_avg, rad_pars.solar_orientation),
+        area_silhouette = silhouette_area(geometry_avg, rad_pars.solar_orientation),
         sky_view_factor = view.sky,
         ground_view_factor = view.ground,
         volume = geometry_avg.geometry.volume,

@@ -1,8 +1,8 @@
 # Biophysics
 
 # Silhouettes of bodies set by posture rather than sun angle.
-BiophysicalGeometry.silhouette(body::AbstractBody, orientation, zenith_angle) =
-    silhouette(shape(body), orientation)
+BiophysicalGeometry.silhouette_area(body::AbstractBody, orientation, zenith_angle) =
+    silhouette_area(shape(body), orientation)
 
 """
     conduction(; conduction_area, L, surface_temperature, substrate_temperature, substrate_conductivity)
@@ -57,7 +57,7 @@ function solar(
     conduction_fraction=0.0,
 )
     total_area = BiophysicalGeometry.total_area(body)
-    silhouette_area = BiophysicalGeometry.silhouette(body, solar_conditions.zenith_angle)
+    silhouette_area = BiophysicalGeometry.silhouette_area(body, solar_conditions.zenith_angle)
     conduction_area = total_area * conduction_fraction
     return solar(body, absorptivities, view_factors, solar_conditions, silhouette_area, conduction_area)
 end
