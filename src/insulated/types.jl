@@ -220,6 +220,14 @@ struct ViewFactors{T1,T2,T3,T4}
 end
 
 """
+    AbstractAtmosphericConditions
+
+Abstract supertype for the air's humidity, wind speed and pressure in heat exchange
+calculations: [`AtmosphericConditions`](@ref) or [`VapourDensityAtmosphericConditions`](@ref).
+"""
+abstract type AbstractAtmosphericConditions end
+
+"""
     AtmosphericConditions{T1,T2,T3}
 
 Atmospheric conditions for heat exchange calculations.
@@ -229,7 +237,7 @@ Atmospheric conditions for heat exchange calculations.
 - `wind_speed::T2` — Wind speed
 - `atmospheric_pressure::T3` — Atmospheric pressure
 """
-struct AtmosphericConditions{T1,T2,T3}
+struct AtmosphericConditions{T1,T2,T3} <: AbstractAtmosphericConditions
     relative_humidity::T1
     wind_speed::T2
     atmospheric_pressure::T3
@@ -237,6 +245,29 @@ end
 function AtmosphericConditions(environment_vars::AbstractEnvironmentalVars)
     AtmosphericConditions(environment_vars.relative_humidity, environment_vars.wind_speed, environment_vars.atmospheric_pressure)
 end
+
+"""
+    VapourDensityAtmosphericConditions{T1,T2,T3}
+
+Atmospheric conditions with the air's humidity as a vapour density, for callers that
+carry vapour density as state (e.g. a canopy air profile), so it needn't pass through
+a relative humidity clamped to 1.
+
+# Fields
+- `vapour_density::T1` — Water vapour density of the air
+- `wind_speed::T2` — Wind speed
+- `atmospheric_pressure::T3` — Atmospheric pressure
+"""
+struct VapourDensityAtmosphericConditions{T1,T2,T3} <: AbstractAtmosphericConditions
+    vapour_density::T1
+    wind_speed::T2
+    atmospheric_pressure::T3
+end
+
+# Water vapour density of the air at `air_temperature`
+air_vapour_density(atmos::AtmosphericConditions, air_temperature; gas_fractions) =
+    wet_air_properties(air_temperature, atmos.relative_humidity, atmos.atmospheric_pressure; gas_fractions).vapour_density
+air_vapour_density(atmos::VapourDensityAtmosphericConditions, air_temperature; gas_fractions) = atmos.vapour_density
 
 """
     ThermalConductivities{F,FA,I}
