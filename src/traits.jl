@@ -107,6 +107,43 @@ nusselt_free(::SimpleForcedCorrelation, shape, grashof_number, prandtl_number) =
 nusselt_forced(::SimpleForcedCorrelation, shape, reynolds_number) = 0.6 * sqrt(reynolds_number)
 
 """
+    TemperatureDifferenceModel
+
+Abstract supertype selecting how `convection()` takes the magnitude of the
+surface-air temperature difference `ΔT` in the Grashof number.
+"""
+abstract type TemperatureDifferenceModel end
+
+"""
+    ExactTemperatureDifference <: TemperatureDifferenceModel
+
+`|ΔT|` (default), through `safe_abs` with `convection()`'s `smoothing`.
+
+Free convection, and so the free mass transfer coefficient, has an infinite slope
+at `ΔT = 0`. Evaporation goes through that coefficient while its vapour gradient
+does not vanish there, so a surface's energy balance peaks at `ΔT = 0`, and a
+Newton solve for the surface temperature can stall beside the peak.
+"""
+struct ExactTemperatureDifference <: TemperatureDifferenceModel end
+
+"""
+    SmoothTemperatureDifference(width) <: TemperatureDifferenceModel
+
+`√(ΔT² + width²)`, with `width` a temperature: `|ΔT|` rounded so free convection
+is smooth through `ΔT = 0`. Free convection is higher than with
+[`ExactTemperatureDifference`](@ref) while `|ΔT|` is within a few `width` of zero;
+at `ΔT = 0` it is the free convection of `ΔT = width`.
+"""
+struct SmoothTemperatureDifference{W} <: TemperatureDifferenceModel
+    width::W
+end
+
+free_convection_temperature_difference(::ExactTemperatureDifference, smoothing, ΔT) =
+    safe_abs(smoothing, ΔT; scale=1.0u"K")
+free_convection_temperature_difference(model::SmoothTemperatureDifference, smoothing, ΔT) =
+    sqrt(ΔT^2 + model.width^2)
+
+"""
     ExternalConductionParameters <: AbstractMorphologyParameters
 
 Morphological parameters relating to conductive heat exchange with the external environment.
