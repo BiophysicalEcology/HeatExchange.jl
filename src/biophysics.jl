@@ -1,8 +1,6 @@
 # Biophysics
 
-# Extend BiophysicalGeometry.silhouette_area to support (body, orientation, zenith_angle).
-# Falls back to the orientation-based 2-arg method for shapes (like AllometricShape) that
-# compute silhouette from posture rather than sun angle.
+# Silhouettes of bodies set by posture rather than sun angle.
 BiophysicalGeometry.silhouette_area(body::AbstractBody, orientation, zenith_angle) =
     silhouette_area(shape(body), orientation)
 
@@ -224,11 +222,11 @@ function convection(;
     gas_fractions::GasFractions=GasFractions(),
     convection_enhancement=1.0,
     characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
+    characteristic_dim=characteristic_dimension(characteristic_dimension_formula, body),
     smoothing::SmoothingStrategy=HardBound(),
     correlation::ConvectionCorrelation=ShapeCorrelation(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
-    characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
     dry_air_out = dry_air_properties(air_temperature, atmospheric_pressure; gas_fractions)
     vapour_diffusivity = dry_air_out.vapour_diffusivity
     # Dispatch on the fluid singleton — both branches are concrete-typed and
@@ -305,14 +303,14 @@ end
 Calculate the Nusselt number for free convection based on body shape.
 
 # Arguments
-- `shape`: Body shape (Cylinder, Plate, Sphere, Ellipsoid, or animal-specific shapes)
+- `shape`: Body shape (Cylinder, Plate, Sphere or Ellipsoid)
 - `grashof_number`: Grashof number (dimensionless)
 - `prandtl_number`: Prandtl number (dimensionless)
 
 # Returns
 - Free convection Nusselt number (dimensionless)
 """
-function nusselt_free(shape::Union{Cylinder,AllometricShape}, grashof_number, prandtl_number)
+function nusselt_free(shape::Union{AbstractCylindrical,AllometricShape}, grashof_number, prandtl_number)
     #  free convection for a cylinder
     #  from p.334 Kreith (1965): Mc Adam's 1954 recommended coordinates
     rayleigh_number = grashof_number * prandtl_number
@@ -335,12 +333,12 @@ function nusselt_free(shape::Union{Cylinder,AllometricShape}, grashof_number, pr
     end
     return nusselt_number
 end
-function nusselt_free(shape::Plate, grashof_number, prandtl_number)
+function nusselt_free(shape::AbstractSlab, grashof_number, prandtl_number)
     rayleigh_number = grashof_number * prandtl_number
     nusselt_number = 0.13 * cbrt(rayleigh_number) # Gates 1980 eq. 9.77
     return nusselt_number
 end
-function nusselt_free(shape::Union{Sphere,Ellipsoid}, grashof_number, prandtl_number)
+function nusselt_free(shape::Union{AbstractSpherical,AbstractEllipsoidal}, grashof_number, prandtl_number)
     #  sphere free convection
     #  from p.413 Bird et all (1960) Transport Phenomena
     rayleigh_number = sqrt(sqrt(grashof_number)) * cbrt(prandtl_number)
@@ -354,13 +352,13 @@ end
 Calculate the Nusselt number for forced convection based on body shape.
 
 # Arguments
-- `shape`: Body shape (Cylinder, Plate, Sphere, Ellipsoid, or animal-specific shapes)
+- `shape`: Body shape (Cylinder, Plate, Sphere or Ellipsoid)
 - `reynolds_number`: Reynolds number (dimensionless)
 
 # Returns
 - Forced convection Nusselt number (dimensionless)
 """
-function nusselt_forced(shape::Cylinder, reynolds_number)
+function nusselt_forced(shape::AbstractCylindrical, reynolds_number)
     #  forced convection of a cylinder
     #  adjusting Nusselt-Reynolds correlation for Reynolds number (p. 260 McAdams, 1954)
     if reynolds_number < 4
@@ -384,11 +382,11 @@ function nusselt_forced(shape::Cylinder, reynolds_number)
     end
     return nusselt_number
 end
-function nusselt_forced(shape::Plate, reynolds_number)
+function nusselt_forced(shape::AbstractSlab, reynolds_number)
     # forced convection of a plate
     0.032 * reynolds_number ^ 0.8
 end
-function nusselt_forced(shape::Union{Ellipsoid,Sphere,AllometricShape}, reynolds_number)
+function nusselt_forced(shape::Union{AbstractSpherical,AbstractEllipsoidal,AllometricShape}, reynolds_number)
     #  forced convection of a sphere
     0.35 * reynolds_number ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end

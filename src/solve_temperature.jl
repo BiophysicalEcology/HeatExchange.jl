@@ -3,22 +3,18 @@
 """
     solve_temperature(organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"))
 
-Find the steady-state temperature of an organism (animal or leaf) by root-finding on
-`heat_balance`. Dispatches on `evaluation_strategy(organism)`:
-
-- `SingleBody` (Naked animals, leaves): root-finds then returns the full `heat_balance` output.
-- `MultiSided` (insulated animals): root-finds using a weighted per-side residual, then assembles
-  a rich `(; thermoregulation, morphology, energy_flows, mass_flows)` output via
-  `_assemble_multisided_output`.
+Find the steady-state temperature of an organism (animal or leaf) by root-finding on its
+heat balance. A naked animal or a leaf returns the output of `heat_balance`; an insulated
+animal is solved by its [`sides`](@ref) and returns a [`ThermoregulationOutput`](@ref).
 
 Returns air temperature as the fallback `core_temperature` if root-finding fails.
 """
 function solve_temperature(organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"),
                             smoothing::SmoothingStrategy=HardBound())
-    solve_temperature(evaluation_strategy(organism), organism, environment; temperature_bracket, smoothing)
+    solve_temperature(insulation(body(organism)), organism, environment; temperature_bracket, smoothing)
 end
 
-function solve_temperature(::SingleBody, organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"),
+function solve_temperature(::Naked, organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"),
                             smoothing::SmoothingStrategy=HardBound())
     lo = ustrip(u"K", temperature_bracket[1])
     hi = ustrip(u"K", temperature_bracket[2])
@@ -34,62 +30,50 @@ function solve_temperature(::SingleBody, organism, environment; temperature_brac
     end
 end
 
-function solve_temperature(::MultiSided, organism, environment; temperature_bracket=(270.0u"K", 370.0u"K"),
-                            smoothing::SmoothingStrategy=HardBound())
+function solve_temperature(::Union{FibrousLayer,CompositeInsulation}, organism, environment;
+                            temperature_bracket=(270.0u"K", 370.0u"K"), smoothing::SmoothingStrategy=HardBound())
     environment_pars = stripparams(environment.environment_pars)
     environment_vars = environment.environment_vars
-    resp_pars  = respiration_pars(organism)
+    resp_pars = respiration_pars(organism)
     metab_pars = metabolism_pars(organism)
+    tolerance = options(organism).temperature_error_tolerance
+    lung_mass = mass(organism.body.shape)
+    atmos = AtmosphericConditions(environment_vars)
+    parts = sides(organism, environment; smoothing)
 
-    # Initial guesses: offset from setpoint (or midpoint of bracket)
-    reference_temperature = metab_pars.core_temperature
-    initial_skin_temperature = reference_temperature - 5u"K"
-    initial_insulation_temperature  = reference_temperature - 3u"K"
-
-    lo = ustrip(u"K", temperature_bracket[1])
-    hi = ustrip(u"K", temperature_bracket[2])
+    initial_skin_temperature = metab_pars.core_temperature - 5u"K"
+    initial_insulation_temperature = metab_pars.core_temperature - 3u"K"
+    surfaces(core_temperature) = _solve_surfaces(parts, map(part -> part.neighbours, parts), core_temperature,
+        initial_skin_temperature, initial_insulation_temperature, tolerance, smoothing)
+    respiration_at(core_temperature, metabolic_heat_flow, lung_temperature) = respiration(
+        MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = metabolic_heat_flow),
+        resp_pars, atmos, lung_mass, lung_temperature, environment_vars.air_temperature;
+        gas_fractions = environment_pars.gas_fractions, O2conversion = Kleiber1961(), smoothing,
+    )
 
     function residual(temperature)
         core_temperature = temperature * u"K"
-        packed = _pack_sides(organism, environment, core_temperature, initial_skin_temperature, initial_insulation_temperature; smoothing)
-        dmult = packed.sky_factor_ref + packed.vegetation_factor_ref
-        vmult = 1 - dmult
-        net_metabolic = packed.temps_out[1].flows.net_metabolic * dmult +
-                        packed.temps_out[2].flows.net_metabolic * vmult
-        skin_mean = (packed.temps_out[1].skin_temperature + packed.temps_out[2].skin_temperature) * 0.5
-        lung_temperature = (core_temperature + skin_mean) * 0.5
-        metabolic_heat_flow = metabolic_rate(metab_pars.model, organism.body.shape.mass, core_temperature)
-        resp_atmos = AtmosphericConditions(environment_vars)
-        respiration_heat_flow = respiration(
-            MetabolicRates(; metabolic=metabolic_heat_flow, sum=metabolic_heat_flow, minimum=metabolic_heat_flow),
-            resp_pars, resp_atmos, organism.body.shape.mass, lung_temperature,
-            environment_vars.air_temperature;
-            gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(), smoothing,
-        ).respiration_heat_flow
+        solved = surfaces(core_temperature)
+        net_metabolic = solved.dorsal.net_metabolic * parts.dorsal.weight + solved.ventral.net_metabolic * parts.ventral.weight
+        lung_temperature = (core_temperature + (solved.dorsal.skin_temperature + solved.ventral.skin_temperature) * 0.5) * 0.5
+        metabolic_heat_flow = metabolic_rate(metab_pars.model, lung_mass, core_temperature)
+        respiration_heat_flow = respiration_at(core_temperature, metabolic_heat_flow, lung_temperature).respiration_heat_flow
         ustrip(u"W", metabolic_heat_flow - respiration_heat_flow - net_metabolic)
     end
 
+    lo = ustrip(u"K", temperature_bracket[1])
+    hi = ustrip(u"K", temperature_bracket[2])
     equilibrium_temperature = try
         zbrent(residual, lo, hi, 1e-3) * u"K"
     catch
         environment_vars.air_temperature
     end
 
-    # Re-run _pack_sides at converged temperature to assemble full output
-    packed = _pack_sides(organism, environment, equilibrium_temperature, initial_skin_temperature, initial_insulation_temperature; smoothing)
-    dmult = packed.sky_factor_ref + packed.vegetation_factor_ref
-    vmult = 1 - dmult
-    skin_mean = packed.temps_out[1].skin_temperature * dmult + packed.temps_out[2].skin_temperature * vmult
+    solved = surfaces(equilibrium_temperature)
+    skin_mean = solved.dorsal.skin_temperature * parts.dorsal.weight + solved.ventral.skin_temperature * parts.ventral.weight
     lung_temperature = (equilibrium_temperature + skin_mean) * 0.5
-    metabolic_heat_flow = metabolic_rate(metab_pars.model, organism.body.shape.mass, equilibrium_temperature)
-    resp_atmos = AtmosphericConditions(environment_vars)
-    respiration_out = respiration(
-        MetabolicRates(; metabolic=metabolic_heat_flow, sum=metabolic_heat_flow, minimum=metabolic_heat_flow),
-        resp_pars, resp_atmos, organism.body.shape.mass, lung_temperature,
-        environment_vars.air_temperature;
-        gas_fractions=environment_pars.gas_fractions, O2conversion=Kleiber1961(), smoothing,
-    )
-    metabolic_heat_flow = respiration_out.metabolic_heat_flow
-
-    _assemble_multisided_output(organism, environment, equilibrium_temperature, metabolic_heat_flow, respiration_out, packed; smoothing)
+    metabolic_heat_flow = metabolic_rate(metab_pars.model, lung_mass, equilibrium_temperature)
+    respiration_out = respiration_at(equilibrium_temperature, metabolic_heat_flow, lung_temperature)
+    _organism_output(organism, environment, equilibrium_temperature, respiration_out.metabolic_heat_flow,
+        respiration_out, parts, solved; smoothing)
 end

@@ -53,94 +53,119 @@ Base.@kwdef struct SolveMetabolicRateOptions{RE,ST,BT} <: AbstractModelParameter
 end
 
 """
-    solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_temperature)
+    solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_temperature; smoothing = HardBound())
 
-Solve for the metabolic rate that balances heat production with heat loss for an endotherm.
+The metabolic heat flow that holds the core of `o` at the `core_temperature` of its
+metabolism, solving its [`sides`](@ref) from the given skin and insulation temperatures.
+`e` holds the `environment_pars` and `environment_vars`.
 
-Finds `metabolic_heat_flow` at `metab_pars.core_temperature` by:
-1. Solving skin and insulation surface temperatures iteratively per body side (via `_pack_sides`).
-2. Root-finding (zbrent) on the respiration heat balance.
-
-# Arguments
-- `o::Organism`: Organism with body geometry and traits
-- `e`: Environment containing `environment_pars` and `environment_vars`
-- `skin_temperature`: Initial guess for skin temperature
-- `insulation_temperature`: Initial guess for insulation surface temperature
-
-# Returns
-NamedTuple with:
-- `thermoregulation`: Temperature and conductivity outputs
-- `morphology`: Body geometry and areas
-- `energy_flows`: Heat flux components (solar, longwave, convection, etc.)
-- `mass_flows`: Water and gas exchange rates
+Returns a [`ThermoregulationOutput`](@ref), with the results of each side under `dorsal`
+and `ventral`.
 """
 function solve_metabolic_rate(o::Organism, e, skin_temperature, insulation_temperature;
-                                smoothing::SmoothingStrategy=HardBound())
+                              smoothing::SmoothingStrategy=HardBound())
+    parts = sides(o, e; smoothing)
+    solution = solve_metabolic_rate(parts, traits(o), e, skin_temperature, insulation_temperature;
+        lung_mass = mass(o.body.shape), smoothing)
+    return _organism_output(o, e, metabolism_pars(o).core_temperature, solution.metabolic_heat_flow,
+        solution.respiration_out, parts, solution.parts; smoothing)
+end
+
+"""
+    solve_metabolic_rate(parts::NamedTuple, traits, e, skin_temperature, insulation_temperature;
+        lung_mass, core_temperature, extra_net_metabolic = 0 W, smoothing = HardBound())
+
+The metabolic heat flow that holds every one of the [`Part`](@ref)s at `core_temperature`, by
+default that of the metabolism in `traits`. The parts' surfaces are solved from the given
+temperatures. Their heat, weighted by each part's `weight`, is met by metabolism less the
+respiration of lungs of `lung_mass`.
+
+Parts with `neighbours` exchange longwave radiation with them, and are solved again until
+their temperatures settle. Parts without, such as the [`sides`](@ref) of a single body, are
+solved in turn, each starting from the temperatures of the part before it.
+`extra_net_metabolic` is heat the parts lose by other routes, such as conduction to other
+compartments.
+
+Returns `(; metabolic_heat_flow, parts, net_metabolic_total, skin_temperature,
+insulation_temperature, lung_temperature, respiration_out)`, where `parts` holds each part's
+[`solve_surface`](@ref) result and the temperatures are means over the parts.
+"""
+function solve_metabolic_rate(parts::NamedTuple, traits::AbstractFunctionalTraits, e,
+    skin_temperature, insulation_temperature;
+    lung_mass,
+    core_temperature = metabolism_pars(traits).core_temperature,
+    extra_net_metabolic = zero(metabolism_pars(traits).metabolic_heat_flow),
+    smoothing::SmoothingStrategy=HardBound(),
+)
     environment_pars = stripparams(e.environment_pars)
     environment_vars = e.environment_vars
-    opts = options(o)
-    resp_pars = respiration_pars(o)
-    metab_pars = metabolism_pars(o)
+    opts = options(traits)
+    resp_pars = respiration_pars(traits)
+    setpoint = metabolism_pars(traits).metabolic_heat_flow
+    solved = _solve_surfaces(parts, map(part -> part.neighbours, parts), core_temperature, skin_temperature, insulation_temperature,
+        opts.temperature_error_tolerance, smoothing)
 
-    packed = _pack_sides(o, e, metab_pars.core_temperature, skin_temperature, insulation_temperature; smoothing)
-    (; temps_out, side_bodies, sky_factor_ref, vegetation_factor_ref) = packed
-
-    max_skin_temperature = max(temps_out[1].skin_temperature, temps_out[2].skin_temperature)
-
-    gen_d = temps_out[1].flows.net_metabolic
-    gen_v = temps_out[2].flows.net_metabolic
-    dmult = sky_factor_ref + vegetation_factor_ref
-    vmult = 1 - dmult
-    flow_sum = gen_d * dmult + gen_v * vmult
-
-    skin_temperature = (temps_out[1].skin_temperature + temps_out[2].skin_temperature) * 0.5
-    insulation_temperature = (temps_out[1].insulation_temperature + temps_out[2].insulation_temperature) * 0.5
-    lung_temperature = (metab_pars.core_temperature + skin_temperature) * 0.5
+    net_metabolic_total = sum(map((part, s) -> s.net_metabolic * part.weight, parts, solved)) + extra_net_metabolic
+    skin_mean = sum(s -> s.skin_temperature, solved) / length(solved)
+    insulation_mean = sum(s -> s.insulation_temperature, solved) / length(solved)
+    max_skin_temperature = maximum(s -> s.skin_temperature, solved)
+    lung_temperature = (core_temperature + skin_mean) * 0.5
 
     if opts.respire
-        minimum_flow = metab_pars.metabolic_heat_flow
-        flux_m1 = metab_pars.metabolic_heat_flow * (-2.0)
-        flux_m2 = metab_pars.metabolic_heat_flow * 10.0
-        if max_skin_temperature >= metab_pars.core_temperature
-            flux_m2 = metab_pars.metabolic_heat_flow * 1.01
-        end
-        resp_atmos = AtmosphericConditions(environment_vars)
-        f = x -> ustrip(u"W", respiration(
-            MetabolicRates(; metabolic=x * u"W", sum=flow_sum, minimum=minimum_flow),
-            resp_pars,
-            resp_atmos,
-            side_bodies[2].shape.mass,
-            lung_temperature,
-            environment_vars.air_temperature;
-            gas_fractions=environment_pars.gas_fractions,
-            O2conversion=Kleiber1961(),
-            smoothing,
-        ).balance)
-
-        metabolic_heat_flow = zbrent(
-            f,
-            ustrip(u"W", flux_m1),
-            ustrip(u"W", flux_m2),
-            opts.resp_tolerance * ustrip(u"W", metab_pars.metabolic_heat_flow),
-        ) * u"W"
-
-        respiration_out = respiration(
-            MetabolicRates(; metabolic=metabolic_heat_flow, sum=flow_sum, minimum=minimum_flow),
-            resp_pars,
-            resp_atmos,
-            side_bodies[2].shape.mass,
-            lung_temperature,
-            environment_vars.air_temperature;
-            gas_fractions=environment_pars.gas_fractions,
-            O2conversion=Kleiber1961(),
-            smoothing,
+        atmos = AtmosphericConditions(environment_vars)
+        flux_lower = setpoint * (-2.0)
+        flux_upper = max_skin_temperature >= core_temperature ? setpoint * 1.01 : setpoint * 10.0
+        respiration_at(metabolic_heat_flow) = respiration(
+            MetabolicRates(; metabolic = metabolic_heat_flow, sum = net_metabolic_total, minimum = setpoint),
+            resp_pars, atmos, lung_mass, lung_temperature, environment_vars.air_temperature;
+            gas_fractions = environment_pars.gas_fractions, O2conversion = Kleiber1961(), smoothing,
         )
+        metabolic_heat_flow = zbrent(
+            x -> ustrip(u"W", respiration_at(x * u"W").balance),
+            ustrip(u"W", flux_lower),
+            ustrip(u"W", flux_upper),
+            opts.resp_tolerance * ustrip(u"W", setpoint),
+        ) * u"W"
+        respiration_out = respiration_at(metabolic_heat_flow)
         metabolic_heat_flow = respiration_out.metabolic_heat_flow
     else
-        metabolic_heat_flow = flow_sum
-        minimum_flow = metab_pars.metabolic_heat_flow
+        metabolic_heat_flow = net_metabolic_total
+        respiration_out = nothing
     end
 
-    resp_out_for_assembly = opts.respire ? respiration_out : nothing
-    return _assemble_multisided_output(o, e, metab_pars.core_temperature, metabolic_heat_flow, resp_out_for_assembly, packed; smoothing)
+    return (;
+        metabolic_heat_flow,
+        parts = solved,
+        net_metabolic_total,
+        skin_temperature = skin_mean,
+        insulation_temperature = insulation_mean,
+        lung_temperature,
+        respiration_out,
+    )
+end
+
+_solve_surfaces(parts::NamedTuple{K}, ::NamedTuple{K,<:Tuple{Vararg{Nothing}}}, core_temperature, skin_temperature, insulation_temperature, tolerance, smoothing) where {K} =
+    NamedTuple{K}(_solve_in_turn(values(parts), core_temperature, skin_temperature, insulation_temperature, tolerance, smoothing))
+
+_solve_in_turn(::Tuple{}, args...) = ()
+function _solve_in_turn(parts::Tuple, core_temperature, skin_temperature, insulation_temperature, tolerance, smoothing)
+    solved = solve_surface(first(parts), core_temperature; skin_temperature, insulation_temperature, tolerance, smoothing)
+    return (solved, _solve_in_turn(Base.tail(parts), core_temperature,
+        solved.skin_temperature, solved.insulation_temperature, tolerance, smoothing)...)
+end
+
+# Each part sees its neighbours' surfaces, so the parts are solved again with their
+# neighbours at the last surface temperatures until those stop changing.
+function _solve_surfaces(parts::NamedTuple, neighbours::NamedTuple, core_temperature, skin_temperature, insulation_temperature, tolerance, smoothing)
+    beside(temperatures) = map(parts, neighbours) do part, fractions
+        seen = values(map((fraction, temperature) -> (; fraction, temperature), fractions, temperatures))
+        solve_surface(part, core_temperature; skin_temperature, insulation_temperature, tolerance, neighbours = seen, smoothing)
+    end
+    solved = beside(map(_ -> insulation_temperature, parts))
+    for _ in 1:49
+        temperatures = map(s -> s.insulation_temperature, solved)
+        solved = beside(temperatures)
+        maximum(map((s, t) -> abs(s.insulation_temperature - t), solved, temperatures)) < tolerance && break
+    end
+    return solved
 end

@@ -48,7 +48,7 @@ environment = (; environment_pars, environment_vars)
 # Leaf body: thin Plate (5 cm × 5 cm × 0.5 mm), ShortestDimension(0.7) after Gates 1980
 leaf_density  = 700.0u"kg/m^3"       # typical mesophyll
 leaf_mass     = 0.2u"g" |> u"kg"     # a small leaf
-leaf_shape    = Plate(leaf_mass, leaf_density, 1.0, 100.0)   # b=1 (square), c=100 (thin)
+leaf_shape    = Plate(mass = leaf_mass, density = leaf_density, axis_ratio_b = 1.0, axis_ratio_c = 100.0)
 leaf_body     = Body(leaf_shape, Naked())
 
 # Traits
@@ -64,8 +64,6 @@ leaf_traits = HeatExchangeTraits(
         body_emissivity_ventral=0.97,
         sky_view_factor=0.5,
         ground_view_factor=0.5,
-        vegetation_view_factor=0.0,
-        bush_view_factor=0.0,
         ventral_fraction=0.5,
         solar_orientation=Intermediate(),
     ),
@@ -112,8 +110,6 @@ closed_traits = HeatExchangeTraits(
         body_emissivity_ventral=0.97,
         sky_view_factor=0.5,
         ground_view_factor=0.5,
-        vegetation_view_factor=0.0,
-        bush_view_factor=0.0,
         ventral_fraction=0.5,
         solar_orientation=Intermediate(),
     ),

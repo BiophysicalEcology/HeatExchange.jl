@@ -5,6 +5,7 @@ using ConstructionBase: getproperties, setproperties
 using FluidProperties
 using ModelParameters
 using Roots
+using StaticArrays: SMatrix, MMatrix, SVector, MVector
 using Unitful
 using UnitfulMoles
 
@@ -61,14 +62,15 @@ export solar,
 
 export heat_balance, solve_temperature, surface_and_lung_temperature
 
-export radiant_temperature, insulation_radiant_temperature, compressed_radiant_temperature
+export AbstractRadialLayer, GeneratingCore, ConductiveShell,
+    stack_resistance, core_to_skin_stack, radial_net_metabolic_heat
 
-export EvaluationStrategy, SingleBody, MultiSided, evaluation_strategy
+export radiant_temperature
+
+export Part, parts, sides, solve_surface
 
 export solve_metabolic_rate,
-    ellipsoid_endotherm,
-    solve_with_insulation!,
-    solve_without_insulation!
+    ellipsoid_endotherm
 
 export ThermoregulationOutput,
     ThermoregulationState,
@@ -76,9 +78,16 @@ export ThermoregulationOutput,
     EnergyFlowState,
     MassFlowState
 
+# CommonSolve interface for the heat-balance solve
+export HeatBalanceProblem, HeatBalanceSolver
+export init, solve!, solve, reinit!
+
+export HeatCoupling, Insulated, SharedCore, ConductiveCoupling
+export ThermalNetwork, conductance, core_temperatures
+
 export insulation_thermal_conductivity, insulation_properties, net_metabolic_heat
 
-export solve_temperatures, mean_skin_temperature, respiration
+export mean_skin_temperature, respiration
 
 export ConductanceCoeffs,
     DivisorCoeffs,
@@ -100,7 +109,6 @@ export ConductanceCoeffs,
     Emissivities,
     Absorptivities,
     InsulationProperties,
-    GeometryVariables,
     BodySide,
     Dorsal,
     Ventral,
@@ -117,9 +125,7 @@ export OxygenJoulesConversion, O2_to_Joules, Joules_to_O2, Typical, Kleiber1961
 
 export zbrac, zbrent
 
-export NLPStrategy, WeightedMeanNLP, MultiSidedNLP
-export WeightedMeanNLPPacked, MultiSidedNLPPacked
-export nlp_pack, nlp_residuals, nlp_assemble_output
+export NLPStrategy, nlp_pack
 
 export SmoothingStrategy, HardBound, SmoothBound
 export safe_abs, safe_relu, safe_step, safe_max, safe_min, safe_clamp
@@ -143,7 +149,6 @@ include("traits.jl")
 include("environment.jl")
 
 include("insulated/types.jl")
-include("insulated/utils.jl")
 
 include("biophysics.jl")
 include("metabolism.jl")
@@ -156,12 +161,16 @@ include("solve_temperature.jl")
 
 include("ellipsoid_model.jl")
 include("insulated/radiant_temperature.jl")
-include("insulated/insulation_radiant_temperature.jl")
-include("insulated/compressed_radiant_temperature.jl")
 include("insulated/mean_skin_temperature.jl")
+include("radial_layers.jl")
+include("half_shapes.jl")
 include("insulated/net_metabolic_heat.jl")
-include("insulated/skin_and_insulation_temperature.jl")
+include("insulated/surface_exchange.jl")
+include("part.jl")
+include("sides.jl")
 include("solve_metabolic_rate.jl")
+include("compartments.jl")
+include("heat_balance_problem.jl")
 include("nlp_interface.jl")
 include("examples.jl")
 include("display.jl")

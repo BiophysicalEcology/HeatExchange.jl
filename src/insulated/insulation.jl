@@ -124,27 +124,49 @@ Compute parameters for heat conduction and longwave radiation through insulation
 - `insulation_test`: Bare-skin test parameter (zero if no insulation).
 - `conductivity_compressed`: Conductivity of compressed ventral insulation (W/m/K).
 """
+# Positive when the dorsal fur has any fibres, zero when the skin is bare.
+_insulation_test((; dorsal)::InsulationParameters) = (dorsal.density * dorsal.diameter) * (dorsal.length * dorsal.depth)
+
+# The fibres averaged over the body, of the back, and of the belly, where the belly's
+# blend towards the back's as less of the body is ventral. `ventral_fraction` has its
+# kink at 2v = 1, and `scale = 0.01` keeps a smoothed kink well inside [0, 1].
+function _fibres((; dorsal, ventral)::InsulationParameters, ventral_fraction; smoothing::SmoothingStrategy=HardBound())
+    average = interpolate(dorsal, ventral, ventral_fraction)
+    ventral_adjusted = interpolate(dorsal, ventral, safe_min(smoothing, ventral_fraction * 2.0, 1.0; scale=0.01))
+    BodyRegionValues(average, dorsal, ventral_adjusted)
+end
+
+"""
+    interpolate(a::FibreProperties, b::FibreProperties, t::Number)
+    interpolate(a::Number, b::Number, t)
+
+Linearly interpolate between two `FibreProperties` objects.
+
+Returns `a * (1 - t) + b * t` for each field.
+"""
+function interpolate(a::FibreProperties, b::FibreProperties, t::Number)
+    # Explicit field-by-field construction. The `map(getproperties(a),
+    # getproperties(b))` + kwarg-splatted `setproperties` indirection used to
+    # produce a heap allocation per call when this function was reached
+    # through Enzyme.Forward — Enzyme could not erase the intermediate
+    # NamedTuple. Going direct lets the compiler keep the result on the stack.
+    FibreProperties(
+        interpolate(a.diameter,     b.diameter,     t),
+        interpolate(a.length,       b.length,       t),
+        interpolate(a.density,      b.density,      t),
+        interpolate(a.depth,        b.depth,        t),
+        interpolate(a.reflectance,  b.reflectance,  t),
+        interpolate(a.conductivity, b.conductivity, t),
+    )
+end
+interpolate(a::Number, b::Number, t::Number) = a * (1 - t) + b * t
+
 function insulation_properties(insulation::InsulationParameters, insulation_temperature, ventral_fraction;
                                smoothing::SmoothingStrategy=HardBound())
-    (; dorsal, ventral, depth_compressed) = insulation
-
-    # Physical constants
+    (; depth_compressed) = insulation
     air_conductivity = dry_air_properties(insulation_temperature).thermal_conductivity
-
-    # Bare-skin test (dorsal only)
-    insulation_test = (dorsal.density * dorsal.diameter) * (dorsal.length * dorsal.depth)
-
-    # Weighted average fibre properties
-    avg_fibres = interpolate(dorsal, ventral, ventral_fraction)
-
-    # Adjusted ventral values (accounting for partial insulation coverage).
-    # `ventral_fraction` is dimensionless in [0, 1]; the kink is at `2v = 1`.
-    # `scale = 0.01` (vs the default `oneunit(...) = 1.0`) tightens the
-    # SmoothBound transition to a fractional width of 0.01·ε around the kink —
-    # well inside the [0, 1] range without overlapping the physical extremes.
-    ventral_adj = interpolate(dorsal, ventral, safe_min(smoothing, ventral_fraction * 2.0, 1.0; scale=0.01))
-
-    fibres = BodyRegionValues(avg_fibres, dorsal, ventral_adj)
+    insulation_test = _insulation_test(insulation)
+    fibres = _fibres(insulation, ventral_fraction; smoothing)
 
     # Bare-skin (zero density / depth / length) makes `insulation_thermal_conductivity`
     # divide by zero, so we can't use a `mask * value` blend — IEEE keeps NaN through

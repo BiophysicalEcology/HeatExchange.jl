@@ -1,5 +1,5 @@
 """
-    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, conductance_coefficient, longwave_depth_fraction, conduction_fraction, evaporation_flow, substrate_temperature)
+    radiant_temperature(; body, insulation, insulation_pars, org_temps, conductivities, side, conductance_coefficient, conduction_fraction, evaporation_flow, substrate_temperature)
 
 Calculate the radiant temperature at the insulation surface for longwave radiation exchange.
 
@@ -14,7 +14,6 @@ heat conduction equations through the insulation layer.
 - `conductivities::ThermalConductivities`: Thermal conductivities (flesh, fat, insulation)
 - `side`: Body side (`:dorsal` or `:ventral`)
 - `conductance_coefficient`: Substrate conductance coefficient
-- `longwave_depth_fraction`: Fraction of insulation depth for longwave exchange
 - `conduction_fraction`: Fraction of body in contact with substrate
 - `evaporation_flow`: Evaporative heat loss
 - `substrate_temperature`: Substrate temperature
@@ -34,7 +33,6 @@ function radiant_temperature(;
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature,
@@ -49,15 +47,22 @@ function radiant_temperature(;
         conductivities,
         side,
         conductance_coefficient,
-        longwave_depth_fraction,
         conduction_fraction,
         evaporation_flow,
         substrate_temperature;
         smoothing,
     )
 end
+
+# The curved skin area over the skin radius, from the volume so that a half has half of
+# it: 2π·length for a cylinder, 4π·radius for a sphere. A plate is solved as a cylinder
+# of its length.
+_area_over_radius(::AbstractCylindrical, body) = 2 * body.geometry.volume / skin_radius(body)^2
+_area_over_radius(::AbstractSpherical, body) = 3 * body.geometry.volume / skin_radius(body)^2
+_area_over_radius(::AbstractSlab, body) = 2π * body.geometry.length.length_skin
+
 function radiant_temperature(
-    shape::Union{Cylinder,Plate},
+    shape::Union{AbstractCylindrical,AbstractSlab},
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -65,26 +70,26 @@ function radiant_temperature(
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
+    (; longwave_depth_fraction) = insulation_pars
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
     insulation_depth = _side_value(insulation.fibres, side).depth
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
+    r_radiation = r_skin + longwave_depth_fraction * insulation_depth
     compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
-    length = body.geometry.length.length_skin
+    area_over_radius = _area_over_radius(shape, body)
 
     compression_fraction =
-        (conduction_fraction * 2 * π * compressed_conductivity * length) / log(r_compressed / r_skin)
+        (conduction_fraction * area_over_radius * compressed_conductivity) / log(r_compressed / r_skin)
     compressed_insulation_temperature = safe_gated_ratio(
         conduction_fraction,
         compression_fraction * skin_temperature + conductance_coefficient * substrate_temperature,
@@ -100,15 +105,15 @@ function radiant_temperature(
 
     geometric_divisor =
         1 +
-        ((2 * π * length * r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
-        ((2 * π * length * r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
+        ((area_over_radius * r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
+        ((area_over_radius * r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
     evaporative_divisor =
         evaporation_flow * ((r_flesh^2 * total_conductance) / (4 * conductivities.flesh * volume)) +
         evaporation_flow * ((r_flesh^2 * total_conductance) / (2 * conductivities.fat * volume)) * log(r_skin / r_flesh)
 
     numerator_divisor =
-        ((2 * π * length) / geometric_divisor) *
+        (area_over_radius / geometric_divisor) *
         (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) *
         r_flesh^2 / (2 * volume)
 
@@ -135,7 +140,7 @@ function radiant_temperature(
     return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)
 end
 function radiant_temperature(
-    shape::Sphere,
+    shape::AbstractSpherical,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -143,25 +148,26 @@ function radiant_temperature(
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
+    (; longwave_depth_fraction) = insulation_pars
 
     volume = flesh_volume(body)
     r_skin = skin_radius(body)
     r_flesh = flesh_radius(body)
     r_insulation = insulation_radius(body)
     insulation_depth = _side_value(insulation.fibres, side).depth
-    r_radiation = r_skin + insulation_pars.longwave_depth_fraction * insulation_depth
+    r_radiation = r_skin + longwave_depth_fraction * insulation_depth
     compressed_conductivity = insulation.conductivity_compressed
     r_compressed = r_skin + insulation_pars.depth_compressed
+    area_over_radius = _area_over_radius(shape, body)
 
     compression_fraction =
-        (conduction_fraction * 4 * π * compressed_conductivity * r_compressed * r_skin) /
+        (conduction_fraction * area_over_radius * compressed_conductivity * r_compressed) /
         (r_compressed - r_skin)
 
     compressed_insulation_temperature = safe_gated_ratio(
@@ -183,8 +189,8 @@ function radiant_temperature(
 
     geometric_divisor =
         1 +
-        ((4 * π * r_skin * r_flesh^2 * total_conductance) / (6 * conductivities.flesh * volume)) +
-        ((4 * π * r_skin * r_flesh^3 * total_conductance) / (3 * conductivities.fat * volume)) *
+        ((area_over_radius * r_flesh^2 * total_conductance) / (6 * conductivities.flesh * volume)) +
+        ((area_over_radius * r_flesh^3 * total_conductance) / (3 * conductivities.fat * volume)) *
         ((r_skin - r_flesh) / (r_flesh * r_skin))
 
     evaporative_divisor =
@@ -194,7 +200,7 @@ function radiant_temperature(
         ((r_skin - r_flesh) / (r_flesh * r_skin))
 
     numerator_divisor =
-        ((4 * π * r_skin) / geometric_divisor) *
+        (area_over_radius / geometric_divisor) *
         (core_temperature * total_conductance - evaporative_divisor - compressed_insulation_temperature * compressed_conductance - insulation_temperature * uncompressed_conductance) *
         r_flesh^3 / (3 * volume * r_radiation)
 
@@ -223,7 +229,7 @@ function radiant_temperature(
     return (; radiant_temperature, compressed_insulation_temperature, conductances, divisors)
 end
 function radiant_temperature(
-    shape::Ellipsoid,
+    shape::AbstractEllipsoidal,
     body::AbstractBody,
     insulation::InsulationProperties,
     insulation_pars::InsulationParameters,
@@ -231,23 +237,18 @@ function radiant_temperature(
     conductivities::ThermalConductivities,
     side,
     conductance_coefficient,
-    longwave_depth_fraction,
     conduction_fraction,
     evaporation_flow,
     substrate_temperature;
     smoothing::SmoothingStrategy=HardBound(),
 )
     (; core_temperature, skin_temperature, insulation_temperature) = org_temps
+    (; longwave_depth_fraction) = insulation_pars
 
     volume = flesh_volume(body)
 
-    a_semi_major = body.geometry.length.a_semi_major_skin
-    b_semi_minor = body.geometry.length.b_semi_minor_skin
-    c_semi_minor = body.geometry.length.c_semi_minor_skin
-    fat = body.geometry.length.fat
-    a_semi_major_flesh = a_semi_major - fat
-    b_semi_minor_flesh = b_semi_minor - fat
-    c_semi_minor_flesh = c_semi_minor - fat
+    a_semi_major, b_semi_minor, c_semi_minor = BiophysicalGeometry.skin_semiaxes(body.geometry.length)
+    a_semi_major_flesh, b_semi_minor_flesh, c_semi_minor_flesh = BiophysicalGeometry.flesh_semiaxes(body.geometry.length)
 
     insulation_depth = _side_value(insulation.fibres, side).depth
     compressed_conductivity = insulation.conductivity_compressed
