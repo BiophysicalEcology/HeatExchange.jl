@@ -242,7 +242,7 @@ metabolic_heat_flow = metabolic_rate((StandardMetabolicRate(), Squamate()), mass
 resp_out = respiration(
     MetabolicRates(; metabolic=metabolic_heat_flow),
     RespirationParameters(; oxygen_extraction_efficiency, pant, respiratory_quotient),
-    AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure),
+    AtmosphericConditions(; relative_humidity, wind_speed, atmospheric_pressure),
     mass,
     core_temperature,  # lung_temperature
     air_temperature;
@@ -322,7 +322,7 @@ convection_heat_flow = conv_out.convection_flow
 
 # evaporation
 evap_pars_test = AnimalEvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction=1.0)
-atmos_test = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
+atmos_test = AtmosphericConditions(; relative_humidity, wind_speed, atmospheric_pressure)
 evap_out = evaporation(evap_pars_test, conv_out.mass_transfer_coefficient, atmos_test, A_convection, skin_temperature, air_temperature; water_potential=ψ_org, gas_fractions)
 evaporation_heat_flow = evap_out.evaporation_heat_flow
 

@@ -14,7 +14,7 @@ using UnitfulMoles
     air_temperature      = u"K"(30.0u"°C")
     surface_temperature  = u"K"(35.0u"°C")
     area                 = 0.01u"m^2"
-    atmos = AtmosphericConditions(0.2, 2.0u"m/s", 101325.0u"Pa")
+    atmos = AtmosphericConditions(; relative_humidity = 0.2, wind_speed = 2.0u"m/s", atmospheric_pressure = 101325.0u"Pa")
 
     leaf_pars = LeafEvaporationParameters(;
         abaxial_vapour_conductance = 0.3u"mol/m^2/s",

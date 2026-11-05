@@ -418,7 +418,7 @@ function heat_balance(
     # Skin evaporation (uses mass transfer coefficients from convection call)
     # -------------------------------------------------------------------------
     evap_pars_skin = AnimalEvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction)
-    atmos_local = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
+    atmos_local = AtmosphericConditions(; relative_humidity, wind_speed, atmospheric_pressure)
     skin_evaporation_heat_flow = evaporation(
         evap_pars_skin,
         conv.mass_transfer_coefficient,

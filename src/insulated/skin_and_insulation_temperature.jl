@@ -180,7 +180,7 @@ function solve_without_insulation!(
                 eye_fraction,
                 bare_skin_fraction,
             )
-            atmos_local = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
+            atmos_local = AtmosphericConditions(; relative_humidity, wind_speed, atmospheric_pressure)
             skin_evaporation_flow = evaporation(
                 evap_pars_local,
                 conv.mass_transfer_coefficient,
@@ -358,7 +358,7 @@ function solve_with_insulation!(
                 eye_fraction,
                 bare_skin_fraction,
             )
-            atmos_skin = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
+            atmos_skin = AtmosphericConditions(; relative_humidity, wind_speed, atmospheric_pressure)
             skin_evaporation_flow = evaporation(
                 evap_pars_skin,
                 conv.mass_transfer_coefficient,

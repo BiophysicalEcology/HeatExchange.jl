@@ -220,7 +220,6 @@ struct ViewFactors{T1,T2,T3,T4}
 end
 
 """
-    AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
     AtmosphericConditions(; relative_humidity, vapour_density, wind_speed, atmospheric_pressure)
 
 Atmospheric conditions for heat exchange calculations.
@@ -247,12 +246,14 @@ struct AtmosphericConditions{T1,T2,T3,T4}
             relative_humidity, wind_speed, atmospheric_pressure, vapour_density)
     end
 end
+# Only for backwards compatibility: use keywords, which say which humidity is given
 AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure) =
     AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure, nothing)
 AtmosphericConditions(; relative_humidity=nothing, vapour_density=nothing, wind_speed, atmospheric_pressure) =
     AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure, vapour_density)
 function AtmosphericConditions(environment_vars::AbstractEnvironmentalVars)
-    AtmosphericConditions(environment_vars.relative_humidity, environment_vars.wind_speed, environment_vars.atmospheric_pressure)
+    (; relative_humidity, wind_speed, atmospheric_pressure) = environment_vars
+    AtmosphericConditions(; relative_humidity, wind_speed, atmospheric_pressure)
 end
 
 # Water vapour density of the air at `air_temperature`
