@@ -220,23 +220,45 @@ struct ViewFactors{T1,T2,T3,T4}
 end
 
 """
-    AtmosphericConditions{T1,T2,T3}
+    AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
+    AtmosphericConditions(; relative_humidity, vapour_density, wind_speed, atmospheric_pressure)
 
 Atmospheric conditions for heat exchange calculations.
 
+The air's humidity is either a relative humidity or a vapour density. Give one, and
+the other is `nothing`. Vapour density can describe supersaturated air, which a
+relative humidity limited to 1 can't. [`respiration`](@ref) needs a relative humidity.
+
 # Fields
-- `relative_humidity::T1` — Relative humidity (fraction 0-1)
+- `relative_humidity::T1` — Relative humidity (fraction 0-1), or `nothing`
 - `wind_speed::T2` — Wind speed
 - `atmospheric_pressure::T3` — Atmospheric pressure
+- `vapour_density::T4` — Water vapour density of the air, or `nothing`
 """
-struct AtmosphericConditions{T1,T2,T3}
+struct AtmosphericConditions{T1,T2,T3,T4}
     relative_humidity::T1
     wind_speed::T2
     atmospheric_pressure::T3
+    vapour_density::T4
+    function AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure, vapour_density)
+        isnothing(relative_humidity) == isnothing(vapour_density) &&
+            throw(ArgumentError("Give either relative_humidity or vapour_density"))
+        return new{typeof(relative_humidity),typeof(wind_speed),typeof(atmospheric_pressure),typeof(vapour_density)}(
+            relative_humidity, wind_speed, atmospheric_pressure, vapour_density)
+    end
 end
+AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure) =
+    AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure, nothing)
+AtmosphericConditions(; relative_humidity=nothing, vapour_density=nothing, wind_speed, atmospheric_pressure) =
+    AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure, vapour_density)
 function AtmosphericConditions(environment_vars::AbstractEnvironmentalVars)
     AtmosphericConditions(environment_vars.relative_humidity, environment_vars.wind_speed, environment_vars.atmospheric_pressure)
 end
+
+# Water vapour density of the air at `air_temperature`
+air_vapour_density(atmos::AtmosphericConditions, air_temperature; gas_fractions) =
+    wet_air_properties(air_temperature, atmos.relative_humidity, atmos.atmospheric_pressure; gas_fractions).vapour_density
+air_vapour_density(atmos::AtmosphericConditions{Nothing}, air_temperature; gas_fractions) = atmos.vapour_density
 
 """
     ThermalConductivities{F,FA,I}

@@ -46,6 +46,24 @@ using UnitfulMoles
     out_dry = evaporation(leaf_pars, mass_windy, atmos, area, surface_temperature, air_temperature;
         water_potential = -1e6u"J/kg")
     @test out_dry.evaporation_heat_flow < out.evaporation_heat_flow
+
+    # The same air as a vapour density gives the same evaporation
+    vapour_density = HeatExchange.wet_air_properties(air_temperature, 0.2, 101325.0u"Pa").vapour_density
+    vapour_atmos = AtmosphericConditions(; vapour_density, wind_speed = 2.0u"m/s", atmospheric_pressure = 101325.0u"Pa")
+    @test isnothing(vapour_atmos.relative_humidity)
+    @test isnothing(atmos.vapour_density)
+    @test evaporation(leaf_pars, mass_windy, vapour_atmos, area, surface_temperature, air_temperature).transpiration_mass_flow ≈
+        out.transpiration_mass_flow
+    # Supersaturated air condenses onto a leaf at air temperature, more the more supersaturated
+    saturated = HeatExchange.wet_air_properties(air_temperature, 1.0, 101325.0u"Pa").vapour_density
+    dew(excess) = evaporation(leaf_pars, mass_windy, AtmosphericConditions(; vapour_density = saturated * excess,
+        wind_speed = 2.0u"m/s", atmospheric_pressure = 101325.0u"Pa"), area, air_temperature, air_temperature).transpiration_mass_flow
+    @test dew(1.05) < 0.0u"g/s"
+    @test dew(1.1) < dew(1.05)
+    # Exactly one humidity must be given
+    @test_throws ArgumentError AtmosphericConditions(; wind_speed = 2.0u"m/s", atmospheric_pressure = 101325.0u"Pa")
+    @test_throws ArgumentError AtmosphericConditions(; relative_humidity = 0.2, vapour_density,
+        wind_speed = 2.0u"m/s", atmospheric_pressure = 101325.0u"Pa")
 end
 
 @testset "SimpleForcedCorrelation" begin

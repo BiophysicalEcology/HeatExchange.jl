@@ -397,15 +397,12 @@ function nusselt_forced(shape::Union{Ellipsoid,Sphere,AllometricShape}, reynolds
     0.35 * reynolds_number ^ 0.6 # from McAdams, W.H. 1954. Heat Transmission. McGraw-Hill, New York, p.532
 end
 
-function _vapour_densities(surface_temperature, air_temperature, water_potential,
-                           relative_humidity, atmospheric_pressure; gas_fractions)
+function _vapour_densities(surface_temperature, air_temperature, water_potential, atmos; gas_fractions)
     molar_mass_water = (u"kg"(1u"molH₂O")) / 1u"mol"
     rh_surf = exp(water_potential / (Unitful.R / molar_mass_water * surface_temperature))
     surface_vapour_density =
-        wet_air_properties(surface_temperature, rh_surf, atmospheric_pressure; gas_fractions).vapour_density
-    air_vapour_density =
-        wet_air_properties(air_temperature, relative_humidity, atmospheric_pressure; gas_fractions).vapour_density
-    return (; surface_vapour_density, air_vapour_density)
+        wet_air_properties(surface_temperature, rh_surf, atmos.atmospheric_pressure; gas_fractions).vapour_density
+    return (; surface_vapour_density, air_vapour_density=air_vapour_density(atmos, air_temperature; gas_fractions))
 end
 
 """
@@ -440,7 +437,6 @@ function evaporation(
     gas_fractions::GasFractions=GasFractions(),
 )
     (; skin_wetness, eye_fraction, bare_skin_fraction) = evap_pars
-    (; relative_humidity, atmospheric_pressure) = atmos
 
     # effective areas for evaporation, partitioned into eye, insulated and bare
     effective_area_eye = area * eye_fraction
@@ -448,8 +444,7 @@ function evaporation(
     effective_area_bare = (area - effective_area_eye) * skin_wetness * bare_skin_fraction
 
     (; surface_vapour_density, air_vapour_density) = _vapour_densities(
-        surface_temperature, air_temperature, water_potential,
-        relative_humidity, atmospheric_pressure; gas_fractions,
+        surface_temperature, air_temperature, water_potential, atmos; gas_fractions,
     )
 
     # mass of water lost
@@ -504,7 +499,7 @@ function evaporation(
     gas_fractions::GasFractions=GasFractions(),
 )
     (; abaxial_vapour_conductance, adaxial_vapour_conductance, cuticular_conductance) = evap_pars
-    (; relative_humidity, atmospheric_pressure) = atmos
+    (; atmospheric_pressure) = atmos
 
     # convert stomatal conductances from mol/m²/s → m/s via ideal gas: h = g_mol × R·T/P
     molar_volume_air = Unitful.R * air_temperature / atmospheric_pressure
@@ -524,8 +519,7 @@ function evaporation(
 
     # vapour density at leaf surface and in air (same as animal evaporation)
     (; surface_vapour_density, air_vapour_density) = _vapour_densities(
-        surface_temperature, air_temperature, water_potential,
-        relative_humidity, atmospheric_pressure; gas_fractions,
+        surface_temperature, air_temperature, water_potential, atmos; gas_fractions,
     )
 
     # transpiration mass flux and latent heat
