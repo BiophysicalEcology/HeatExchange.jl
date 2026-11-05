@@ -110,6 +110,7 @@ export ConductanceCoeffs,
 
 export CharacteristicDimFormula, VolumeCubeRoot, ScaledDimension, characteristic_dimension
 export ConvectionCorrelation, ShapeCorrelation, SimpleForcedCorrelation
+export TemperatureDifferenceModel, ExactTemperatureDifference, SmoothTemperatureDifference
 
 export metabolic_rate
 

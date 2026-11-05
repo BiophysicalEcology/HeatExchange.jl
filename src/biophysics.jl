@@ -206,6 +206,8 @@ Calculate combined free and forced convective heat transfer for an organism.
 - `gas_fractions::GasFractions`: Gas fractions for air properties (default: `GasFractions()`)
 - `convection_enhancement`: Enhancement factor for forced convection (default: 1.0)
 - `correlation::ConvectionCorrelation`: Nusselt-number correlation to use (default: `ShapeCorrelation()`)
+- `temperature_difference_model::TemperatureDifferenceModel`: How free convection takes `|ΔT|`
+  (default: `ExactTemperatureDifference()`)
 
 # Returns
 NamedTuple with:
@@ -226,6 +228,7 @@ function convection(;
     characteristic_dimension_formula::CharacteristicDimFormula=VolumeCubeRoot(),
     smoothing::SmoothingStrategy=HardBound(),
     correlation::ConvectionCorrelation=ShapeCorrelation(),
+    temperature_difference_model::TemperatureDifferenceModel=ExactTemperatureDifference(),
 )
     thermal_expansion_coefficient = 1 / air_temperature
     characteristic_dim = characteristic_dimension(characteristic_dimension_formula, body)
@@ -239,13 +242,14 @@ function convection(;
     # free convection
     prandtl_number = cp_fluid * dynamic_viscosity / u"J/s/K/m"(fluid_conductivity)
     schmidt_number = _schmidt_number(fluid, dynamic_viscosity, fluid_density, vapour_diffusivity)
-    # |ΔT| in the Grashof number. HardBound uses exact `abs`; SmoothBound replaces
+    # |ΔT| in the Grashof number, by `temperature_difference_model`. For
+    # ExactTemperatureDifference, HardBound uses exact `abs`; SmoothBound replaces
     # it with sqrt(ΔT² + (ε·scale)²) so Enzyme reverse-mode does not see a kink at
     # ΔT = 0 (which produced NaN gradients when the optimiser landed there).
     # scale = 1 K — typical ΔT during simulation is 1–50 K, so ε·1K stays below
     # the meaningful signal at any sensible ε.
     ΔT = surface_temperature - air_temperature
-    temperature_difference = safe_abs(smoothing, ΔT; scale=1.0u"K")
+    temperature_difference = free_convection_temperature_difference(temperature_difference_model, smoothing, ΔT)
     # AD-safety floor on temperature_difference. The Grashof number is linear
     # in `temperature_difference`, and `nusselt_free` then raises it to a
     # fractional power (`grashof^(1/4)` for Sphere/Ellipsoid; a piecewise
