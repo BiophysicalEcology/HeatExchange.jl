@@ -381,7 +381,7 @@ function heat_balance(
     F = view_factors
     air_temperature   = T.air
     substrate_temperature = T.substrate
-    (; relative_humidity, wind_speed, atmospheric_pressure) = atmos
+    (; wind_speed, atmospheric_pressure) = atmos
     (; fat_conductivity, ϵ_body, insulation_wetness, bare_skin_fraction, eye_fraction) = traits
 
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
@@ -418,11 +418,10 @@ function heat_balance(
     # Skin evaporation (uses mass transfer coefficients from convection call)
     # -------------------------------------------------------------------------
     evap_pars_skin = AnimalEvaporationParameters(; skin_wetness, eye_fraction, bare_skin_fraction)
-    atmos_local = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
     skin_evaporation_heat_flow = evaporation(
         evap_pars_skin,
         conv.mass_transfer_coefficient,
-        atmos_local,
+        atmos,
         area_evaporation,
         skin_temperature,
         air_temperature;
@@ -453,7 +452,7 @@ function heat_balance(
 
     # Insulation surface evaporation (conditional on fixed params, outside differentiable path)
     insulation_evaporation_heat_flow = _insulation_evaporation(
-        conv, atmos_local, area_convection, insulation_temperature, air_temperature,
+        conv, atmos, area_convection, insulation_temperature, air_temperature,
         insulation_wetness, insulation.insulation_test; gas_fractions, smoothing)
 
     # -------------------------------------------------------------------------
@@ -522,7 +521,7 @@ function heat_balance(
     resp_out = respiration(
         MetabolicRates(; metabolic = metabolic_heat_flow, sum = metabolic_heat_flow, minimum = minimum_metabolic_heat),
         resp_pars_effective,
-        atmos_local,
+        atmos,
         body.shape.mass,
         lung_temperature,
         air_temperature;

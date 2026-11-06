@@ -186,7 +186,7 @@ env_d = (;
         bush       = 0.0,
         vegetation = vegetation_factor * 2.0,
     ),
-    atmos = (
+    atmos = AtmosphericConditions(;
         relative_humidity    = environment_vars.relative_humidity,
         wind_speed           = environment_vars.wind_speed,
         atmospheric_pressure = environment_vars.atmospheric_pressure,

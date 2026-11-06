@@ -143,7 +143,7 @@ function solve_without_insulation!(
     T = temperature
     F = view_factors
     air_temperature = T.air
-    (; relative_humidity, wind_speed, atmospheric_pressure) = atmos
+    (; wind_speed, atmospheric_pressure) = atmos
     (; core_temperature, flesh_conductivity, ϵ_body, skin_wetness, bare_skin_fraction, eye_fraction) = traits
     tolerance = temperature_tolerance
     σ = Unitful.uconvert(u"W/m^2/K^4", Unitful.σ)
@@ -180,11 +180,10 @@ function solve_without_insulation!(
                 eye_fraction,
                 bare_skin_fraction,
             )
-            atmos_local = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
             skin_evaporation_flow = evaporation(
                 evap_pars_local,
                 conv.mass_transfer_coefficient,
-                atmos_local,
+                atmos,
                 area_evaporation,
                 skin_temperature,
                 air_temperature;
@@ -303,7 +302,7 @@ function solve_with_insulation!(
     F = view_factors
     air_temperature = T.air
     substrate_temperature = T.substrate
-    (; relative_humidity, wind_speed, atmospheric_pressure) = atmos
+    (; wind_speed, atmospheric_pressure) = atmos
     (;
         core_temperature,
         flesh_conductivity,
@@ -358,11 +357,10 @@ function solve_with_insulation!(
                 eye_fraction,
                 bare_skin_fraction,
             )
-            atmos_skin = AtmosphericConditions(relative_humidity, wind_speed, atmospheric_pressure)
             skin_evaporation_flow = evaporation(
                 evap_pars_skin,
                 conv.mass_transfer_coefficient,
-                atmos_skin,
+                atmos,
                 area_evaporation,
                 skin_temperature,
                 air_temperature;
@@ -370,7 +368,7 @@ function solve_with_insulation!(
             ).evaporation_heat_flow
             # second from insulation
             insulation_evaporation_heat_flow = _insulation_evaporation(
-                conv, atmos_skin, area_convection, insulation_temperature, air_temperature,
+                conv, atmos, area_convection, insulation_temperature, air_temperature,
                 insulation_wetness, insulation_test; gas_fractions, smoothing)
             # Recompute insulation thermal properties for current temperatures
             (; insulation_conductivity, effective_conductivity) = _insulation_conductivity(
