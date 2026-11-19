@@ -78,6 +78,10 @@ end
     # No free-convection term: zero wind gives zero convective flow.
     calm = convection(; common..., wind_speed=0.0u"m/s", correlation=SimpleForcedCorrelation())
     @test calm.convection_flow == 0.0u"W"
+    # With free convection, still air leaves only it
+    still = convection(; common..., wind_speed=0.0u"m/s")
+    @test iszero(still.heat_transfer_coefficient.forced)
+    @test still.heat_transfer_coefficient.combined ≈ still.heat_transfer_coefficient.free
 
     # Nusselt correlation, not shape, drives forced convection: same
     # Reynolds number gives the same Nu regardless of shape argument.
