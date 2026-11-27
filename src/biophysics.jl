@@ -283,7 +283,9 @@ function convection(;
     free_mass_transfer_coefficient = free_sherwood_number * vapour_diffusivity / characteristic_dim # mass transfer coefficient, free
     free_convection_flow = free_heat_transfer_coefficient * area * (surface_temperature - air_temperature) # free convective heat loss at surface
     # forced convection
-    forced_nusselt_number = nusselt_forced(correlation, body.shape, reynolds_number) * convection_enhancement
+    # Zero wind means zero forced convection; computing it would give a NaN derivative
+    forced_nusselt_number = iszero(reynolds_number) ? zero(reynolds_number) :
+        nusselt_forced(correlation, body.shape, reynolds_number) * convection_enhancement
     # forced convection for object
     forced_heat_transfer_coefficient = forced_nusselt_number * fluid_conductivity / characteristic_dim # heat transfer coefficient, forced
     forced_sherwood_number = forced_nusselt_number * cbrt(schmidt_number / prandtl_number) # Sherwood number, forced
